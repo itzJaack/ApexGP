@@ -31,6 +31,9 @@ export async function prepareModelAssets({readAsset=null,readImage=null,onProgre
  const levels=quality==='low'?['low','distant']:['high','race'];
  const names=[...new Set([...Object.values(manifest.bikes),manifest.rider].flatMap(b=>levels.map(l=>b[l]||b.race)))].filter(n=>!SOURCE_MODELS.has(n)&&!PARSED_MODELS.has(n));
  let done=0,next=0;const work=async()=>{while(next<names.length){const name=names[next++];SOURCE_MODELS.set(name,await decompress(await binary(name)));onProgress(++done,names.length);}};await Promise.all(Array.from({length:3},work));
+ const keep=new Set([...Object.values(manifest.bikes),manifest.rider].flatMap(b=>levels.map(l=>b[l]||b.race)));
+ for(const path of SOURCE_MODELS.keys())if(!keep.has(path))SOURCE_MODELS.delete(path);
+ for(const path of PARSED_MODELS.keys())if(!keep.has(path))PARSED_MODELS.delete(path);
  if(!assetsReady)for(const [id,path]of Object.entries(manifest.materials))MATERIAL_LIBRARIES.set(id,parseMTL(new TextDecoder().decode(await binary(path))));
  if(!assetsReady)for(const[id,path]of Object.entries(manifest.textures)){
   const data=await binary(path);let image;
