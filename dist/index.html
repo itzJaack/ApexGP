@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#101215">
+  <meta name="description" content="APEX GP. Entra in pista in un gioco di corse in moto 3D: gare contro avversari, cronometro, dieci circuiti, dieci moto, carriera e multiplayer Internet e LAN, con comandi da tastiera o touch.">
+  <title>APEX GP 4.0 — Ride the limit</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23121417'/%3E%3Cpath d='M12 47 30 14h12L28 47zm19 0 12-23h10L41 47z' fill='%23ff6033'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="accounts.css">
+</head>
+<body>
+  <canvas id="world" aria-label="Circuito di corse in moto 3D"></canvas>
+  <div class="film-grain" aria-hidden="true"></div>
+  <div id="loading" class="loading"><span class="brand">APEX<span>GP</span><i></i></span><span class="load-line"></span><p>PREPARIAMO LA PISTA</p></div>
+
+  <main id="menu" class="menu hidden">
+    <header class="topbar">
+      <a class="brand" href="#" aria-label="APEX GP, menu principale">APEX<span>GP</span><i></i><small class="build-version">v4.0</small></a>
+      <nav aria-label="Menu"><button class="nav-link active" data-page="race">CORRI</button><button class="nav-link" data-page="garage">GARAGE</button><button class="nav-link" data-page="workshop">OFFICINA</button><button class="nav-link" data-page="lan">MULTIPLAYER</button><button id="social-nav" class="nav-link" aria-haspopup="dialog" aria-controls="social-overlay">AMICI</button><button class="nav-link" data-page="settings">IMPOSTAZIONI</button></nav>
+      <button id="account-nav" class="account-nav" aria-haspopup="dialog" aria-controls="account-overlay">ACCEDI</button><div class="profile"><span class="profile-icon">27</span><span><b id="profile-name">JACK</b><small id="wallet">12.000 CR</small></span></div>
+    </header>
+    <section class="hero">
+      <div class="eyebrow"><span class="orange-line"></span> MOTORCYCLE RACING EXPERIENCE <span class="v-tag">PADDOCK EDITION</span></div>
+      <h1>RIDE THE<br><span>LIMIT.</span></h1>
+      <p>La staccata. La piega. Il sorpasso.<br>Il prossimo giro è tutto tuo.</p>
+      <div class="hero-stats"><div><strong id="hero-power">270</strong><span>CV DI POTENZA</span></div><div><strong id="hero-top">320</strong><span>KM/H MAX</span></div><div><strong>01</strong><span>OBIETTIVO: VINCERE</span></div></div>
+    </section>
+    <div class="bike-caption"><span class="live-dot"></span><span id="hero-bike">DUCATI / DESMOSEDICI GP</span><small id="hero-displacement">1000 cc · PROTOTYPE</small></div>
+    <section id="race-panel" class="setup-panel page-panel">
+      <div class="panel-top"><span class="eyebrow">IL TUO PROSSIMO START</span><span class="small-tag">10 CIRCUITI · 10 MOTO</span></div>
+      <div class="modes" role="group" aria-label="Modalità di gioco">
+        <button class="mode active" data-mode="race"><svg viewBox="0 0 24 24"><path d="M5 21V3m0 1h6l2 3h7v10h-7l-2-3H5"/></svg><span>Gran Premio<small>8 piloti. Una sola vittoria.</small></span><span class="radio"></span></button>
+        <button class="mode" data-mode="time"><svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v5l3 2M9 2h6m-3 0v3m6 1 2-2"/></svg><span>Cronometro<small>Insegui il tuo giro perfetto.</small></span><span class="radio"></span></button>
+      </div>
+      <div class="selection-label"><label for="track-select">CIRCUITO <span id="track-new" class="new-track hidden">NEW</span></label><span id="track-index">01 / 10</span></div><select id="track-select" class="track-dropdown" aria-label="Scegli uno dei dieci circuiti"></select>
+      <div class="track-selector"><button id="prev-track" class="square-button" aria-label="Circuito precedente">‹</button><div class="track-info"><span id="track-country" class="eyebrow">ITALIA / COLLINE</span><strong id="track-name">Mugello</strong><span id="track-spec">2,8 km · 15 curve</span><small id="track-character" class="track-character"></small></div><svg id="track-preview" viewBox="0 0 160 105" aria-label="Mappa del circuito"></svg><button id="next-track" class="square-button" aria-label="Circuito successivo">›</button></div>
+      <div class="race-options"><label>GIRI<select id="laps-select"><option value="2">2 giri</option><option value="3" selected>3 giri</option><option value="5">5 giri</option></select></label><label>AVVERSARI<select id="difficulty-select"><option value="rookie">Rookie</option><option value="sport" selected>Sport</option><option value="pro">Pro</option></select></label><label>METEO<select id="weather-select"><option value="sunset" selected>Tramonto</option><option value="day">Sereno</option><option value="rain">Pioggia</option></select></label></div>
+      <button id="start-button" class="primary-button"><span>SCENDI IN PISTA</span><svg viewBox="0 0 24 24"><path d="M4 12h15m-6-6 6 6-6 6"/></svg></button>
+      <div class="panel-note"><span class="live-dot"></span> Cambio automatico · Accedi per sincronizzare i progressi</div>
+    </section>
+    <section id="garage-panel" class="setup-panel page-panel hidden">
+      <div class="panel-top"><span class="eyebrow">SCEGLI LA TUA MOTO</span><span class="small-tag">10 PROTOTIPI</span></div>
+      <h2>Il tuo stile.<br>La tua macchina.</h2>
+      <div id="bike-list" class="bike-list" role="group" aria-label="Dieci moto disponibili"></div><p id="garage-character" class="garage-character"></p>
+      <p class="muted">Modelli originali ispirati a moto reali, con prestazioni arcade. Guadagna crediti in gara e sviluppa la tua moto in officina.</p>
+      <button class="primary-button" data-page="race"><span>PRONTO A CORRERE</span><span>→</span></button>
+    </section>
+    <section id="workshop-panel" class="setup-panel page-panel hidden">
+      <div class="panel-top"><span class="eyebrow">SVILUPPO & CARRIERA</span><span class="small-tag" id="workshop-wallet">12.000 CR</span></div>
+      <h2>Ogni gara.<br>Un passo avanti.</h2>
+      <label class="field-label" for="workshop-bike">MOTO SELEZIONATA</label><select id="workshop-bike" class="track-dropdown"></select>
+      <p id="workshop-summary" class="muted"></p><button id="buy-bike" class="primary-button hidden">ACQUISTA MOTO</button>
+      <div id="upgrade-list" class="upgrade-list"></div>
+      <label class="field-label" for="livery-select">LIVREA</label><select id="livery-select" class="track-dropdown"><option value="factory">Factory · sponsor racing</option><option value="heritage">Heritage · fasce classiche</option><option value="stealth">Stealth · carbonio e dettagli</option></select>
+      <p id="shop-status" class="shop-status" role="status"></p>
+      <p class="muted">Completa le gare per guadagnare crediti. Le moto già presenti nella 2.1 restano nel tuo garage. Accedi per salvare i progressi online. Puoi anche esportare una copia o importare la carriera dal vecchio HTML.</p>
+      <div class="backup-actions"><button id="backup-export" class="text-button">Esporta salvataggio</button><button id="backup-import" class="text-button">Importa salvataggio</button><input id="backup-file" type="file" accept="application/json,.json" class="hidden"></div>
+    </section>
+    <section id="lan-panel" class="setup-panel page-panel hidden">
+      <div class="panel-top"><span class="eyebrow">INTERNET / RETE LOCALE</span><span class="small-tag">2–8 COMPUTER</span></div><h2>Ovunque.<br>Stessa griglia.</h2>
+      <p id="network-help" class="muted">Ogni giocatore apre ApexGP dal browser. Supabase inoltra solo i dati della gara.</p>
+      <label class="field-label" for="net-backend">CONNESSIONE</label><select id="net-backend" class="track-dropdown"><option value="supabase">Supabase · traffico ridotto</option><option value="lan">Server LAN / tunnel</option></select>
+      <details id="cloud-config"><summary>Configurazione server · avanzata</summary><label class="field-label" for="cloud-url">URL PROGETTO SUPABASE</label><input id="cloud-url" placeholder="https://progetto.supabase.co" autocomplete="off"><label class="field-label" for="cloud-key">CHIAVE PUBLISHABLE</label><input id="cloud-key" placeholder="sb_publishable_…" autocomplete="off" spellcheck="false"><small class="muted">Server ApexGP già configurato. Questi campi servono solo per cambiare progetto.</small></details>
+      <div id="local-config" class="hidden"><label class="field-label" for="lan-server">INDIRIZZO DEL SERVER</label><input id="lan-server" placeholder="192.168.1.10:8765" autocomplete="off"></div><button id="social-open" class="secondary-button social-open-button">AMICI E INVITI</button><button id="lan-connect" class="secondary-button">COLLEGATI</button>
+      <label class="field-label" for="lan-name">NOME PILOTA</label><input id="lan-name" maxlength="16" autocomplete="off" placeholder="Il tuo nome">
+      <div class="lan-join"><button id="lan-create" class="primary-button">CREA STANZA</button><div class="input-row"><input id="lan-code" maxlength="2048" placeholder="CODICE O INVITO" autocomplete="off"><button id="lan-join" class="secondary-button">UNISCITI</button></div></div>
+      <p id="lan-status" class="shop-status" role="status">Non collegato</p>
+      <div id="lan-room" class="hidden">
+        <div class="room-heading">STANZA <strong id="lan-room-code">—</strong><span id="lan-latency">— ms</span></div>
+        <p id="lan-options" class="muted"></p>
+        <div class="lobby-settings">
+          <label class="field-label" for="lobby-bike">LA TUA MOTO</label><select id="lobby-bike" class="track-dropdown"></select>
+          <label class="field-label" for="lobby-track">CIRCUITO <small>SOLO HOST</small></label><select id="lobby-track" class="track-dropdown"></select>
+          <label class="toggle-row lobby-bots"><span>Avversari IA <small id="lobby-bot-count">Riempi la griglia fino a 8 piloti.</small></span><input id="lobby-bots" type="checkbox"><span class="toggle"></span></label>
+          <p id="lobby-edit-note" class="muted" role="status">Le modifiche richiedono una nuova conferma Pronto.</p>
+        </div>
+        <div id="lan-players"></div>
+        <div class="input-row"><button id="lan-ready" class="secondary-button">PRONTO</button><button id="lan-start" class="primary-button">AVVIA GARA</button></div>
+        <button id="lobby-friends" class="secondary-button social-open-button">INVITA AMICI</button><p id="lan-traffic" class="muted">DATI ↑ — · ↓ — KB/s</p><button id="copy-invite" class="secondary-button hidden">COPIA INVITO</button><div id="invite-output" class="hidden"><input id="cloud-invite" readonly aria-label="Invito per gli amici"></div><button id="lan-leave" class="text-button">Lascia stanza</button>
+      </div>
+      <p class="muted">Cambia moto direttamente qui. Il creatore può cambiare circuito e bot senza creare una nuova stanza. Giri e meteo iniziali si scelgono da Corri. In multiplayer si usano moto di serie.</p>
+    </section>
+    <section id="settings-panel" class="setup-panel page-panel hidden">
+      <div class="panel-top"><span class="eyebrow">CONFIGURA LA CORSA</span><span class="small-tag">PREFERENZE LOCALI</span></div>
+      <h2>Trova il tuo<br>ritmo.</h2>
+      <label class="toggle-row"><span>Traiettoria ideale<small>Verde: accelera. Arancione: frena.</small></span><input id="line-toggle" type="checkbox" checked><span class="toggle"></span></label>
+      <label class="toggle-row"><span>Stabilizzazione dello sterzo<small>Smussa i comandi. Le curve le fai tu.</small></span><input id="assist-toggle" type="checkbox" checked><span class="toggle"></span></label>
+      <label class="toggle-row"><span>Controllo di trazione<small>Modula la potenza in piega.</small></span><input id="tcs-toggle" type="checkbox" checked><span class="toggle"></span></label><label class="toggle-row"><span>Audio di gara<small>Motori, marce, gomme, vento e avversari stereo.</small></span><input id="audio-toggle" type="checkbox" checked><span class="toggle"></span></label>
+      <label class="range-row">VOLUME<input id="volume-range" type="range" min="0" max="100" value="45" aria-label="Volume audio"></label>
+      <label class="range-row">GRAFICA<select id="quality-select"><option value="high">Cinema</option><option value="low">Prestazioni · GPU integrata</option></select></label>
+      <p id="performance-note" class="muted">Prestazioni: risoluzione adattiva fino a 720p, modelli leggeri e dettagli visibili a distanza ridotta. La qualità grafica resta una scelta di questo dispositivo.</p>
+      <button id="show-controls" class="text-button">Tutti i comandi ↗</button>
+    </section>
+    <footer class="menu-footer"><span><b class="key">W</b><b class="key">A</b><b class="key">S</b><b class="key">D</b> O FRECCE <i></i> GUIDA <span class="footer-extra"><b class="key">C</b> VISUALE <b class="key">ESC</b> PAUSA</span></span><span class="footer-brand">APEX GP <span>/</span> ISPIRATO AL MONDO DEI GRAN PREMI</span></footer>
+  </main>
+
+  <section id="hud" class="hud hidden" aria-label="Telemetria di gara">
+    <div class="hud-top">
+      <div class="position-block"><span id="position">8</span><div>POSIZIONE<small id="position-total">/ 8</small></div></div>
+      <div class="lap-block"><span>GIRO</span><strong id="lap">1 <small>/ 3</small></strong></div>
+      <div class="lap-time"><span>TEMPO GIRO</span><strong id="lap-time">00:00.000</strong><small id="best-time">BEST —</small></div>
+      <div class="hud-actions"><button id="camera-button" class="hud-button" aria-label="Cambia visuale" title="Cambia visuale (C)"><svg viewBox="0 0 24 24"><path d="M3 7h5l2-3h4l2 3h5v13H3z"/><circle cx="12" cy="13" r="4"/></svg></button><button id="sound-button" class="hud-button" aria-label="Attiva o disattiva audio"><svg viewBox="0 0 24 24"><path d="m11 4-6 5H2v6h3l6 5zm4 4a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14"/></svg></button><button id="social-hud" class="hud-button" aria-label="Apri amici" title="Amici e inviti"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 21v-2a6 6 0 0 1 12 0v2M17 5a3 3 0 0 1 0 6m1 4a5 5 0 0 1 3 6"/></svg><small id="social-badge" class="social-badge hidden"></small></button><button id="pause-button" class="hud-button" aria-label="Metti in pausa"><svg viewBox="0 0 24 24"><path d="M8 5v14M16 5v14"/></svg></button></div>
+    </div>
+    <small id="hud-network" class="hud-network"></small><div id="flag-panel" class="flag-panel" role="status"><span id="flag-icon">▰</span><div><b id="flag-label">VERDE</b><small id="flag-text">Pista libera</small></div></div><div id="leaderboard" class="leaderboard"></div>
+    <div id="race-message" class="race-message" role="status"></div>
+    <div id="countdown" class="countdown hidden" aria-live="assertive"><span>3</span><small>PREPARATI</small></div>
+    <div class="hud-bottom"><div class="circuit-hud"><div class="eyebrow" id="hud-track">MUGELLO</div><canvas id="minimap" width="240" height="180" aria-label="Mappa e posizione dei piloti"></canvas><div class="surface"><span class="live-dot"></span><span id="surface-label">ASCIUTTO</span><b id="delta-label">—</b></div></div>
+      <div class="driving-hint"><span id="corner-hint">TROVA IL TUO RITMO</span><div><b class="key">A</b><b class="key">D</b> PIEGA <b class="key">S</b> FRENA <span><b class="key">R</b> RIENTRA</span></div></div>
+      <div class="telemetry"><div class="rpm-bars" id="rpm-bars"></div><div class="speed-row"><div class="gear"><span>MARCIA</span><strong id="gear">1</strong><small>AUTO</small></div><div class="speed"><strong id="speed">000</strong><span>KM/H</span></div></div><div class="telemetry-foot"><span>PIEGA <b id="lean-value">0°</b></span><span>GRIP <b id="grip-value">100%</b></span><span>STERZO <b id="steering-value">—</b></span><span id="wheelie-status" class="hidden">IMPENNATA +BOOST</span><span id="tcs-status" class="hidden">TCS</span><span id="slipstream" class="hidden">SCIA ↑</span></div></div>
+    </div>
+    <div id="touch-controls" class="touch-controls"><div><button data-control="left" aria-label="Sterza a sinistra">◀</button><button data-control="right" aria-label="Sterza a destra">▶</button><button data-control="wheelie" class="wheelie-button" aria-label="Impenna">↑ MOTO</button></div><div><button class="brake" data-control="brake">FRENO</button><button class="throttle" data-control="throttle">GAS</button></div></div>
+  </section>
+
+  <div id="pause-overlay" class="overlay hidden"><section class="modal pause-modal"><span class="eyebrow">APEX GP / PIT STOP</span><h2>Prendi fiato.</h2><p id="pause-description">Il cronometro si è fermato. La pista ti aspetta.</p><button id="resume-button" class="primary-button"><span>RIPRENDI LA CORSA</span><span>→</span></button><button id="restart-button" class="secondary-button">RICOMINCIA</button><button id="menu-button" class="text-button">Torna al paddock</button><div class="controls-summary"><span><b>W / ↑</b> Gas</span><span><b>S / ↓ / SPAZIO</b> Freno</span><span><b>A D / ← →</b> Sterzo</span><span><b>C</b> Visuale</span><span><b>R</b> Rientra in pista</span><span><b>M</b> Audio</span><span><b>ESC / P</b> Pausa</span><span><b>F</b> Schermo intero</span></div></section></div>
+  <div id="result-overlay" class="overlay hidden"><section class="modal result-modal"><span class="eyebrow" id="result-eyebrow">BANDIERA A SCACCHI</span><h2 id="result-title">Gara conclusa.</h2><p id="result-subtitle"></p><div class="result-stats"><div><span>POSIZIONE</span><strong id="result-position">1°</strong></div><div><span>GIRO MIGLIORE</span><strong id="result-best">—</strong></div><div><span>TEMPO TOTALE</span><strong id="result-total">—</strong></div></div><p id="result-credits" class="result-credits"></p><div id="result-table"></div><button id="race-again" class="primary-button"><span>UN'ALTRA CORSA</span><span>→</span></button><button id="result-menu" class="text-button">Torna al paddock</button></section></div>
+  <div id="controls-overlay" class="overlay hidden"><section class="modal"><span class="eyebrow">IL PRIMO GIRO</span><h2>Entra in ritmo.</h2><p>Accelera sul rettilineo, frena prima della curva e accompagna la moto verso l'apice. A inclina a sinistra, D a destra. La piega cresce progressivamente. Rilascia il gas e frena per stringere il raggio: frenata e sterzo ora lavorano insieme. Rilasciando i tasti, la moto si raddrizza con inerzia. La scia di chi ti precede ti dà un piccolo vantaggio.</p><div class="controls-summary"><span><b>W / ↑</b> Gas</span><span><b>S / ↓ / SPAZIO</b> Freno</span><span><b>A / ←</b> Sterza a sinistra</span><span><b>D / →</b> Sterza a destra</span><span><b>SHIFT</b> Impenna · boost +7,5%</span><span><b>C</b> Visuale: chase / casco</span><span><b>R</b> Rientra in pista (+2 s)</span><span><b>M</b> Audio</span><span><b>ESC / P</b> Pausa</span><span><b>F</b> Schermo intero</span></div><p class="muted">Shift alza progressivamente l’avantreno e dà un lieve boost. Forzare la curva in impennata o urtare forte un avversario provoca una caduta. Il freno abbassa l’avantreno. La pioggia riduce l'aderenza. Fuori pista perdi velocità. La stabilizzazione rende lo sterzo più morbido; la traiettoria resta manuale. Su touch, usa i pulsanti in basso.</p><button id="close-controls" class="primary-button">CI SONO</button></section></div>
+
+  <aside id="social-notice" class="social-notice hidden" aria-live="polite"><span id="social-notice-text"></span><button id="social-notice-open">APRI AMICI</button></aside>
+  <div id="social-overlay" class="overlay social-overlay hidden">
+    <section class="modal social-modal" role="dialog" aria-modal="true" aria-labelledby="social-title">
+      <div class="social-heading"><span class="eyebrow">APEX GP / LA TUA GRIGLIA</span><button id="social-close" class="text-button" aria-label="Chiudi amici">CHIUDI ×</button></div>
+      <h2 id="social-title">Amici in pista.</h2><p id="social-profile" class="social-profile">IL TUO PROFILO PILOTA</p>
+      <div id="social-register"><p class="muted">Scegli un nome univoco. Gli amici lo useranno per trovarti una sola volta.</p><form id="social-create-form"><label class="field-label" for="social-username">IL TUO NOME UNIVOCO</label><div class="input-row"><input id="social-username" placeholder="es. jack_gp" minlength="3" maxlength="20" pattern="[a-zA-Z0-9_]{3,20}" autocomplete="off" required><button id="social-create-button" class="primary-button" type="submit">CREA PROFILO</button></div></form><p class="muted">Da 3 a 20 lettere, numeri o trattini bassi. Il nome sarà visibile agli altri piloti.</p></div>
+      <p id="social-status" class="shop-status" role="status"></p>
+      <div id="social-content" class="hidden">
+        <form id="social-add-form"><label class="field-label" for="social-friend-name">AGGIUNGI UN AMICO</label><div class="input-row"><input id="social-friend-name" placeholder="@nome_del_tuo_amico" maxlength="21" autocomplete="off" required><button id="social-add-button" class="secondary-button" type="submit">AGGIUNGI</button></div></form>
+        <p id="social-invite-hint" class="muted"></p>
+        <div class="social-section-title"><h3>Inviti alla lobby</h3><button id="social-refresh" class="text-button">Aggiorna</button></div><div id="social-invites"></div>
+        <h3 class="social-section-title">Richieste di amicizia</h3><div id="social-requests"></div><div id="social-outgoing"></div>
+        <h3 class="social-section-title">I tuoi amici <small id="social-friend-count">0</small></h3><div id="social-friends"></div>
+        <p id="social-save-note" class="muted"></p><button id="social-export" class="text-button">Salva accesso al profilo</button>
+      </div>
+      <div class="social-recovery"><button id="social-import" class="text-button">Importa accesso al profilo</button><input id="social-access-file" class="hidden" type="file" accept="application/json,.json"></div>
+    </section>
+  </div>
+  <div id="error-overlay" class="overlay hidden"><section class="modal"><span class="eyebrow">APEX GP</span><h2>Serve un pit stop.</h2><p id="error-text"></p><button class="primary-button" onclick="location.reload()">RIPROVA</button><button id="compat-button" class="secondary-button" onclick="location.href=location.pathname+'?view=top'">Gioca nella vista dall’alto</button></section></div>
+  <div id="account-overlay" class="overlay hidden">
+    <section class="modal account-modal" role="dialog" aria-modal="true" aria-labelledby="account-name">
+      <div class="social-heading"><span class="eyebrow">APEX GP / IL TUO ACCOUNT</span><button id="account-close" class="text-button">CHIUDI ×</button></div>
+      <h2 id="account-name">La tua carriera. Ovunque.</h2>
+      <p id="account-status" class="shop-status" role="status" aria-live="polite"></p>
+      <div id="account-guest">
+        <p class="muted">Accedi per ritrovare crediti, moto, potenziamenti, livree, record e amici su ogni dispositivo.</p>
+        <div class="account-tabs"><button type="button" data-auth-mode="login">Accedi</button><button type="button" data-auth-mode="signup">Registrati</button><button type="button" data-auth-mode="reset">Recupera</button></div>
+        <form id="account-form">
+          <label class="field-label" for="account-username">NOME UTENTE</label><input id="account-username" autocomplete="username" required minlength="3" maxlength="20" pattern="[a-zA-Z0-9_]{3,20}" placeholder="es. jack_gp">
+          <div id="account-recovery-input-row" class="hidden"><label class="field-label" for="account-recovery-input">CODICE DI RECUPERO</label><input id="account-recovery-input" autocomplete="off" spellcheck="false" maxlength="100"></div>
+          <div id="account-password-row"><label id="account-password-label" class="field-label" for="account-password">PASSWORD</label><input id="account-password" type="password" autocomplete="current-password" minlength="8" maxlength="128" required></div>
+          <button id="account-submit" type="submit" class="primary-button">ACCEDI</button>
+        </form>
+        <p class="muted">Puoi continuare come ospite chiudendo questa finestra. Per conservare gli amici del vecchio HTML, importa il file di accesso in Amici prima di registrarti. Importa poi la vecchia carriera dall’Officina dopo l’accesso.</p>
+      </div>
+      <div id="account-signed" class="hidden">
+        <p id="account-email-label" class="muted"></p>
+        <div class="account-stats"><span><b id="account-races">0</b>GARE</span><span><b id="account-wins">0</b>VITTORIE</span><span><b id="account-bikes">0</b>MOTO</span></div>
+        <p class="muted">Il salvataggio avviene dopo le gare, gli acquisti e le modifiche. Gli amici sono collegati al tuo account.</p>
+        <button id="account-retry" class="secondary-button">RIPROVA SINCRONIZZAZIONE</button>
+        <button id="account-import-guest" class="text-button">Usa la carriera ospite di questo browser</button>
+        <p class="muted">Questa scelta sostituisce la carriera dell’account. Una copia precedente resta salvata su questo dispositivo.</p>
+        <button id="account-rotate-code" class="text-button">Crea un nuovo codice di recupero</button><button id="account-signout" class="text-button">Esci dall’account</button>
+      </div>
+      <div id="account-conflict" class="account-conflict hidden"><p>Ci sono progressi diversi su due dispositivi. I progressi locali sono conservati.</p><button id="account-use-cloud" class="secondary-button">CARICA IL CLOUD</button><button id="account-use-local" class="text-button">Sostituisci il cloud con questo dispositivo</button></div>
+      <div id="account-recovery-box" class="account-conflict hidden"><p><b>Salva il tuo codice di recupero.</b> Consente di reimpostare la password: conservalo per te. Resta valido fino a quando ne crei uno nuovo dal profilo.</p><input id="account-recovery-value" readonly aria-label="Codice personale di recupero" spellcheck="false"><button id="account-download-code" class="secondary-button">SALVA CODICE DI RECUPERO</button></div>
+    </section>
+  </div>
+  <script type="module" src="game.js"></script>
+</body>
+</html>

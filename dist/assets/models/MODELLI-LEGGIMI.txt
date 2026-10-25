@@ -1,0 +1,9 @@
+APEXGP 3.1 - MODELLI ORIGINALI
+
+Apri i file .obj in Blender o in un altro modellatore con supporto Wavefront. Mantieni i file .mtl accanto agli OBJ e la cartella textures accanto ai materiali. Scala in metri, asse Y in alto, fronte +Z.
+
+Le versioni high sono i modelli principali. Le versioni race sono alleggerite per gli avversari. Le ruote sono esportate montate sulla moto. Il centro di rotazione si trova a Y=0.312, Z=+interasse/2 (anteriore), Y=0.326, Z=-interasse/2 (posteriore). Body, steering, glass, ruote e decalcomanie sono oggetti separati. Il pilota è separato dalla moto; i gruppi suit_logo e suit_number hanno UV dedicate.
+
+Il gioco decomprime e importa i veri file OBJ, mantenendo normali, UV e assegnazioni materiali. Le immagini PNG sono originali e trasparenti. I numeri di gara vengono personalizzati nel gioco. Carrozzeria e tuta ricevono i colori della squadra. Le geometrie sorgenti si possono ricreare con art/create_models.py (Python, NumPy, SciPy e Pillow).
+
+Creati per ApexGP. Marchi, sponsor e modelli sono di fantasia.

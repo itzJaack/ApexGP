@@ -1,0 +1,19 @@
+{
+  "name": "apex-gp",
+  "version": "4.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "node tools/check.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "dev": "python server.py --port 4173 --no-browser",
+    "build": "node tools/build-client.mjs && node tools/build-catalog.mjs",
+    "models:low": "node tools/build-lod.mjs"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "2.118.0"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2"
+  }
+}

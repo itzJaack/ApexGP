@@ -1,0 +1,11 @@
+node_modules/
+__pycache__/
+*.pyc
+.env*
+!.env.example
+APEX-GP-*.html
+artifacts/
+test-results/
+dist/assets/models/*.obj
+SHA256SUMS.txt
+

@@ -1,0 +1,19 @@
+import json,sys,unittest
+from pathlib import Path
+ROOT=Path(__file__).resolve().parents[1];sys.path.insert(0,str(ROOT))
+from server import Hub
+class LobbyTests(unittest.TestCase):
+ def setUp(self):
+  self.now=1000.;self.hub=Hub(json.loads((ROOT/'data/race-data.json').read_text()),lambda:self.now);self.a=self.hub.add(lambda m:None);self.b=self.hub.add(lambda m:None);self.hub.handle(self.a,{'type':'create','name':'A','bikeId':'r27','options':{'trackId':'toscana','laps':2}});self.code=self.hub.players[self.a]['room'];self.r=self.hub.rooms[self.code];self.hub.handle(self.b,{'type':'join','name':'B','bikeId':'v4','code':self.code})
+ def send(self,p,kind,**fields):self.hub.handle(p,{'type':kind,**fields})
+ def ready(self):
+  for p in [self.a,self.b]:self.send(p,'ready',ready=True)
+ def test_same_room_edits_own_bike_host_track_and_bots_with_readiness(self):
+  self.ready();self.send(self.b,'settings',options={'trackId':'atlas','bots':True});self.assertEqual(self.r['options']['trackId'],'toscana');self.assertTrue(all(self.hub.players[p]['ready'] for p in self.r['players']));self.send(self.b,'bike',bikeId='v2c',livery='heritage');self.assertEqual(self.hub.players[self.b]['bikeId'],'v2c');self.assertFalse(any(self.hub.players[p]['ready'] for p in self.r['players']));self.ready();self.send(self.b,'bike',bikeId='v2c',livery='heritage');self.send(self.a,'settings',options={'trackId':'invalid','bots':'true'});self.assertTrue(all(self.hub.players[p]['ready'] for p in self.r['players']));self.send(self.a,'settings',options={'trackId':'atlas','bots':True});state=self.hub.room_state(self.r);self.assertEqual(state['code'],self.code);self.assertEqual(state['options']['trackId'],'atlas');self.assertEqual(len(state['players']),2);self.assertEqual(len(state['bots']),6);self.assertFalse(any(p['ready'] for p in state['players']));self.ready();self.send(self.a,'start');self.send(self.b,'bike',bikeId='r27');self.send(self.a,'settings',options={'bots':False});self.assertEqual(self.hub.players[self.b]['bikeId'],'v2c');self.assertTrue(self.r['options']['bots'])
+ def test_one_human_starts_with_seven_bots_and_finish_reports_are_host_only_validated(self):
+  self.hub.leave(self.b);self.send(self.a,'settings',options={'bots':True});self.send(self.a,'ready',ready=True);self.send(self.a,'start');self.assertEqual(self.r['status'],'race');self.assertEqual(len(self.r['bots']),7);self.now+=4.1;self.send(self.a,'bot_finish',id='bot-0',time=1);self.assertIsNone(self.r['bots'][0]['finishTime']);self.now+=250
+  for i in range(7):self.send(self.a,'bot_finish',id='bot-'+str(i),time=200+i)
+  self.assertEqual(self.r['bots'][0]['finishTime'],200);self.send(self.a,'bot_finish',id='bot-0',time=240);self.assertEqual(self.r['bots'][0]['finishTime'],200);self.now+=41;self.hub.tick();self.assertEqual(self.r['status'],'finished');state=self.hub.room_state(self.r);self.assertEqual(state['order'][-1],self.a);self.assertEqual(len(state['order']),8);elapsed=state['elapsed'];self.now+=5;self.assertEqual(self.hub.room_state(self.r)['elapsed'],elapsed);self.send(self.a,'lobby');self.send(self.a,'settings',options={'trackId':'canyon','bots':False});self.assertEqual(self.r['code'],self.code);self.assertEqual(len(self.hub.room_state(self.r)['bots']),0)
+ def test_bot_caution_timeline_is_shared_and_race_clock_freezes(self):
+  self.send(self.a,'settings',options={'bots':True});self.ready();self.send(self.a,'start');self.now+=24;self.send(self.a,'incident',severity=2);self.assertEqual(self.r['botPhases'][-1]['rate'],.3);self.now+=5;self.send(self.a,'incident',severity=3);elapsed=self.hub.elapsed(self.r);self.assertEqual(self.r['botPhases'][-1]['rate'],0);self.now+=7.1;self.hub.tick();self.assertEqual(self.r['flag'],'green');self.assertAlmostEqual(self.hub.elapsed(self.r),elapsed);self.assertEqual(self.r['botPhases'][-1]['rate'],1)
+if __name__=='__main__':unittest.main()
