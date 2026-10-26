@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="accounts.css">
   <link rel="stylesheet" href="mobile.css">
+  <link rel="stylesheet" href="social.css">
 </head>
 <body>
   <canvas id="world" aria-label="Circuito di corse in moto 3D"></canvas>
@@ -62,14 +63,14 @@
     <section id="lan-panel" class="setup-panel page-panel hidden">
       <div class="panel-top"><span class="eyebrow">INTERNET / RETE LOCALE</span><span class="small-tag">2–8 DISPOSITIVI</span></div><h2>Ovunque.<br>Stessa griglia.</h2>
       <p id="network-help" class="muted">Ogni giocatore apre ApexGP dal browser. Supabase inoltra solo i dati della gara.</p>
-      <label class="field-label" for="net-backend">CONNESSIONE</label><select id="net-backend" class="track-dropdown"><option value="supabase">Supabase · traffico ridotto</option><option value="lan">Server LAN / tunnel</option></select>
+      <details id="connection-options" class="connection-options"><summary>Opzioni di connessione</summary><label class="field-label" for="net-backend">CONNESSIONE</label><select id="net-backend" class="track-dropdown"><option value="supabase">Supabase · traffico ridotto</option><option value="lan">Server LAN / tunnel</option></select>
       <details id="cloud-config"><summary>Configurazione server · avanzata</summary><label class="field-label" for="cloud-url">URL PROGETTO SUPABASE</label><input id="cloud-url" placeholder="https://progetto.supabase.co" autocomplete="off"><label class="field-label" for="cloud-key">CHIAVE PUBLISHABLE</label><input id="cloud-key" placeholder="sb_publishable_…" autocomplete="off" spellcheck="false"><small class="muted">Server ApexGP già configurato. Questi campi servono solo per cambiare progetto.</small></details>
-      <div id="local-config" class="hidden"><label class="field-label" for="lan-server">INDIRIZZO DEL SERVER</label><input id="lan-server" placeholder="192.168.1.10:8765" autocomplete="off"></div><button id="social-open" class="secondary-button social-open-button">AMICI E INVITI</button><button id="lan-connect" class="secondary-button">COLLEGATI</button>
-      <label class="field-label" for="lan-name">NOME PILOTA</label><input id="lan-name" maxlength="16" autocomplete="off" placeholder="Il tuo nome">
-      <div class="lan-join"><button id="lan-create" class="primary-button">CREA STANZA</button><div class="input-row"><input id="lan-code" maxlength="2048" placeholder="CODICE O INVITO" autocomplete="off"><button id="lan-join" class="secondary-button">UNISCITI</button></div></div>
+      <div id="local-config" class="hidden"><label class="field-label" for="lan-server">INDIRIZZO DEL SERVER</label><input id="lan-server" placeholder="192.168.1.10:8765" autocomplete="off"></div><button id="lan-connect" class="secondary-button">VERIFICA CONNESSIONE</button></details><button id="social-open" class="secondary-button social-open-button">APRI AMICI E PROFILI</button>
+      <div id="lobby-entry"><label class="field-label" for="lan-name">IL TUO NOME IN GARA</label><input id="lan-name" maxlength="16" autocomplete="off" placeholder="Il tuo nome">
+      <div class="lan-join"><button id="lan-create" class="primary-button">CREA UNA LOBBY</button><div class="input-row"><input id="lan-code" maxlength="2048" placeholder="Codice lobby o invito" autocomplete="off"><button id="lan-join" class="secondary-button">ENTRA IN LOBBY</button></div></div></div>
       <p id="lan-status" class="shop-status" role="status">Non collegato</p>
       <div id="lan-room" class="hidden">
-        <div class="room-heading">STANZA <strong id="lan-room-code">—</strong><span id="lan-latency">— ms</span></div>
+        <div class="room-heading">CODICE LOBBY <strong id="lan-room-code">—</strong><span id="lan-latency">— ms</span></div>
         <p id="lan-options" class="muted"></p>
         <div class="lobby-settings">
           <label class="field-label" for="lobby-bike">LA TUA MOTO</label><select id="lobby-bike" class="track-dropdown"></select>
@@ -77,9 +78,9 @@
           <label class="toggle-row lobby-bots"><span>Avversari IA <small id="lobby-bot-count">Riempi la griglia fino a 8 piloti.</small></span><input id="lobby-bots" type="checkbox"><span class="toggle"></span></label>
           <p id="lobby-edit-note" class="muted" role="status">Le modifiche richiedono una nuova conferma Pronto.</p>
         </div>
-        <div id="lan-players"></div>
+        <h3 class="lobby-roster-title">PILOTI NELLA LOBBY</h3><div id="lan-players"></div><p id="lan-social-status" class="shop-status" role="status" aria-live="polite"></p>
         <div class="input-row"><button id="lan-ready" class="secondary-button">PRONTO</button><button id="lan-start" class="primary-button">AVVIA GARA</button></div>
-        <button id="lobby-friends" class="secondary-button social-open-button">INVITA AMICI</button><p id="lan-traffic" class="muted">DATI ↑ — · ↓ — KB/s</p><button id="copy-invite" class="secondary-button hidden">COPIA INVITO</button><div id="invite-output" class="hidden"><input id="cloud-invite" readonly aria-label="Invito per gli amici"></div><button id="lan-leave" class="text-button">Lascia stanza</button>
+        <p id="lobby-start-help" class="muted" role="status"></p><button id="lobby-friends" class="secondary-button social-open-button">INVITA AMICI IN QUESTA LOBBY</button><p id="lan-traffic" class="muted">DATI ↑ — · ↓ — KB/s</p><button id="copy-invite" class="secondary-button hidden">COPIA INVITO</button><div id="invite-output" class="hidden"><input id="cloud-invite" readonly aria-label="Invito per gli amici"></div><button id="lan-leave" class="text-button">Esci dalla lobby</button>
       </div>
       <p class="muted">Cambia moto direttamente qui. Il creatore può cambiare circuito e bot senza creare una nuova stanza. Giri e meteo iniziali si scelgono da Corri. In multiplayer si usano moto di serie.</p>
     </section>
@@ -125,18 +126,28 @@
   <div id="social-overlay" class="overlay social-overlay hidden">
     <section class="modal social-modal" role="dialog" aria-modal="true" aria-labelledby="social-title">
       <div class="social-heading"><span class="eyebrow">APEX GP / LA TUA GRIGLIA</span><button id="social-close" class="text-button" aria-label="Chiudi amici">CHIUDI ×</button></div>
-      <h2 id="social-title">Amici in pista.</h2><p id="social-profile" class="social-profile">IL TUO PROFILO PILOTA</p>
-      <div id="social-register"><p class="muted">Scegli un nome univoco. Gli amici lo useranno per trovarti una sola volta.</p><form id="social-create-form"><label class="field-label" for="social-username">IL TUO NOME UNIVOCO</label><div class="input-row"><input id="social-username" placeholder="es. jack_gp" minlength="3" maxlength="20" pattern="[a-zA-Z0-9_]{3,20}" autocomplete="off" required><button id="social-create-button" class="primary-button" type="submit">CREA PROFILO</button></div></form><p class="muted">Da 3 a 20 lettere, numeri o trattini bassi. Il nome sarà visibile agli altri piloti.</p></div>
-      <p id="social-status" class="shop-status" role="status"></p>
-      <div id="social-content" class="hidden">
-        <form id="social-add-form"><label class="field-label" for="social-friend-name">AGGIUNGI UN AMICO</label><div class="input-row"><input id="social-friend-name" placeholder="@nome_del_tuo_amico" maxlength="21" autocomplete="off" required><button id="social-add-button" class="secondary-button" type="submit">AGGIUNGI</button></div></form>
-        <p id="social-invite-hint" class="muted"></p>
-        <div class="social-section-title"><h3>Inviti alla lobby</h3><button id="social-refresh" class="text-button">Aggiorna</button></div><div id="social-invites"></div>
-        <h3 class="social-section-title">Richieste di amicizia</h3><div id="social-requests"></div><div id="social-outgoing"></div>
-        <h3 class="social-section-title">I tuoi amici <small id="social-friend-count">0</small></h3><div id="social-friends"></div>
-        <p id="social-save-note" class="muted"></p><button id="social-export" class="text-button">Salva accesso al profilo</button>
+      <h2 id="social-title">Amici e piloti.</h2>
+      <button id="social-profile" class="social-profile" type="button">IL TUO PROFILO PILOTA</button>
+      <p id="social-status" class="shop-status" role="status" aria-live="polite"></p>
+      <div id="social-register">
+        <p class="muted">Accedi per aggiungere i piloti che incontri, aprire i loro profili e invitarli in lobby.</p>
+        <button id="social-login" class="primary-button">ACCEDI O REGISTRATI</button>
+        <details class="social-legacy"><summary>Hai un profilo della vecchia versione?</summary><p class="muted">Importa il tuo file con il pulsante in fondo. Puoi anche usare un profilo locale separato dall’account.</p><form id="social-create-form"><label class="field-label" for="social-username">NOME UTENTE DEL PROFILO LOCALE</label><div class="input-row"><input id="social-username" placeholder="es. jack_gp" minlength="3" maxlength="20" pattern="[a-zA-Z0-9_]{3,20}" autocomplete="off" required><button id="social-create-button" class="secondary-button" type="submit">Crea profilo locale</button></div></form></details>
       </div>
-      <div class="social-recovery"><button id="social-import" class="text-button">Importa accesso al profilo</button><input id="social-access-file" class="hidden" type="file" accept="application/json,.json"></div>
+      <div id="social-content" class="hidden">
+        <div id="social-home">
+          <form id="social-add-form"><label class="field-label" for="social-friend-name">CERCA UN PILOTA</label><div class="input-row"><input id="social-friend-name" placeholder="@nome_utente" maxlength="21" autocomplete="off" autocapitalize="none" spellcheck="false" required><button id="social-add-button" class="secondary-button" type="submit">Cerca profilo</button></div></form>
+          <div class="social-tabs" role="tablist" aria-label="Amici, richieste e inviti"><button type="button" role="tab" data-social-tab="friends" aria-controls="social-tab-friends" aria-selected="true">Amici (0)</button><button type="button" role="tab" data-social-tab="requests" aria-controls="social-tab-requests" aria-selected="false">Richieste (0)</button><button type="button" role="tab" data-social-tab="invites" aria-controls="social-tab-invites" aria-selected="false">Inviti (0)</button></div>
+          <p id="social-invite-hint" class="muted"></p>
+          <div class="social-refresh-row"><button id="social-refresh" class="text-button">Aggiorna liste</button></div>
+          <section id="social-tab-friends" role="tabpanel" aria-label="I tuoi amici"><h3 class="social-section-title">I tuoi amici <small id="social-friend-count">0</small></h3><div id="social-friends"></div></section>
+          <section id="social-tab-requests" class="hidden" role="tabpanel" aria-label="Richieste di amicizia"><h3 class="social-section-title">Richieste ricevute</h3><div id="social-requests"></div><h3 class="social-section-title">Richieste inviate</h3><div id="social-outgoing"></div></section>
+          <section id="social-tab-invites" class="hidden" role="tabpanel" aria-label="Inviti a giocare"><h3 class="social-section-title">Inviti a giocare</h3><div id="social-invites"></div></section>
+          <p id="social-save-note" class="muted"></p><button id="social-export" class="text-button">Esporta accesso al vecchio profilo</button>
+        </div>
+        <section id="social-player-view" class="hidden" aria-label="Profilo del pilota"><button id="social-profile-back" class="text-button">← TORNA AGLI AMICI</button><div id="social-player-card"></div></section>
+      </div>
+      <div class="social-recovery"><button id="social-import" class="text-button">Importa accesso al vecchio profilo</button><input id="social-access-file" class="hidden" type="file" accept="application/json,.json"></div>
     </section>
   </div>
   <div id="error-overlay" class="overlay hidden"><section class="modal"><span class="eyebrow">APEX GP</span><h2>Serve un pit stop.</h2><p id="error-text"></p><button class="primary-button" onclick="location.reload()">RIPROVA</button><button id="compat-button" class="secondary-button" onclick="location.href=location.pathname+'?view=top'">Gioca nella vista dall’alto</button></section></div>

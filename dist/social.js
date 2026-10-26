@@ -2,6 +2,7 @@ import {validateCloudConfig} from './realtime.js';
 export const SOCIAL_STORAGE_KEY='apexgp.friends.access.v1';
 export function normalizeUsername(value){return String(value||'').trim().replace(/^@/,'').toLowerCase();}
 export function validSocialAccess(data,project){return !!data&&data.version===1&&data.project===project&&typeof data.session==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.[0-9a-f]{64}$/.test(data.session);}
+export function cleanLobbyIdentity(value){return value&&/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(value.playerId||'')&&/^[a-z0-9_]{3,20}$/.test(value.username||'')&&new RegExp('^'+value.playerId+'\\.\\d{13}\\.[0-9a-f]{64}$').test(value.proof||'')?{playerId:value.playerId,username:value.username,proof:value.proof}:null;}
 export class SocialClient{
  constructor(config,{storage,fetcher=(...args)=>globalThis.fetch(...args),onUpdate=()=>{},onInvite=()=>{},getPresence=()=>({activity:'available'}),hidden=()=>globalThis.document?.hidden||false}={}){
   this.config=validateCloudConfig(config);try{this.storage=storage===undefined?globalThis.localStorage:storage;}catch{this.storage=null;}this.fetcher=fetcher;this.onUpdate=onUpdate;this.onInvite=onInvite;this.getPresence=getPresence;this.hidden=hidden;this.access=null;this.data=null;this.error='';this.message='';this.timer=null;this.pollEpoch=0;this.syncing=null;this.epoch=0;this.seen=new Set();this.saved=true;
@@ -25,8 +26,11 @@ export class SocialClient{
    if(!this.connected)return null;if(this.syncing)return this.syncing;const epoch=this.epoch;
    const task=(async()=>{try{const data=await this.call('sync',{presence:this.getPresence()});if(epoch!==this.epoch)return null;this.data=data;this.error='';if(this.accountToken)this.accountProfile=data.profile;else this.access.profile=data.profile;this.notify();return data;}catch(e){if(epoch===this.epoch){this.error=e.message;this.notify();}throw e;}finally{if(this.syncing===task)this.syncing=null;}})();this.syncing=task;return task;
  }
- async mutate(action,body){const result=await this.call(action,body);this.message=result.message||'';this.error='';await this.refresh();return result;}
+ async mutate(action,body){const epoch=this.epoch,result=await this.call(action,body);if(epoch!==this.epoch)return null;this.message=result.message||'';this.error='';if(this.syncing)try{await this.syncing;}catch{}if(epoch!==this.epoch)return null;await this.refresh();return result;}
  request(username){return this.mutate('request',{username:normalizeUsername(username)});}
+ requestId(playerId){return this.mutate('request',{playerId});}
+ async viewProfile(target){const epoch=this.epoch,result=await this.call('profile',target);if(epoch!==this.epoch)throw Error('Il profilo attivo è cambiato. Riapri la scheda del pilota.');return result;}
+ lobbyIdentity(roomCode,peerId){return this.call('lobby_identity',{roomCode,peerId});}
  respond(id,accept){return this.mutate('respond',{id,accept:!!accept});}
  remove(playerId){return this.mutate('remove',{playerId});}
  invite(playerId,roomCode,trackId){return this.mutate('invite',{playerId,roomCode,trackId});}

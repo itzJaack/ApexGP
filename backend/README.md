@@ -25,3 +25,9 @@ Le amicizie richiedono accettazione; solo gli amici possono invitarsi. Il codice
 ## Verifiche
 
 Test del client per account isolati, cache offline e conflitti. Verifiche reali su Supabase: registrazione, accesso, recupero e rigenerazione codice; due browser con sincronizzazione di un acquisto; RLS contro lettura e scrittura fra account; revisione obsoleta; amicizie, accettazione e invito fra soli profili di prova. I profili sintetici usati per queste verifiche vengono rimossi al termine.
+
+## Profili e identità della lobby
+
+Le azioni `profile` e `lobby_identity` richiedono lo stesso accesso verificato delle altre azioni social. `profile` restituisce soltanto i campi pubblici del pilota, lo stato della relazione con il chiamante e tre contatori della carriera. La lettura della carriera seleziona solo `payload->career->stats` e `payload->career->owned`; non restituisce il salvataggio o l’identificativo Auth. Non servono nuove tabelle o modifiche RLS.
+
+`lobby_identity` firma con HMAC-SHA256 l’identificativo del profilo, il nome utente, l’identificativo della connessione, il codice della lobby e una scadenza di 12 ore. Il client propaga soltanto questa attestazione pubblica nei metadati della lobby. Prima di aprire il profilo o inviare un’amicizia da una riga della lobby, il servizio verifica che l’attestazione corrisponda alla riga e non sia scaduta. Le credenziali social e le sessioni Auth non entrano nei messaggi multiplayer. La fisica multiplayer conserva il modello di fiducia descritto nel README principale.

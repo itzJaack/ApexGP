@@ -11,6 +11,38 @@ const id=value=>{if(!uuidPattern.test(String(value||'')))throw new SocialError(4
 export function createSocialHandler({url,serviceKey,fetcher=fetch,now=Date.now,cryptoImpl=crypto}){
  const fail=(status,text)=>{throw new SocialError(status,text);},iso=()=>new Date(now()).toISOString(),hash=async text=>Array.from(new Uint8Array(await cryptoImpl.subtle.digest('SHA-256',new TextEncoder().encode(text))),v=>v.toString(16).padStart(2,'0')).join('');
  const randomToken=()=>Array.from(cryptoImpl.getRandomValues(new Uint8Array(32)),v=>v.toString(16).padStart(2,'0')).join('');
+ let signingKey;
+ const getSigningKey=()=>signingKey||=cryptoImpl.subtle.importKey('raw',new TextEncoder().encode(serviceKey),{name:'HMAC',hash:'SHA-256'},false,['sign','verify']);
+ const lobbyMessage=(playerId,username,peerId,roomCode,expires)=>new TextEncoder().encode(['apexgp-lobby-v1',playerId,username,peerId,roomCode,expires].join('|'));
+ async function lobbyIdentity(p,body){
+  if(!/^[0-9a-f]{8}$/.test(body.peerId||'')||!roomPattern.test(body.roomCode||''))fail(400,'Lobby non valida.');
+  const expires=now()+12*3600000,signature=await cryptoImpl.subtle.sign('HMAC',await getSigningKey(),lobbyMessage(p.id,p.username,body.peerId,body.roomCode,expires));
+  const hex=Array.from(new Uint8Array(signature),v=>v.toString(16).padStart(2,'0')).join('');
+  return{playerId:p.id,username:p.username,proof:p.id+'.'+expires+'.'+hex};
+ }
+ async function publicProfile(p,body){
+  let target;
+  if(body.username!==undefined){const name=socialUsername(body.username);if(!/^[a-z0-9_]{3,20}$/.test(name))fail(400,'Inserisci un nome utente di 3–20 caratteri.');target={username:'eq.'+name};}
+  else target={id:'eq.'+id(body.playerId)};
+  if(body.lobby){
+   const l=body.lobby,identity=l.identity,match=String(identity?.proof||'').match(/^([0-9a-f-]{36})\.(\d{13})\.([0-9a-f]{64})$/);
+   if(!match||identity.playerId!==body.playerId||match[1]!==body.playerId||!roomPattern.test(l.roomCode||'')||!/^[0-9a-f]{8}$/.test(l.peerId||'')||!/^[a-z0-9_]{3,20}$/.test(identity.username||''))fail(400,'Questo giocatore non ha un profilo collegato alla lobby.');
+   const expires=Number(match[2]),bytes=Uint8Array.from(match[3].match(/../g),v=>parseInt(v,16));
+   if(expires<=now()||expires>now()+12*3600000||!await cryptoImpl.subtle.verify('HMAC',await getSigningKey(),bytes,lobbyMessage(body.playerId,identity.username,l.peerId,l.roomCode,expires)))fail(403,'Profilo della lobby non verificabile. Riapri la stanza e riprova.');
+  }
+  const rows=await db('apex_players',{select:'id,username,display_name,created_at,last_seen,activity,auth_user_id',...target,limit:1});
+  if(!rows?.length)fail(404,'Nessun pilota con questo nome.');const q=rows[0];
+  const edges=q.id===p.id?[]:await db('apex_friendships',{select:'id,status,requester_id',...relation(p.id,q.id),limit:1});
+  const edge=edges[0],relationship=q.id===p.id?'self':!edge?'none':edge.status==='accepted'?'friend':edge.requester_id===p.id?'outgoing':'incoming';
+  // Only these game counters are public. Credentials, credits, recovery keys,
+  // account IDs, save contents and ghost recordings never leave this handler.
+  let stats=null;
+  if(q.auth_user_id){
+   const saves=await db('apex_saves',{select:'stats:payload->career->stats,owned:payload->career->owned',user_id:'eq.'+q.auth_user_id,limit:1});
+   if(saves?.length){const s=saves[0],count=v=>Number.isFinite(v)?Math.max(0,Math.min(1000000000,Math.trunc(v))):0;stats={races:count(s.stats?.races),wins:count(s.stats?.wins),bikes:Array.isArray(s.owned)?Math.min(10,new Set(s.owned.filter(v=>typeof v==='string')).size):0};}
+  }
+  return{profile:{...pickProfile(q),joinedAt:q.created_at,online:q.activity!=='away'&&now()-Date.parse(q.last_seen)<95000,activity:q.activity,stats},relationship,relationshipId:edge?.id||null};
+ }
  async function db(table,params={},method='GET',body=null,prefer='return=representation'){
   const endpoint=new URL('/rest/v1/'+table,url);for(const[k,v]of Object.entries(params))endpoint.searchParams.set(k,String(v));
   const r=await fetcher(endpoint,{method,headers:{apikey:serviceKey,Authorization:'Bearer '+serviceKey,'Content-Type':'application/json',Prefer:prefer},body:body===null?undefined:JSON.stringify(body),signal:AbortSignal.timeout(12000)});const text=await r.text();let data;try{data=text?JSON.parse(text):null;}catch{data=null;}
@@ -100,8 +132,10 @@ export function createSocialHandler({url,serviceKey,fetcher=fetch,now=Date.now,c
    }else{
     const p=await auth(req);await limit('user:'+p.id,60000,90);
     if(action==='sync')result=await sync(p,body.presence);
+    else if(action==='lobby_identity')result=await lobbyIdentity(p,body);
+    else if(action==='profile')result=await publicProfile(p,body);
     else if(action==='request'){
-     const name=socialUsername(body.username);if(!/^[a-z0-9_]{3,20}$/.test(name))fail(400,'Inserisci il nome univoco del tuo amico.');const rows=await db('apex_players',{select:'id',username:'eq.'+name,limit:1});if(!rows.length)fail(404,'Nessun pilota con questo nome.');const target=rows[0].id;if(target===p.id)fail(400,'Questo è il tuo profilo.');const existing=await db('apex_friendships',{select:'id,status,requester_id',...relation(p.id,target),limit:1});if(existing.length){const e=existing[0];if(e.status==='accepted')fail(409,'Siete già amici.');if(e.requester_id===p.id)fail(409,'Richiesta già inviata.');await db('apex_friendships',{id:'eq.'+e.id,status:'eq.pending',addressee_id:'eq.'+p.id},'PATCH',{status:'accepted'});result={message:'Ora siete amici.'};}else{const pending=await db('apex_friendships',{select:'id',requester_id:'eq.'+p.id,status:'eq.pending',limit:30});if(pending.length>=30)fail(429,'Hai già 30 richieste in attesa.');await db('apex_friendships',{},'POST',{requester_id:p.id,addressee_id:target});result={message:'Richiesta inviata a @'+name+'.'};}
+     const name=socialUsername(body.username);if(body.playerId===undefined&&!/^[a-z0-9_]{3,20}$/.test(name))fail(400,'Inserisci il nome univoco del tuo amico.');const targetFilter=body.playerId===undefined?{username:'eq.'+name}:{id:'eq.'+id(body.playerId)};const rows=await db('apex_players',{select:'id,username',...targetFilter,limit:1});if(!rows.length)fail(404,'Nessun pilota con questo nome.');const target=rows[0].id;if(target===p.id)fail(400,'Questo è il tuo profilo.');const existing=await db('apex_friendships',{select:'id,status,requester_id',...relation(p.id,target),limit:1});if(existing.length){const e=existing[0];if(e.status==='accepted')fail(409,'Siete già amici.');if(e.requester_id===p.id)fail(409,'Richiesta già inviata.');await db('apex_friendships',{id:'eq.'+e.id,status:'eq.pending',addressee_id:'eq.'+p.id},'PATCH',{status:'accepted'});result={message:'Ora siete amici.'};}else{const pending=await db('apex_friendships',{select:'id',requester_id:'eq.'+p.id,status:'eq.pending',limit:30});if(pending.length>=30)fail(429,'Hai già 30 richieste in attesa.');await db('apex_friendships',{},'POST',{requester_id:p.id,addressee_id:target});result={message:'Richiesta inviata a @'+rows[0].username+'.'};}
     }else if(action==='respond'){
      const edgeId=id(body.id),rows=await db('apex_friendships',{select:'id',id:'eq.'+edgeId,addressee_id:'eq.'+p.id,status:'eq.pending',limit:1});if(!rows.length)fail(404,'Richiesta non più disponibile.');if(body.accept===true)await db('apex_friendships',{id:'eq.'+edgeId,addressee_id:'eq.'+p.id,status:'eq.pending'},'PATCH',{status:'accepted'});else await db('apex_friendships',{id:'eq.'+edgeId,addressee_id:'eq.'+p.id,status:'eq.pending'},'DELETE');result={message:body.accept?'Amicizia accettata.':'Richiesta rifiutata.'};
     }else if(action==='remove'){

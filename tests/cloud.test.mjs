@@ -24,3 +24,17 @@ test('one human can start with bots and all finishers classify consistently, the
 
 test('joining waits for host admission instead of treating an early one-player snapshot as full',async()=>{const f=clients(1);try{await lobby(f);const h=f.cs[0],p=new CloudClient(),id='22222222';p.id=id;p.present=true;p.members.set(h.id,{id:h.id,creator:true});let resolved=0,rejected=0;p.joinWait={resolve:()=>resolved++,reject:()=>rejected++,timer:null};p.applySnapshot({from:h.id,now:h.now(),room:h.snapshot()});assert.equal(rejected,0);assert(p.joinWait);assert.equal(p.room,null);h.room.players.push(h.member({id,name:'AMICO',bikeId:'v4',livery:'factory'},1));h.room.revision++;p.applySnapshot({from:h.id,now:h.now(),room:h.snapshot()});assert.equal(resolved,1);assert.equal(rejected,0);assert.equal(p.state.players.length,2);}finally{f.close();}});
 test('snapshot arriving before host presence is retained until its authority is visible',async()=>{const f=clients(1);try{await lobby(f);const h=f.cs[0],p=new CloudClient(),id='22222222';p.id=id;p.present=true;p.seenOwnPresence=true;h.room.players.push(h.member({id,name:'AMICO',bikeId:'v4',livery:'factory'},1));let joined=false;p.joinWait={resolve:()=>joined=true,reject:assert.fail,timer:null};const message={from:h.id,now:h.now(),room:h.snapshot()};p.applySnapshot(message);assert.equal(p.room,null);assert(p.pendingSnapshot);p.presence({[h.id]:{metas:[{id:h.id,name:'HOST',bikeId:'r27',livery:'factory',creator:true,v:32}]},[id]:{metas:[{id,name:'AMICO',bikeId:'v4',livery:'factory',creator:false,v:32}]}});assert(joined);assert.equal(p.state.players.length,2);assert.equal(p.pendingSnapshot,null);}finally{f.close();}});
+
+test('lobby social identities reach every peer, survive host migration and do not reset readiness',async()=>{
+ const f=clients(3);try{
+  await lobby(f);for(const c of f.cs)c.ready();await flush();
+  const[h,p,next]=f.cs,playerId='22222222-2222-4222-8222-222222222222';
+  const social={playerId,username:'peer',proof:playerId+'.1793043200000.'+'a'.repeat(64)};
+  p.setSocialIdentity(social);await flush();
+  for(const c of f.cs){assert.deepEqual(c.state.players.find(q=>q.id===p.id).social,social);assert(c.state.players.every(q=>q.ready));}
+  assert(!JSON.stringify(h.snapshot()).includes('session'));
+  h.disconnect();await flush();assert.equal(p.room.hostId,p.id);
+  next.setSocialIdentity(social);await flush();assert.deepEqual(p.state.players.find(q=>q.id===next.id).social,social);
+  next.setSocialIdentity(null);await flush();assert.equal(p.state.players.find(q=>q.id===next.id).social,null);
+ }finally{f.close();}
+});

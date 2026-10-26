@@ -28,6 +28,14 @@ La carriera cloud è protetta da RLS per `auth.uid()`. Gli aggiornamenti hanno u
 
 Il salvataggio carriera della 3.4 trasferisce garage e crediti. I record con ghost rimasti soltanto nel vecchio HTML non fanno parte di quel vecchio formato di esportazione. Il nuovo backup della 4.0 comprende anche i record e le preferenze di guida. La carriera ospite e le cache dei diversi account sono separate. Puoi importare esplicitamente anche la carriera ospite di questo browser dal profilo; viene conservata una copia locale precedente.
 
+## Amici, profili e lobby
+
+In **Amici** trovi tre schede distinte: amici, richieste di amicizia ricevute/inviate e inviti a giocare. Cerca un nome utente per aprire il profilo prima di inviare una richiesta. Il profilo mostra nome, stato online, data di iscrizione e, quando disponibili, gare, vittorie e moto dell’ultima carriera cloud. Crediti, salvataggi completi, dati di accesso e codici di recupero restano personali.
+
+Nella lista dei piloti della lobby usa **Vedi profilo** o **Aggiungi amico**. Se hai già una richiesta ricevuta, compare **Accetta amicizia**; se l’hai già inviata, il pulsante indica **Richiesta inviata**. I bot e i piloti senza profilo collegato sono riconoscibili. Per collegare il tuo profilo, accedi o apri Amici; la lobby lo associa automaticamente. I vecchi client restano compatibili, ma devono essere aggiornati per mostrare i profili nella lista.
+
+**Invita in lobby** serve a proporre una partita a un amico; **Aggiungi amico** invia una richiesta di amicizia. Per rimuovere un amico apri il suo profilo e conferma la rimozione. Tutti i giocatori devono premere **Sono pronto**; il creatore usa **Avvia gara**. Il messaggio sotto i pulsanti spiega cosa manca per partire.
+
 ## Grafica e circuiti
 
 **Prestazioni** è l'impostazione iniziale. Usa un massimo di 1280×720 pixel interni, risoluzione adattiva dal 60% al 100%, shader semplificato, nessuna mappa delle ombre o post-processing, modelli dedicati e sezioni del mondo escluse dal disegno quando non visibili. Moto e pilota principali passano a circa 21 mila triangoli; gli avversari a meno di 10 mila. **Cinema** conserva i modelli dettagliati e l'illuminazione completa. La scelta grafica resta locale al dispositivo. L'obiettivo è facilitare l'uso su GPU integrate come Intel HD 530; non è stato eseguito un benchmark su un i7-6700 reale.
