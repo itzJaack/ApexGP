@@ -281,7 +281,7 @@ function terrainSampler(track){
  return(x,z)=>{const b=track.bounds;if(x<b.minX-550||x>b.maxX+550||z<b.minZ-550||z>b.maxZ+550)return 0;const ix=Math.floor(x/cell),iz=Math.floor(z/cell),u=x/cell-ix,v=z/cell-iz;return lerp(lerp(sample(ix,iz),sample(ix+1,iz),u),lerp(sample(ix,iz+1),sample(ix+1,iz+1),u),v);};
 }
 function buildTerrain(g,track,height,color){
- const b=track.bounds,axis=(min,max)=>{const arr=[-2200];for(let x=Math.floor((min-180)/12)*12;x<=max+180;x+=12)arr.push(x);arr.push(2200);return arr;},xs=axis(b.minX,b.maxX),zs=axis(b.minZ,b.maxZ);
+ const b=track.bounds,axis=(min,max)=>{const arr=[Math.min(-3000,min-1000)];for(let x=Math.floor((min-180)/12)*12;x<=max+180;x+=12)arr.push(x);arr.push(Math.max(3000,max+1000));return arr;},xs=axis(b.minX,b.maxX),zs=axis(b.minZ,b.maxZ);
  for(let i=0;i<xs.length-1;i++)for(let j=0;j<zs.length-1;j++){const x=xs[i],X=xs[i+1],z=zs[j],Z=zs[j+1],point=(x,z)=>[x,height(x,z)-.10,z];g.quad(point(x,z),point(x,Z),point(X,Z),point(X,z),color,2);}
 }
 export function buildWorld(renderer,track){return allocateScene(renderer,scope=>createWorld(scope,track));}
@@ -291,7 +291,7 @@ function createWorld(renderer,track){
   const g=new Geometry(),line=new Geometry(),rng=seeded(track.config.id.split('').reduce((n,c)=>n+c.charCodeAt(0)*129,0)),desert=['desert','canyon'].includes(track.config.theme),coast=track.config.theme==='coast',alpine=track.config.theme==='alpine',forest=track.config.theme==='forest',sakura=track.config.theme==='sakura',marina=track.config.theme==='marina';
   const grass=desert?[.57,.43,.29]:alpine?[.21,.34,.25]:sakura?[.30,.38,.27]:marina?[.35,.39,.37]:coast?[.27,.38,.22]:[.29,.36,.20],gravel=desert?[.68,.53,.34]:[.65,.59,.45],road=[.20,.22,.23];
   const terrain=terrainSampler(track);if(track.config.elevation)buildTerrain(g,track,terrain,grass);else g.quad([-2200,-.07,-2200],[-2200,-.07,2200],[2200,-.07,2200],[2200,-.07,-2200],grass,2);
-  const w=track.halfWidth;
+  const w=track.halfWidth,pitSide=track.config.pitSide||-1;
   for(let i=0;i<track.count;i++){
     const s=i*track.step,e=(i+1)*track.step;
     strip(g,track,s,e,-w,w,.025,road,1);
@@ -304,8 +304,8 @@ function createWorld(renderer,track){
   // Extra detail with a small geometry cost in both graphics modes.
   // Dedicated pit access, painted speed-limit line and individual garage bays.
   for(let s=-45;s<210;s+=5){
-   strip(g,track,s,s+5,-w-11,-w-6,.035,[.25,.27,.28],1);
-   if(Math.floor(s/5)%2===0)strip(g,track,s,s+3,-w-6.2,-w-6,.045,[1,.84,.18]);
+   strip(g,track,s,s+5,pitSide*(w+11),pitSide*(w+6),.035,[.25,.27,.28],1);
+   if(Math.floor(s/5)%2===0)strip(g,track,s,s+3,pitSide*(w+6.2),pitSide*(w+6),.045,[1,.84,.18]);
   }
   for(let s=100;s<track.length;s+=95){
    const curve=track.sample(s).k;if(Math.abs(curve)<.007)continue;
@@ -320,7 +320,7 @@ function createWorld(renderer,track){
     if(Math.floor(s/19)%7===0)g.box([a.x,2,a.z],[.7,.38,.6],[.98,.72,.18],a.yaw);
   }}
   // Pit garages, a paddock tower, and the start gantry.
-  const pit=scenerySite(track,95,-38,19,150)||track.sample(95,-130),local=new Geometry();
+  const pit=scenerySite(track,95,pitSide*38,19,150)||track.sample(95,pitSide*130),local=new Geometry();
   local.box([0,4.8,0],[15,9.6,132],[.69,.71,.68]);local.box([0,10.1,0],[16,1,137],[.25,.28,.28]);
   for(let i=-5;i<=5;i++){local.box([7.56,3,i*11],[.05,4.5,7.8],[.12,.16,.18]);local.box([7.61,6.6,i*11],[.10,1.8,8.8],[.25,.40,.45]);local.box([7.68,8.1,i*11],[.12,.35,9.8],[1,.235,.085]);}
   local.box([0,9.2,0],[15.3,.35,130],[.89,.88,.79]);local.box([-4,17,57],[9,14,12],[.48,.53,.51]);local.box([-4,24.2,57],[11,.4,13],[.22,.25,.27]);local.box([.55,20,57],[.2,4,9],[.23,.40,.43]);g.merge(local.transform(modelMatrix([pit.x,0,pit.z],pit.yaw)));
@@ -334,9 +334,12 @@ function createWorld(renderer,track){
     }
     stand.box([4.5,8.6,0],[14,.28,65],[.73,.74,.71]);stand.box([4.5,8.65,-33],[14,.6,.5],[1,.235,.085]);for(const z of[-30,0,30])stand.cylinder([9.5,0,z],[9.5,8.6,z],.14,[.32,.34,.35],6);g.merge(stand.transform(modelMatrix([p.x,0,p.z],p.yaw)));
   }
-  // Landscape: hills, wind turbines, palms or desert silhouettes.
+  // Landscape sits beyond the surveyed circuit envelope. The former 900 m
+  // ring of hills intersected the larger, real-world circuit footprints.
+  const landscapeX=(track.bounds.minX+track.bounds.maxX)/2,landscapeZ=(track.bounds.minZ+track.bounds.maxZ)/2;
+  const landscapeRadius=Math.hypot((track.bounds.maxX-track.bounds.minX)/2,(track.bounds.maxZ-track.bounds.minZ)/2)+650;
   for(let i=0;i<(alpine?18:marina?0:22);i++){
-    const angle=i/22*Math.PI*2,x=Math.cos(angle)*(900+rng()*480),z=Math.sin(angle)*(900+rng()*480),h=desert?65+rng()*65:forest?18+rng()*18:60+rng()*90;
+    const angle=i/22*Math.PI*2,x=landscapeX+Math.cos(angle)*(landscapeRadius+rng()*480),z=landscapeZ+Math.sin(angle)*(landscapeRadius+rng()*480),h=desert?65+rng()*65:forest?18+rng()*18:60+rng()*90;
     if(alpine||track.config.theme==='canyon'){mountain(g,x,z,180+rng()*250,200+rng()*320,rng,track.config.theme==='canyon');continue;}
     g.sphere([x,-30,z],[140+rng()*180,h,150+rng()*170],desert?[.50+rng()*.12,.38+rng()*.05,.26]:[.23+rng()*.05,.33+rng()*.04,.19],26,12);
   }
@@ -379,12 +382,18 @@ function createWorld(renderer,track){
   }
   // Paddock transporters are placed using the same clearance check as buildings.
   for(let i=0;i<(low?4:8);i++){
-   const p=scenerySite(track,25+i*18,-70,7,15);if(!p)continue;const q=new Geometry();
+   const p=scenerySite(track,25+i*18,pitSide*70,7,15);if(!p)continue;const q=new Geometry();
    q.box([0,1.7,0],[3.1,3.4,12],[.87,.89,.88]);q.box([0,1.5,7],[3,3,3],[.72,.12,.09]);q.box([0,2.1,8.55],[2.5,1,.04],[.16,.25,.30]);
    g.merge(q.transform(modelMatrix([p.x,0,p.z],p.yaw)));
   }
   if(track.config.elevation)for(let i=staticStart;i<g.data.length;i+=12)if(g.data[i+9]!==13)g.data[i+1]+=terrain(g.data[i],g.data[i+2]);
   const boards=[];const textures=['APEX GP','RIDE THE LIMIT','FULL THROTTLE'].map(text=>markTexture(renderer,text));
+  for(const corner of track.config.corners||[]){
+    const p=track.sample(corner.s-35,-w-5),board=new Geometry();
+    board.quad([-2.7,1.4,0],[2.7,1.4,0],[2.7,2.5,0],[-2.7,2.5,0],[1,1,1],0,[[0,0],[1,0],[1,1],[0,1]]);
+    const texture=markTexture(renderer,`${corner.number} · ${corner.name.toUpperCase()}`);textures.push(texture);
+    boards.push({mesh:renderer.mesh(board),matrix:modelMatrix([p.x,p.y,p.z],p.yaw),texture});
+  }
   for(let i=0;i<15;i++){const side=i%2?-1:1,p=track.sample(i*track.length/15,side*19.8);const b=new Geometry();b.quad([-4.5,1.3,0],[4.5,1.3,0],[4.5,3.3,0],[-4.5,3.3,0],[1,1,1],0,[[0,0],[1,0],[1,1],[0,1]]);boards.push({mesh:renderer.mesh(b),matrix:modelMatrix([p.x,p.y||0,p.z],p.yaw+side*Math.PI/2),texture:textures[i%3]});}
   const banner=new Geometry().quad([-5,9.8,-.28],[5,9.8,-.28],[5,11.0,-.28],[-5,11.0,-.28],[1,1,1],0,[[0,0],[1,0],[1,1],[0,1]]);boards.push({mesh:renderer.mesh(banner),matrix:modelMatrix([gantry.x,gantry.y||0,gantry.z],gantry.yaw),texture:textures[0]});
   const distanceTextures=[150,100,50].map(n=>markTexture(renderer,String(n)));

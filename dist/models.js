@@ -26,7 +26,7 @@ async function decompress(bytes){if(typeof DecompressionStream!=='function')thro
 function base64bytes(s){return Uint8Array.from(atob(s),c=>c.charCodeAt(0));}
 export async function prepareModelAssets({readAsset=null,readImage=null,onProgress=()=>{},quality='high'}={}){
  const tag=globalThis.document?.getElementById?.('apex-model-assets'),embedded=tag?JSON.parse(tag.textContent):null;
- const base='assets/models/';const binary=assetBinary||=async path=>{if(embedded?.files[path])return base64bytes(embedded.files[path]);if(readAsset)return new Uint8Array(await readAsset(path));const r=await fetch(base+path+'?v=4.0',{signal:AbortSignal.timeout(20000)});if(!r.ok)throw Error('Modello 3D non disponibile: '+path);return new Uint8Array(await r.arrayBuffer());};
+ const base='assets/models/';const binary=assetBinary||=async path=>{if(embedded?.files[path])return base64bytes(embedded.files[path]);if(readAsset)return new Uint8Array(await readAsset(path));const r=await fetch(base+path+'?v=4.1',{signal:AbortSignal.timeout(20000)});if(!r.ok)throw Error('Modello 3D non disponibile: '+path);return new Uint8Array(await r.arrayBuffer());};
  const manifest=modelManifest||embedded?.manifest||JSON.parse(new TextDecoder().decode(await binary('manifest.json')));
  const levels=quality==='low'?['low','distant']:['high','race'];
  const names=[...new Set([...Object.values(manifest.bikes),manifest.rider].flatMap(b=>levels.map(l=>b[l]||b.race)))].filter(n=>!SOURCE_MODELS.has(n)&&!PARSED_MODELS.has(n));
@@ -50,7 +50,7 @@ export function createImportedBike(renderer,color,number,detail,style,livery='fa
  if(!modelManifest)throw Error('Importazione dei modelli OBJ non completata');
  const spec=modelManifest.bikes[style]||modelManifest.bikes.factory,lod=renderer.quality==='low'?(detail>=.8?'low':'distant'):(detail>=.8?'high':'race'),bike=imported(spec[lod]||spec.race),rider=imported(modelManifest.rider[lod]||modelManifest.rider.race),materials=MATERIAL_LIBRARIES.get(spec.id),riderMaterials=MATERIAL_LIBRARIES.get('rider');
  const dark=color[0]*.30+color[1]*.59+color[2]*.11>.65&&livery!=='stealth',variant=livery==='heritage'?'heritage':dark?'dark':'white';
- const decalsTexture=renderer.texture(MODEL_TEXTURES.get('apex_factory_'+variant)),numberTex=numberTexture(renderer,number,dark),suitTexture=renderer.texture(MODEL_TEXTURES.get('apex_suit')),suitNumber=numberTexture(renderer,number,false),parts=new Map();
+ const decalsTexture=renderer.texture(MODEL_TEXTURES.get(livery==='factory'&&spec.factoryTexture?spec.factoryTexture:'apex_factory_'+variant)),numberTex=numberTexture(renderer,number,dark),suitTexture=renderer.texture(MODEL_TEXTURES.get('apex_suit')),suitNumber=numberTexture(renderer,number,false),parts=new Map();
  const append=(group,lib,source)=>{
   const mat=lib[group.material]||{color:[.5,.5,.5],surface:6};let rgb=mat.color;
   if(['Paint','LeatherAccent'].includes(group.material))rgb=livery==='stealth'&&group.material==='Paint'?[.09,.115,.14]:color;

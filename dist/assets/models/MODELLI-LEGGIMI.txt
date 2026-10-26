@@ -1,4 +1,4 @@
-APEXGP 3.1 - MODELLI ORIGINALI
+APEXGP 4.1 - MODELLI DA RIFERIMENTI REALI
 
 Apri i file .obj in Blender o in un altro modellatore con supporto Wavefront. Mantieni i file .mtl accanto agli OBJ e la cartella textures accanto ai materiali. Scala in metri, asse Y in alto, fronte +Z.
 
@@ -6,4 +6,4 @@ Le versioni high sono i modelli principali. Le versioni race sono alleggerite pe
 
 Il gioco decomprime e importa i veri file OBJ, mantenendo normali, UV e assegnazioni materiali. Le immagini PNG sono originali e trasparenti. I numeri di gara vengono personalizzati nel gioco. Carrozzeria e tuta ricevono i colori della squadra. Le geometrie sorgenti si possono ricreare con art/create_models.py (Python, NumPy, SciPy e Pillow).
 
-Creati per ApexGP. Marchi, sponsor e modelli sono di fantasia.
+Creati per ApexGP. Geometrie originali basate sulle edizioni reali identificate nel manifest. Nomi e marchi appartengono ai titolari. Nessuna affiliazione ufficiale. Livree senza sponsor, ricostruzioni geometriche approssimate.

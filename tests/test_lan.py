@@ -2,7 +2,7 @@ import base64,importlib.util,json,os,socket,struct,sys,threading,time,unittest
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1];sys.path.insert(0,str(ROOT))
 from server import Hub,create_server,websocket_frame,read_frame
-CATALOG=json.loads((ROOT/'data'/'race-data.json').read_text())
+CATALOG=json.loads((ROOT/'data'/'race-data.json').read_text(encoding='utf-8'))
 class Clock:
  def __init__(self):self.value=1000.
  def __call__(self):return self.value

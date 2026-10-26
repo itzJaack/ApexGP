@@ -4,7 +4,7 @@ ROOT=Path(__file__).resolve().parents[1];sys.path.insert(0,str(ROOT))
 from server import Hub
 class LobbyTests(unittest.TestCase):
  def setUp(self):
-  self.now=1000.;self.hub=Hub(json.loads((ROOT/'data/race-data.json').read_text()),lambda:self.now);self.a=self.hub.add(lambda m:None);self.b=self.hub.add(lambda m:None);self.hub.handle(self.a,{'type':'create','name':'A','bikeId':'r27','options':{'trackId':'toscana','laps':2}});self.code=self.hub.players[self.a]['room'];self.r=self.hub.rooms[self.code];self.hub.handle(self.b,{'type':'join','name':'B','bikeId':'v4','code':self.code})
+  self.now=1000.;self.hub=Hub(json.loads((ROOT/'data/race-data.json').read_text(encoding='utf-8')),lambda:self.now);self.a=self.hub.add(lambda m:None);self.b=self.hub.add(lambda m:None);self.hub.handle(self.a,{'type':'create','name':'A','bikeId':'r27','options':{'trackId':'toscana','laps':2}});self.code=self.hub.players[self.a]['room'];self.r=self.hub.rooms[self.code];self.hub.handle(self.b,{'type':'join','name':'B','bikeId':'v4','code':self.code})
  def send(self,p,kind,**fields):self.hub.handle(p,{'type':kind,**fields})
  def ready(self):
   for p in [self.a,self.b]:self.send(p,'ready',ready=True)

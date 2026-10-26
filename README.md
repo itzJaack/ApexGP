@@ -1,4 +1,4 @@
-# ApexGP 4.0
+# ApexGP 4.1
 
 Gioco di corse in moto 3D per browser. **[Gioca su GitHub Pages](https://itzjaack.github.io/ApexGP/)** · [Sorgenti e aggiornamenti](https://github.com/itzJaack/ApexGP).
 
@@ -38,11 +38,15 @@ Nella lista dei piloti della lobby usa **Vedi profilo** o **Aggiungi amico**. Se
 
 ## Grafica e circuiti
 
-**Prestazioni** è l'impostazione iniziale. Usa un massimo di 1280×720 pixel interni, risoluzione adattiva dal 60% al 100%, shader semplificato, nessuna mappa delle ombre o post-processing, modelli dedicati e sezioni del mondo escluse dal disegno quando non visibili. Moto e pilota principali passano a circa 21 mila triangoli; gli avversari a meno di 10 mila. **Cinema** conserva i modelli dettagliati e l'illuminazione completa. La scelta grafica resta locale al dispositivo. L'obiettivo è facilitare l'uso su GPU integrate come Intel HD 530; non è stato eseguito un benchmark su un i7-6700 reale.
+**Prestazioni** è l'impostazione iniziale. Usa un massimo di 1280×720 pixel interni, risoluzione adattiva dal 60% al 100%, shader semplificato, nessuna mappa delle ombre o post-processing, modelli dedicati e sezioni del mondo escluse dal disegno quando non visibili. Moto e pilota principali passano a meno di 22 mila triangoli; gli avversari a meno di 10 mila. **Cinema** conserva i modelli dettagliati e l'illuminazione completa. La scelta grafica resta locale al dispositivo. L'obiettivo è facilitare l'uso su GPU integrate come Intel HD 530; non è stato eseguito un benchmark su un i7-6700 reale.
 
-I circuiti hanno corsia box, segnaletica dei settori e delle frenate, vie di fuga dipinte, tribune, paddock, mezzi di servizio e posizionamento degli edifici controllato rispetto all'intero percorso. I nomi sono quelli reali; i modelli 3D, i tracciati, le distanze e le prestazioni rimangono interpretazioni arcade originali, non repliche ufficiali. Gli identificativi interni restano compatibili con garage e lobby delle versioni precedenti. Per le partite fra amici usa la stessa versione su tutti i dispositivi.
+Il catalogo contiene **14 circuiti e 15 moto**. Mugello, Misano, Lusail, Red Bull Ring, Motegi, Catalunya, Bugatti, Assen, Austin e Algarve hanno ora piante derivate dalle coordinate reali OpenStreetMap. Si aggiungono **Jerez, Sachsenring, Phillip Island e Silverstone**. La scala rispetta la lunghezza di riferimento: Mugello 5,245 km, Spielberg MotoGP con chicane 4,348 km, Algarve 4,592 km. Il Mugello include i cartelli delle 15 curve, da San Donato a Bucine. L'altimetria e gli edifici restano approssimati.
 
-Riferimenti dei nomi: [calendario ufficiale MotoGP](https://www.motogp.com/en/calendar), [Yamaha YZR-M1](https://www.yamaha-racing.com/series/grand-prix/motogp/bike/), [Ducati](https://www.ducati.com/), [Aprilia Racing](https://www.aprilia.com/), [KTM](https://www.ktm.com/). Nomi e marchi appartengono ai rispettivi titolari. Progetto indipendente, senza affiliazione ufficiale.
+Le dieci moto esistenti hanno carene, frontali, codoni, aerodinamica, scarichi e livree ricostruiti per la specifica edizione. Le cinque nuove sono **BMW M 1000 RR 2025, Aprilia RSV4 Factory 2025, Yamaha YZF-R1 2024, Honda Fireblade SP 2024 e Suzuki GSX-R1000R 2024**. Il garage distingue anno e categoria. La M1 rappresenta il quattro in linea del 2025; la GSX-RR la versione 2022. Ogni moto dispone di quattro livelli di dettaglio e di un audio motore dedicato. Geometrie originali approssimate, senza asset di altri videogiochi; prestazioni e guida rimangono arcade.
+
+Gli identificativi e l'ordine dei dieci veicoli e circuiti precedenti restano stabili: acquisti, potenziamenti e scelte salvate rimangono validi. I vecchi tempi e ghost restano nei backup; i nuovi percorsi usano record separati, perché distanze e coordinate sono cambiate. Le lobby comprendono l'intero catalogo. Per giocare insieme, aggiornare tutti i dispositivi alla 4.1.
+
+Dati delle piste: **© OpenStreetMap contributors, ODbL 1.0**. Coordinate e provenienza in `art/references/circuits.json`; conversione offline in `tools/build-circuits.mjs`. [Fonti e dettagli](art/references/README.md), disponibili anche nel gioco tramite il collegamento a `references.html`. Nomi e marchi appartengono ai rispettivi titolari. Progetto indipendente, senza affiliazione ufficiale.
 
 ## Stabilità e recupero
 
@@ -63,6 +67,6 @@ python -m unittest discover -s tests -p 'test_*.py'
 python server.py --port 4173 --no-browser
 ```
 
-Apri `http://localhost:4173/`. I file del client sono in `dist/`; `npm run build` prepara il client Supabase e il catalogo per la compatibilità LAN. Gli OBJ compressi e i modelli leggeri sono versionati. `art/create_models.py` rigenera i modelli originali; `npm run models:low` rigenera i livelli di dettaglio aggiunti. Gli OBJ non compressi sono esclusi da Git perché duplicano gli asset compressi e sono ricreabili.
+Apri `http://localhost:4173/`. I file del client sono in `dist/`; `npm run build` prepara il client Supabase, le geometrie geografiche e il catalogo per la compatibilità LAN. Gli OBJ compressi e i modelli leggeri sono versionati. `art/create_models.py` rigenera i modelli originali; `npm run models:low` rigenera i livelli di dettaglio aggiunti. Gli OBJ non compressi sono esclusi da Git perché duplicano gli asset compressi e sono ricreabili.
 
 Ogni aggiornamento su `main` esegue test, prepara i file e pubblica `dist/` tramite GitHub Actions. Nessun download manuale dell'HTML. Le modifiche a tabelle o funzioni Supabase si distribuiscono separatamente: lo schema documentato è in `backend/accounts.sql` e `backend/social-schema.sql`, il backend in `supabase/functions/apexgp-social/`. Il server LAN opzionale resta in `server.py`; Pages pubblica il client statico e usa Supabase per account, salvataggi, amici e partite online.

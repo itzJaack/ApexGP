@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="it">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ApexGP · Circuiti e riferimenti</title>
+<style>body{margin:40px auto;padding:0 24px;max-width:900px;font:16px/1.65 system-ui;background:#11161c;color:#e5e8eb}a{color:#ff9d7a}h1,h2{line-height:1.2}table{border-collapse:collapse;width:100%;margin:28px 0}td,th{text-align:left;padding:10px;border-bottom:1px solid #343c45}small{color:#b4bec7}</style>
+<a href="./">← Torna ad ApexGP</a>
+<h1>Circuiti e moto reali</h1>
+<p>Le piante dei 14 circuiti derivano dalle coordinate delle piste mappate da <a href="https://www.openstreetmap.org/copyright">© OpenStreetMap contributors</a>, con licenza <a href="https://opendatacommons.org/licenses/odbl/1-0/">Open Database License 1.0</a>. I punti sono convertiti in metri, orientati con il nord verso l’alto nelle mappe e scalati uniformemente alla lunghezza di riferimento.</p>
+<p>I <a href="circuit-layouts.js">dati derivati distribuiti con il gioco</a> sono disponibili sotto la stessa licenza ODbL. Le fonti geografiche di ciascun tracciato sono elencate qui sotto. Le lunghezze e le configurazioni di riferimento seguono il <a href="https://www.motogp.com/en/calendar">calendario MotoGP</a> e le schede dei circuiti. Il Red Bull Ring comprende la chicane MotoGP; Catalunya usa la configurazione senza chicane finale.</p>
+<table><thead><tr><th>Circuito</th><th>Lunghezza</th><th>Curve</th><th>Dati</th></tr></thead><tbody id="circuits"></tbody></table>
+<h2>Modelli di riferimento</h2>
+<p>Ogni moto ha una geometria originale ricostruita per l’edizione indicata: frontale, disposizione dei fari, aerodinamica, serbatoio, codone, scarichi e colori di fabbrica. I modelli sono approssimazioni per il gioco. Gli asset non provengono da altri videogiochi; le livree non riproducono gli sponsor.</p>
+<ul id="bikes"></ul>
+<p>Riferimenti: <a href="https://www.ducati.com/">Ducati</a>, <a href="https://global.yamaha-motor.com/race/release/2025/030/">Yamaha M1: passaggio al V4 dal 2026</a>, <a href="https://press.piaggiogroup.com/en_EN/post/show/315140/the-dawn-of-a-new-era-aprilia-.html">Aprilia RS-GP25</a>, <a href="https://press.piaggiogroup.com/en_EN/post/show/308733/new-aprilia-rsv4-and-rsv4-fact.html">Aprilia RSV4 2025</a>, <a href="https://www.press.bmwgroup.com/usa/article/detail/T0446053EN_US/bmw-motorrad-presents-the-new-bmw-m-1000-rr-bmw-s-1000-rr-bmw-m-1000-r-and-bmw-s-1000-r">BMW M 1000 RR 2025</a>, <a href="https://global.honda/content/dam/site/global-en/newsroom-new/cq_img/news/2023-new/11/c231107aeng_link.pdf">Honda Fireblade 2024</a>, <a href="https://suzukicycles.com/racing/motogp/suzuki-ecstar">Suzuki GSX-RR 2022</a>, <a href="https://www.triumphmotorcycles.com/">Triumph</a>, <a href="https://www.ktm.com/">KTM</a>, <a href="https://www.kawasaki.eu/">Kawasaki</a>.</p>
+<p><small>L’altimetria, gli edifici e gli ambienti sono approssimati. Velocità, potenza e comportamento sono parametri di gioco arcade. Nomi e marchi appartengono ai rispettivi titolari. ApexGP è un progetto indipendente, senza affiliazione ufficiale.</small></p>
+<script type="module">
+import {TRACKS,BIKES} from './simulation.js';
+document.querySelector('#circuits').innerHTML=TRACKS.map(t=>`<tr><td>${t.name}</td><td>${(t.length/1000).toFixed(3).replace('.',',')} km</td><td>${t.turns}</td><td><a href="${t.source}">OpenStreetMap</a></td></tr>`).join('');
+document.querySelector('#bikes').innerHTML=BIKES.map(b=>`<li>${b.name} · ${b.year} · ${b.category}</li>`).join('');
+</script>
+</html>

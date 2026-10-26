@@ -1,27 +1,39 @@
-// Real-world names on original arcade models/layouts. Stable IDs preserve saves,
-// friendships, room compatibility and purchased upgrades from earlier versions.
+// Reference editions are explicit: geometry and factory colours follow these
+// motorcycles. Stable IDs/order keep purchased bikes and upgrades compatible.
+// Power, speed and riding balance are game parameters, not homologation data.
 export const BIKE_IDENTITIES = {
-  r27: {name: 'Ducati Desmosedici GP', caption: 'DUCATI / DESMOSEDICI GP', cc: 1000, color: '#e4262d', rgb: [.88, .06, .08], description: 'MotoGP · Ducati · parametri arcade'},
-  v4: {name: 'Yamaha YZR-M1', caption: 'YAMAHA / YZR-M1', cc: 1000, description: 'MotoGP · Yamaha · parametri arcade'},
-  rs: {name: 'Aprilia RS-GP', caption: 'APRILIA / RS-GP', cc: 1000, description: 'MotoGP · Aprilia · parametri arcade'},
-  v2c: {name: 'Ducati Panigale V2', caption: 'DUCATI / PANIGALE V2', cc: 890, description: 'Supersport · Ducati · parametri arcade'},
-  x4a: {name: 'Honda RC213V', caption: 'HONDA / RC213V', cc: 1000, color: '#d73840', rgb: [.85, .12, .16], description: 'MotoGP · Honda · parametri arcade'},
-  r9e: {name: 'Suzuki GSX-RR', caption: 'SUZUKI / GSX-RR', cc: 1000, color: '#2d9be7', rgb: [.08, .46, .86], description: 'MotoGP · Suzuki · parametri arcade'},
-  s3: {name: 'Triumph Daytona Moto2 765', caption: 'TRIUMPH / DAYTONA MOTO2 765', cc: 765, description: 'Supersport · Triumph · parametri arcade'},
-  t12: {name: 'Ducati Panigale V4 R', caption: 'DUCATI / PANIGALE V4 R', cc: 998, description: 'Superbike · Ducati · parametri arcade'},
-  gtr: {name: 'KTM RC16', caption: 'KTM / RC16', cc: 1000, description: 'MotoGP · KTM · parametri arcade'},
-  i4: {name: 'Kawasaki Ninja ZX-10RR', caption: 'KAWASAKI / NINJA ZX-10RR', cc: 998, color: '#6fbe34', rgb: [.32, .68, .08], description: 'Superbike · Kawasaki · parametri arcade'},
+  r27: {name:'Ducati Desmosedici GP25',caption:'DUCATI / DESMOSEDICI GP25',year:2025,category:'MotoGP',style:'factory',cc:1000,color:'#df1724',rgb:[.88,.035,.055],power:270,top:350,grip:1,accel:1,wheelbase:1.49,character:'Potenza',description:'GP25 · ali biplano, carena rossa e scarichi sdoppiati'},
+  v4: {name:'Yamaha YZR-M1',caption:'YAMAHA / YZR-M1 · 2025',year:2025,category:'MotoGP',style:'v4',cc:1000,color:'#1553bb',rgb:[.045,.19,.64],power:258,top:340,grip:1.09,accel:1.015,wheelbase:1.49,character:'Stabile',description:'2025 · quattro in linea, carena blu e nera, presa ovale'},
+  rs: {name:'Aprilia RS-GP25',caption:'APRILIA / RS-GP25',year:2025,category:'MotoGP',style:'silver',cc:1000,color:'#25272d',rgb:[.085,.095,.115],power:265,top:348,grip:1.2,accel:1.025,wheelbase:1.49,character:'Agile',description:'GP25 · aero a canali, ali larghe e livrea nero/rosso'},
+  v2c: {name:'Ducati Panigale V2',caption:'DUCATI / PANIGALE V2 · 2025',year:2025,category:'Supersport',style:'corsa',cc:890,color:'#dc1827',rgb:[.85,.035,.065],power:120,top:250,grip:1.22,accel:.86,handling:1.08,wheelbase:1.465,mass:250,character:'Agilità',description:'2025 · frontale a V, senza ali e doppio scarico sotto la sella'},
+  x4a: {name:'Honda RC213V',caption:'HONDA / RC213V · 2025',year:2025,category:'MotoGP',style:'aero',cc:1000,color:'#d92b3e',rgb:[.83,.04,.09],power:270,top:348,grip:1.08,accel:1.005,wheelbase:1.49,mass:232,character:'Reattiva',description:'2025 · livrea rosso/bianco/blu e muso compatto'},
+  r9e: {name:'Suzuki GSX-RR',caption:'SUZUKI / GSX-RR · 2022',year:2022,category:'MotoGP',style:'endurance',cc:1000,color:'#167ed3',rgb:[.035,.35,.82],power:250,top:338,grip:1.14,accel:1.025,wheelbase:1.50,mass:234,character:'Controllo',description:'2022 · blu e argento, cupolino arrotondato e quattro in linea'},
+  s3: {name:'Triumph Daytona Moto2 765',caption:'TRIUMPH / DAYTONA MOTO2 765',year:2020,category:'Supersport',style:'sprint',cc:765,price:24000,color:'#303237',rgb:[.12,.13,.15],power:130,top:260,grip:1.28,accel:.9,handling:1.12,wheelbase:1.375,mass:240,character:'Tecnica',description:'2020 · carbonio, filetti oro, doppio faro e scarico basso'},
+  t12: {name:'Ducati Panigale V4 R',caption:'DUCATI / PANIGALE V4 R · 2023',year:2023,category:'Superbike',style:'titan',cc:998,price:48000,color:'#e2252a',rgb:[.88,.045,.06],power:218,top:310,grip:1.14,accel:1.01,wheelbase:1.471,mass:255,character:'Allungo',description:'2023 · ali a doppio profilo, serbatoio alluminio e monobraccio'},
+  gtr: {name:'KTM RC16',caption:'KTM / RC16 · 2025',year:2025,category:'MotoGP',style:'carbon',cc:1000,price:42000,color:'#f56316',rgb:[.96,.22,.025],power:275,top:350,grip:1.16,accel:1.04,handling:1.08,wheelbase:1.49,mass:232,character:'Precisione',description:'2025 · muso squadrato, aero carbonio e livrea arancio/blu'},
+  i4: {name:'Kawasaki Ninja ZX-10RR',caption:'KAWASAKI / NINJA ZX-10RR · 2024',year:2024,category:'Superbike',style:'sakura',cc:998,price:36000,color:'#60c51f',rgb:[.24,.68,.025],power:214,top:300,grip:1.16,accel:1.03,handling:1.045,wheelbase:1.45,mass:270,character:'Equilibrio',description:'2024 · verde/nero, ali integrate e grande silenziatore laterale'},
+  bmw: {name:'BMW M 1000 RR',caption:'BMW / M 1000 RR · 2025',year:2025,category:'Superbike',style:'bmw',cc:999,isNew:true,price:45000,color:'#edf0f2',rgb:[.89,.91,.93],power:218,top:314,grip:1.18,accel:1.04,handling:1.04,wheelbase:1.457,mass:265,character:'Aerodinamica',description:'2025 · grandi ali M, fari gemelli e tricolore Motorsport'},
+  rsv4: {name:'Aprilia RSV4 Factory',caption:'APRILIA / RSV4 FACTORY · 2025',year:2025,category:'Superbike',style:'rsv4',cc:1099,isNew:true,price:41000,color:'#292a30',rgb:[.10,.105,.12],power:220,top:310,grip:1.2,accel:1.04,handling:1.08,wheelbase:1.435,mass:272,character:'Compatta',description:'2025 · triplo faro, ali sovrapposte e codone rastremato'},
+  r1: {name:'Yamaha YZF-R1',caption:'YAMAHA / YZF-R1 · 2024',year:2024,category:'Superbike',style:'r1',cc:998,isNew:true,price:33000,color:'#1749c8',rgb:[.04,.14,.72],power:200,top:299,grip:1.18,accel:1.02,handling:1.06,wheelbase:1.405,mass:270,character:'Crossplane',description:'2024 · presa M centrale, proiettori bassi e codone aperto'},
+  fireblade: {name:'Honda CBR1000RR-R Fireblade SP',caption:'HONDA / CBR1000RR-R SP · 2024',year:2024,category:'Superbike',style:'fireblade',cc:1000,isNew:true,price:39000,color:'#d91a2c',rgb:[.84,.035,.065],power:217,top:305,grip:1.16,accel:1.03,wheelbase:1.455,mass:271,character:'Stabilità',description:'2024 · ali in carena, fari sottili e scarico Akrapovič laterale'},
+  gsxr: {name:'Suzuki GSX-R1000R',caption:'SUZUKI / GSX-R1000R · 2024',year:2024,category:'Superbike',style:'gsxr',cc:999,isNew:true,price:30000,color:'#167bcb',rgb:[.035,.32,.75],power:202,top:299,grip:1.15,accel:1.02,wheelbase:1.42,mass:273,character:'Progressiva',description:'2024 · faro centrale, prese laterali e carena blu/argento'},
 };
 
+// Relative height profiles approximate the characteristic rises and dips;
+// horizontal centre lines and lap distances come from circuit-layouts.js.
 export const TRACK_IDENTITIES = {
-  toscana: {name: 'Mugello', country: 'ITALIA / SCARPERIA', turns: 15, character: 'Mugello · interpretazione arcade fra le colline toscane'},
-  adriatica: {name: 'Misano World Circuit', country: 'ITALIA / MISANO ADRIATICO', turns: 16, character: 'Marco Simoncelli · interpretazione arcade sulla riviera'},
-  dune: {name: 'Lusail International Circuit', country: 'QATAR / LUSAIL', turns: 16, character: 'Lusail · interpretazione arcade nel deserto'},
-  alpine: {name: 'Red Bull Ring', country: 'AUSTRIA / SPIELBERG', turns: 10, character: 'Spielberg · interpretazione arcade sulle Alpi'},
-  sakura: {name: 'Mobility Resort Motegi', country: 'GIAPPONE / MOTEGI', turns: 14, character: 'Motegi · interpretazione arcade fra staccate ed esse'},
-  marina: {name: 'Circuit de Barcelona-Catalunya', country: 'SPAGNA / MONTMELÓ', theme: 'hills', turns: 14, character: 'Catalunya · interpretazione arcade fra curvoni e frenate'},
-  azzurra: {name: 'Circuit Bugatti · Le Mans', country: 'FRANCIA / LE MANS', theme: 'forest', turns: 14, character: 'Le Mans · interpretazione arcade fra chicane e tribune'},
-  nordland: {name: 'TT Circuit Assen', country: 'PAESI BASSI / ASSEN', theme: 'forest', elevation: 1, turns: 18, character: 'Assen · interpretazione arcade veloce e scorrevole'},
-  canyon: {name: 'Circuit of the Americas', country: 'USA / AUSTIN', theme: 'hills', turns: 20, character: 'Austin · interpretazione arcade fra dislivelli e staccate'},
-  atlas: {name: 'Autódromo Internacional do Algarve', country: 'PORTOGALLO / PORTIMÃO', turns: 15, character: 'Portimão · interpretazione arcade fra dossi e saliscendi'},
+  toscana: {name:'Mugello',country:'ITALIA / SCARPERIA',theme:'hills',turns:15,character:'San Donato · Arrabbiate · Bucine · rettilineo da 1.141 m',elevation:1,elevationProfile:[[0,0],[.145,3],[.213,22],[.32,14],[.405,-16],[.468,-29],[.518,-4],[.59,13],[.70,-12],[.77,-6],[.87,4],[1,0]]},
+  adriatica: {name:'Misano World Circuit',country:'ITALIA / MISANO ADRIATICO',theme:'hills',turns:16,character:'Variante del Parco · Quercia · Tramonto · Curvone'},
+  dune: {name:'Lusail International Circuit',country:'QATAR / LUSAIL',theme:'desert',turns:16,character:'Rettilineo da 1.068 m e sequenza di tre destre veloci'},
+  alpine: {name:'Red Bull Ring',country:'AUSTRIA / SPIELBERG',theme:'alpine',turns:11,character:'Configurazione MotoGP con chicane · Remus · Rindt',elevation:1,elevationProfile:[[0,0],[.14,18],[.35,58],[.48,29],[.65,11],[.81,26],[1,0]]},
+  sakura: {name:'Mobility Resort Motegi',country:'GIAPPONE / MOTEGI',theme:'forest',turns:14,character:'Road Course · 90 Degree Corner · Victory Corner',elevation:1,elevationProfile:[[0,0],[.2,9],[.45,23],[.67,-6],[.82,12],[1,0]]},
+  marina: {name:'Circuit de Barcelona-Catalunya',country:'SPAGNA / MONTMELÓ',theme:'hills',turns:14,character:'Configurazione GP senza chicane finale · curva 10 larga',elevation:1,elevationProfile:[[0,0],[.2,-8],[.43,18],[.68,3],[.84,15],[1,0]]},
+  azzurra: {name:'Circuit Bugatti · Le Mans',country:'FRANCIA / LE MANS',theme:'forest',turns:14,character:'Dunlop · Garage Vert · Chemin aux Bœufs · raccordement',elevation:1,elevationProfile:[[0,0],[.12,10],[.28,-5],[.55,-8],[.8,-3],[1,0]]},
+  nordland: {name:'TT Circuit Assen',country:'PAESI BASSI / ASSEN',theme:'forest',turns:18,character:'Haarbocht · Strubben · Ramshoek · Geert Timmer'},
+  canyon: {name:'Circuit of the Americas',country:'USA / AUSTIN',theme:'hills',turns:20,character:'Tornante in salita · esse del primo settore · lungo rettilineo',elevation:1,elevationProfile:[[0,0],[.09,40],[.23,8],[.40,-1],[.56,-4],[.72,6],[.9,3],[1,0]]},
+  atlas: {name:'Autódromo Internacional do Algarve',country:'PORTOGALLO / PORTIMÃO',theme:'hills',turns:15,character:'Dossi · Torre VIP · Craig Jones · curvone Galp',elevation:1,elevationProfile:[[0,0],[.12,-13],[.26,10],[.4,-15],[.55,13],[.68,-9],[.83,11],[1,0]]},
+  jerez: {name:'Circuito de Jerez · Ángel Nieto',country:'SPAGNA / JEREZ',theme:'hills',turns:13,isNew:true,character:'Sito Pons · Dry Sac · Nieto/Peluqui · Jorge Lorenzo',elevation:1,elevationProfile:[[0,0],[.25,12],[.5,-5],[.7,8],[1,0]]},
+  sachsenring: {name:'Sachsenring',country:'GERMANIA / HOHENSTEIN-ERNSTTHAL',theme:'forest',turns:13,isNew:true,character:'Omega · sette sinistre consecutive · discesa del Waterfall',elevation:1,elevationProfile:[[0,0],[.15,-9],[.35,-18],[.56,7],[.73,19],[.85,-14],[1,0]]},
+  phillip: {name:'Phillip Island',country:'AUSTRALIA / VICTORIA',theme:'coast',turns:12,isNew:true,character:'Doohan · Southern Loop · Stoner · Lukey Heights',elevation:1,elevationProfile:[[0,0],[.16,-11],[.33,-7],[.55,-3],[.72,12],[.82,18],[.89,-8],[1,0]]},
+  silverstone: {name:'Silverstone',country:'REGNO UNITO / NORTHAMPTONSHIRE',theme:'forest',turns:18,isNew:true,character:'Abbey · Copse · Maggotts/Becketts · Stowe'},
 };

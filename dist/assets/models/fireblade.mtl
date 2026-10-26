@@ -1,0 +1,219 @@
+# Original ApexGP materials. Metallic/roughness plus standard Wavefront fallback.
+newmtl Paint
+Ka 0.03 0.03 0.03
+Kd 0.84 0.035 0.065
+Ks 0.45 0.45 0.45
+Ns 35
+Pr 0.23
+Pm 0.1
+illum 2
+# apex_surface 6
+
+newmtl Secondary
+Ka 0.03 0.03 0.03
+Kd 0.91 0.93 0.91
+Ks 0.45 0.45 0.45
+Ns 27
+Pr 0.26
+Pm 0.08
+illum 2
+# apex_surface 6
+
+newmtl Carbon
+Ka 0.03 0.03 0.03
+Kd 0.065 0.074 0.085
+Ks 0.45 0.45 0.45
+Ns 16
+Pr 0.33
+Pm 0.3
+illum 2
+# apex_surface 10
+
+newmtl Rubber
+Ka 0.03 0.03 0.03
+Kd 0.055 0.059 0.063
+Ks 0.45 0.45 0.45
+Ns 2
+Pr 0.81
+Pm 0
+illum 2
+# apex_surface 8
+
+newmtl Titanium
+Ka 0.03 0.03 0.03
+Kd 0.44 0.47 0.5
+Ks 0.45 0.45 0.45
+Ns 32
+Pr 0.24
+Pm 0.88
+illum 2
+# apex_surface 7
+
+newmtl Aluminium
+Ka 0.03 0.03 0.03
+Kd 0.63 0.67 0.7
+Ks 0.45 0.45 0.45
+Ns 53
+Pr 0.19
+Pm 0.92
+illum 2
+# apex_surface 7
+
+newmtl DarkMetal
+Ka 0.03 0.03 0.03
+Kd 0.12 0.14 0.16
+Ks 0.45 0.45 0.45
+Ns 21
+Pr 0.29
+Pm 0.85
+illum 2
+# apex_surface 7
+
+newmtl Gold
+Ka 0.03 0.03 0.03
+Kd 0.69 0.49 0.19
+Ks 0.45 0.45 0.45
+Ns 32
+Pr 0.24
+Pm 0.88
+illum 2
+# apex_surface 7
+
+newmtl Brake
+Ka 0.03 0.03 0.03
+Kd 0.27 0.29 0.31
+Ks 0.45 0.45 0.45
+Ns 4
+Pr 0.55
+Pm 0.55
+illum 2
+# apex_surface 10
+
+newmtl Leather
+Ka 0.03 0.03 0.03
+Kd 0.045 0.053 0.062
+Ks 0.45 0.45 0.45
+Ns 3
+Pr 0.58
+Pm 0
+illum 2
+# apex_surface 11
+
+newmtl LeatherAccent
+Ka 0.03 0.03 0.03
+Kd 0.84 0.035 0.065
+Ks 0.45 0.45 0.45
+Ns 6
+Pr 0.48
+Pm 0
+illum 2
+# apex_surface 11
+
+newmtl LeatherWhite
+Ka 0.03 0.03 0.03
+Kd 0.86 0.88 0.87
+Ks 0.45 0.45 0.45
+Ns 4
+Pr 0.55
+Pm 0
+illum 2
+# apex_surface 11
+
+newmtl Visor
+Ka 0.03 0.03 0.03
+Kd 0.075 0.135 0.17
+Ks 0.45 0.45 0.45
+Ns 353
+Pr 0.075
+Pm 0.4
+illum 2
+# apex_surface 9
+
+newmtl Glass
+Ka 0.03 0.03 0.03
+Kd 0.5 0.65 0.71
+Ks 0.45 0.45 0.45
+Ns 310
+Pr 0.08
+Pm 0.1
+illum 2
+# apex_surface 9
+d 0.32
+
+newmtl Lamp
+Ka 0.03 0.03 0.03
+Kd 0.75 0.88 0.98
+Ks 0.45 0.45 0.45
+Ns 136
+Pr 0.12
+Pm 0.15
+illum 2
+# apex_surface 12
+
+newmtl Accent
+Ka 0.03 0.03 0.03
+Kd 0.85 0.05 0.07
+Ks 0.45 0.45 0.45
+Ns 30
+Pr 0.25
+Pm 0.1
+illum 2
+# apex_surface 6
+
+newmtl RedLight
+Ka 0.03 0.03 0.03
+Kd 0.8 0.035 0.04
+Ks 0.45 0.45 0.45
+Ns 47
+Pr 0.2
+Pm 0.1
+illum 2
+# apex_surface 12
+
+newmtl Livery
+Ka 0.03 0.03 0.03
+Kd 1 1 1
+Ks 0.45 0.45 0.45
+Ns 20
+Pr 0.3
+Pm 0
+illum 2
+# apex_surface 6
+map_Kd textures/factory_fireblade.png
+map_d textures/factory_fireblade.png
+
+newmtl Number
+Ka 0.03 0.03 0.03
+Kd 1 1 1
+Ks 0.45 0.45 0.45
+Ns 21
+Pr 0.29
+Pm 0
+illum 2
+# apex_surface 6
+map_Kd textures/number_27_white.png
+map_d textures/number_27_white.png
+
+newmtl SuitLogo
+Ka 0.03 0.03 0.03
+Kd 1 1 1
+Ks 0.45 0.45 0.45
+Ns 3
+Pr 0.6
+Pm 0
+illum 2
+# apex_surface 11
+map_Kd textures/apex_suit.png
+map_d textures/apex_suit.png
+
+newmtl SuitNumber
+Ka 0.03 0.03 0.03
+Kd 1 1 1
+Ks 0.45 0.45 0.45
+Ns 3
+Pr 0.6
+Pm 0
+illum 2
+# apex_surface 11
+map_Kd textures/number_27_white.png
+map_d textures/number_27_white.png

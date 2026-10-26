@@ -5,5 +5,5 @@ const tracks = TRACKS.map(config => {
   return {id: config.id, name: config.name, length: t.length, halfWidth: t.halfWidth,
     nodes: t.nodes.map((p, i) => ({...p, y: t.sample(i * t.step).y}))};
 });
-await fs.writeFile('data/race-data.json', JSON.stringify({version: '4.0', tracks, bikes: BIKES}));
+await fs.writeFile('data/race-data.json', JSON.stringify({version: '4.1', tracks, bikes: BIKES}));
 

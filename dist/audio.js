@@ -1,17 +1,22 @@
-import {clamp,lerp} from './simulation.js';
+import {clamp,lerp,gearSpeedStep} from './simulation.js';
 
 // Original procedural audio. Four-stroke firing patterns, no remote samples.
 export const ENGINE_VOICES={
  r27:{angles:[0,.12,.5,.62],body:126,rasp:980,idle:3300,redline:15500,seed:27},
  v4:{angles:[0,.19,.5,.69],body:118,rasp:870,idle:3200,redline:15000,seed:4},
- rs:{angles:[0,.25,.5,.75],body:145,rasp:1120,idle:3400,redline:15300,seed:63},
+ rs:{angles:[0,.125,.5,.625],body:145,rasp:1120,idle:3400,redline:15300,seed:63},
  v2c:{angles:[0,.375],body:92,rasp:780,idle:2600,redline:12800,seed:2},
  x4a:{angles:[0,.15,.46,.61],body:133,rasp:1280,idle:3600,redline:16000,seed:44},
  r9e:{angles:[0,.25,.5,.75],body:124,rasp:900,idle:3100,redline:14800,seed:9},
  s3:{angles:[0,1/3,2/3],body:166,rasp:1340,idle:3500,redline:16300,seed:3},
  t12:{angles:[0,.1,.45,.55],body:120,rasp:1160,idle:3400,redline:15800,seed:12},
  gtr:{angles:[0,.18,.5,.68],body:132,rasp:1060,idle:3300,redline:15400,seed:71},
- i4:{angles:[0,.25,.5,.75],body:152,rasp:1220,idle:3400,redline:15700,seed:14}
+ i4:{angles:[0,.25,.5,.75],body:152,rasp:1220,idle:3400,redline:14500,seed:14},
+ bmw:{angles:[0,.25,.5,.75],body:155,rasp:1320,idle:1800,redline:15100,seed:1000},
+ rsv4:{angles:[0,.125,.5,.625],body:119,rasp:1065,idle:1700,redline:13500,seed:1099},
+ r1:{angles:[0,.375,.625,.875],body:138,rasp:945,idle:1700,redline:14000,seed:998},
+ fireblade:{angles:[0,.25,.5,.75],body:161,rasp:1410,idle:1700,redline:14500,seed:2024},
+ gsxr:{angles:[0,.25,.5,.75],body:147,rasp:1215,idle:1600,redline:14500,seed:1001}
 };
 function seeded(seed){return()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296*2-1;};}
 export function enginePCM(id,sampleRate=44100,loaded=true){
@@ -22,7 +27,7 @@ export function enginePCM(id,sampleRate=44100,loaded=true){
  let mean=0;for(const v of data)mean+=v;mean/=n;let peak=0;for(let i=0;i<n;i++){data[i]-=mean;peak=Math.max(peak,Math.abs(data[i]));}for(let i=0;i<n;i++)data[i]*=.86/Math.max(.001,peak);return data;
 }
 export function engineTelemetry(p,bike={id:'r27',top:320},time=0){
- const cfg=ENGINE_VOICES[bike.id]||ENGINE_VOICES.r27,kph=Math.max(0,p.speed||0)*3.6,gear=clamp(p.gear||Math.floor(kph/52)+1,1,6),ceiling=gear*52+4,rolling=kph/ceiling*cfg.redline,throttle=clamp(Number(p.throttle)||0,0,1),free=cfg.idle+throttle*(kph<12?6000:900),rpm=clamp(Math.max(rolling,free),cfg.idle,cfg.redline),off=Math.abs(p.offset||0)>(bike.halfWidth||9.25);
+ const cfg=ENGINE_VOICES[bike.id]||ENGINE_VOICES.r27,kph=Math.max(0,p.speed||0)*3.6,step=gearSpeedStep(bike),gear=clamp(p.gear||Math.floor(kph/step)+1,1,6),ceiling=gear*step+4,rolling=kph/ceiling*cfg.redline,throttle=clamp(Number(p.throttle)||0,0,1),free=cfg.idle+throttle*(kph<12?6000:900),rpm=clamp(Math.max(rolling,free),cfg.idle,cfg.redline),off=Math.abs(p.offset||0)>(bike.halfWidth||9.25);
  return{rpm:rpm*(1+Math.sin(time*37)*.0025),gear,throttle,speed:kph,load:clamp(.17+throttle*.83+(p.acceleration||0)*.01,0,1),off};
 }
 const approach=(param,value,time,smooth=.035)=>param.setTargetAtTime(value,time,smooth);

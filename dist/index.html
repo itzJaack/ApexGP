@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#101215">
-  <meta name="description" content="APEX GP. Entra in pista in un gioco di corse in moto 3D: gare contro avversari, cronometro, dieci circuiti, dieci moto, carriera e multiplayer Internet e LAN, con comandi da tastiera o touch.">
-  <title>APEX GP 4.0 — Ride the limit</title>
+  <meta name="description" content="APEX GP. Entra in pista in un gioco di corse in moto 3D: gare contro avversari, cronometro, 14 circuiti reali, 15 moto, carriera e multiplayer Internet e LAN, con comandi da tastiera o touch.">
+  <title>APEX GP 4.1 — Ride the limit</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23121417'/%3E%3Cpath d='M12 47 30 14h12L28 47zm19 0 12-23h10L41 47z' fill='%23ff6033'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="accounts.css">
@@ -19,7 +19,7 @@
 
   <main id="menu" class="menu hidden" data-page="race">
     <header class="topbar">
-      <a class="brand" href="#" aria-label="APEX GP, menu principale">APEX<span>GP</span><i></i><small class="build-version">v4.0</small></a>
+      <a class="brand" href="#" aria-label="APEX GP, menu principale">APEX<span>GP</span><i></i><small class="build-version">v4.1</small></a>
       <nav aria-label="Menu"><button class="nav-link active" data-page="race">CORRI</button><button class="nav-link" data-page="garage">GARAGE</button><button class="nav-link" data-page="workshop">OFFICINA</button><button class="nav-link" data-page="lan">MULTIPLAYER</button><button id="social-nav" class="nav-link" aria-haspopup="dialog" aria-controls="social-overlay">AMICI</button><button class="nav-link" data-page="settings">IMPOSTAZIONI</button></nav>
       <button id="account-nav" class="account-nav" aria-haspopup="dialog" aria-controls="account-overlay">ACCEDI</button><div class="profile"><span class="profile-icon">27</span><span><b id="profile-name">JACK</b><small id="wallet">12.000 CR</small></span></div>
     </header>
@@ -31,22 +31,22 @@
     </section>
     <div class="bike-caption"><span class="live-dot"></span><span id="hero-bike">DUCATI / DESMOSEDICI GP</span><small id="hero-displacement">1000 cc · PROTOTYPE</small></div>
     <section id="race-panel" class="setup-panel page-panel">
-      <div class="panel-top"><span class="eyebrow">IL TUO PROSSIMO START</span><span class="small-tag">10 CIRCUITI · 10 MOTO</span></div>
+      <div class="panel-top"><span class="eyebrow">IL TUO PROSSIMO START</span><span class="small-tag">14 CIRCUITI · 15 MOTO</span></div>
       <div class="modes" role="group" aria-label="Modalità di gioco">
         <button class="mode active" data-mode="race"><svg viewBox="0 0 24 24"><path d="M5 21V3m0 1h6l2 3h7v10h-7l-2-3H5"/></svg><span>Gran Premio<small>8 piloti. Una sola vittoria.</small></span><span class="radio"></span></button>
         <button class="mode" data-mode="time"><svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v5l3 2M9 2h6m-3 0v3m6 1 2-2"/></svg><span>Cronometro<small>Insegui il tuo giro perfetto.</small></span><span class="radio"></span></button>
       </div>
-      <div class="selection-label"><label for="track-select">CIRCUITO <span id="track-new" class="new-track hidden">NEW</span></label><span id="track-index">01 / 10</span></div><select id="track-select" class="track-dropdown" aria-label="Scegli uno dei dieci circuiti"></select>
-      <div class="track-selector"><button id="prev-track" class="square-button" aria-label="Circuito precedente">‹</button><div class="track-info"><span id="track-country" class="eyebrow">ITALIA / COLLINE</span><strong id="track-name">Mugello</strong><span id="track-spec">2,8 km · 15 curve</span><small id="track-character" class="track-character"></small></div><svg id="track-preview" viewBox="0 0 160 105" aria-label="Mappa del circuito"></svg><button id="next-track" class="square-button" aria-label="Circuito successivo">›</button></div>
+      <div class="selection-label"><label for="track-select">CIRCUITO <span id="track-new" class="new-track hidden">NEW</span></label><span id="track-index">01 / 14</span></div><select id="track-select" class="track-dropdown" aria-label="Scegli uno dei quattordici circuiti"></select>
+      <div class="track-selector"><button id="prev-track" class="square-button" aria-label="Circuito precedente">‹</button><div class="track-info"><span id="track-country" class="eyebrow">ITALIA / COLLINE</span><strong id="track-name">Mugello</strong><span id="track-spec">5,245 km · 15 curve</span><small id="track-character" class="track-character"></small></div><div class="track-map"><svg id="track-preview" viewBox="0 0 160 105" aria-label="Mappa del circuito"></svg><a id="track-source" href="https://www.openstreetmap.org/relation/8487163" target="_blank" rel="noopener" aria-label="Apri la mappa reale del circuito su OpenStreetMap">© OpenStreetMap</a></div><button id="next-track" class="square-button" aria-label="Circuito successivo">›</button></div>
       <div class="race-options"><label>GIRI<select id="laps-select"><option value="2">2 giri</option><option value="3" selected>3 giri</option><option value="5">5 giri</option></select></label><label>AVVERSARI<select id="difficulty-select"><option value="rookie">Rookie</option><option value="sport" selected>Sport</option><option value="pro">Pro</option></select></label><label>METEO<select id="weather-select"><option value="sunset" selected>Tramonto</option><option value="day">Sereno</option><option value="rain">Pioggia</option></select></label></div>
       <button id="start-button" class="primary-button"><span>SCENDI IN PISTA</span><svg viewBox="0 0 24 24"><path d="M4 12h15m-6-6 6 6-6 6"/></svg></button>
       <div class="panel-note"><span class="live-dot"></span> Cambio automatico · Accedi per sincronizzare i progressi</div>
     </section>
     <section id="garage-panel" class="setup-panel page-panel hidden">
-      <div class="panel-top"><span class="eyebrow">SCEGLI LA TUA MOTO</span><span class="small-tag">10 PROTOTIPI</span></div>
+      <div class="panel-top"><span class="eyebrow">SCEGLI LA TUA MOTO</span><span class="small-tag">15 MOTO REALI</span></div>
       <h2>Il tuo stile.<br>La tua macchina.</h2>
-      <div id="bike-list" class="bike-list" role="group" aria-label="Dieci moto disponibili"></div><p id="garage-character" class="garage-character"></p>
-      <p class="muted">Modelli originali ispirati a moto reali, con prestazioni arcade. Guadagna crediti in gara e sviluppa la tua moto in officina.</p>
+      <div id="bike-list" class="bike-list" role="group" aria-label="Quindici moto disponibili"></div><p id="garage-character" class="garage-character"></p>
+      <p class="muted">Carene e livree ricostruite per ciascun modello e anno. Prestazioni di gioco arcade. Guadagna crediti in gara e sviluppa la tua moto in officina.</p>
       <button class="primary-button" data-page="race"><span>PRONTO A CORRERE</span><span>→</span></button>
     </section>
     <section id="workshop-panel" class="setup-panel page-panel hidden">
@@ -98,7 +98,7 @@
       <p id="performance-note" class="muted">Prestazioni: risoluzione adattiva fino a 720p, modelli leggeri e dettagli visibili a distanza ridotta. La qualità grafica resta una scelta di questo dispositivo.</p>
       <button id="show-controls" class="text-button">Tutti i comandi ↗</button>
     </section>
-    <footer class="menu-footer"><span class="touch-only">COMANDI TOUCH · GAS + ◀ ▶ · RUOTA PER UNA VISTA PIÙ AMPIA</span><span class="keyboard-only"><b class="key">W</b><b class="key">A</b><b class="key">S</b><b class="key">D</b> O FRECCE <i></i> GUIDA <span class="footer-extra"><b class="key">C</b> VISUALE <b class="key">ESC</b> PAUSA</span></span><span class="footer-brand">APEX GP <span>/</span> ISPIRATO AL MONDO DEI GRAN PREMI</span></footer>
+    <footer class="menu-footer"><span class="touch-only">COMANDI TOUCH · GAS + ◀ ▶ · RUOTA PER UNA VISTA PIÙ AMPIA</span><span class="keyboard-only"><b class="key">W</b><b class="key">A</b><b class="key">S</b><b class="key">D</b> O FRECCE <i></i> GUIDA <span class="footer-extra"><b class="key">C</b> VISUALE <b class="key">ESC</b> PAUSA</span></span><span class="footer-brand">APEX GP <span>/</span> <a href="references.html" target="_blank" rel="noopener">CIRCUITI © OPENSTREETMAP</a></span></footer>
   </main>
 
   <section id="hud" class="hud hidden" aria-label="Telemetria di gara">

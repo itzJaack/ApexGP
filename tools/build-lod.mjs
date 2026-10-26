@@ -39,7 +39,7 @@ function simplify(model, cell) {
 }
 for (const spec of [...Object.values(manifest.bikes), {...manifest.rider, id: 'gp-rider'}]) {
   const model = parseOBJ(gunzipSync(await fs.readFile(new URL(spec.race, root))).toString());
-  for (const [lod, cell] of [['low', .026], ['distant', .055]]) {
+  for (const [lod, cell] of [['low', .032], ['distant', .055]]) {
     const result = simplify(model, cell);
     const filename = spec.id + '-' + lod + '.obj.gz';
     await fs.writeFile(new URL(filename, root), gzipSync(result.text, {level: 9}));
@@ -48,6 +48,6 @@ for (const spec of [...Object.values(manifest.bikes), {...manifest.rider, id: 'g
     console.log(spec.id, lod, result.triangles);
   }
 }
-manifest.version = '4.0';
+manifest.version = '4.1';
 await fs.writeFile(new URL('manifest.json', root), JSON.stringify(manifest));
 

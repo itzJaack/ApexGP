@@ -21,7 +21,7 @@ test('adaptive resolution recovers without dropping below its readable minimum o
   for (let i = 0; i < 1800; i++) governor.update(1 / 60);
   assert.equal(governor.scale, 1);
 });
-test('pit buildings and stands have clearance from every branch of all ten circuits', () => {
+test('pit buildings and stands have clearance from every branch of all catalogued circuits', () => {
   for (const config of TRACKS) {
     const track = new Circuit(config);
     for (const [station, offset, width, depth] of [[95, -38, 19, 150], [170, 42, 28, 72], [track.length * .44, 42, 28, 72]]) {

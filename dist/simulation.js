@@ -1,49 +1,32 @@
 import {RaceControl} from './race-control.js';
 import {BIKE_IDENTITIES,TRACK_IDENTITIES} from './catalog.js';
+import {CIRCUIT_LAYOUTS} from './circuit-layouts.js';
 export const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
 export const lerp = (a,b,t)=>a+(b-a)*t;
 export const mod = (a,b)=>(a%b+b)%b;
 export const wrapAngle = a=>Math.atan2(Math.sin(a),Math.cos(a));
+export const gearSpeedStep = bike=>Math.min(52,(bike.top||312)/6);
 export const formatTime = t=>!Number.isFinite(t)||t<=0?'—':`${String(Math.floor(t/60)).padStart(2,'0')}:${String(Math.floor(t%60)).padStart(2,'0')}.${String(Math.floor((t%1)*1000)).padStart(3,'0')}`;
 
-export const BIKES = [
-  {id:'r27',name:'R27 Factory',caption:'R27 / FACTORY RACING',style:'factory',cc:1000,color:'#ff6033',rgb:[1,.235,.085],power:270,top:320,grip:1,accel:1,description:'Potenza pura · 1000 cc',character:'Bilanciata',handling:1,wheelbase:1.49,mass:230},
-  {id:'v4',name:'V4 Midnight',caption:'V4 / MIDNIGHT RACING',style:'v4',cc:1000,color:'#65a6ef',rgb:[.13,.37,.82],power:258,top:310,grip:1.09,accel:1.015,description:'Equilibrio e controllo · 1000 cc',character:'Stabile',handling:1,wheelbase:1.49,mass:230},
-  {id:'rs',name:'RS Silver',caption:'RS / SILVER MOTORSPORT',style:'silver',cc:1000,color:'#d3e777',rgb:[.67,.81,.27],power:246,top:300,grip:1.2,accel:1.025,description:'Agilità in curva · 1000 cc',character:'Agile',handling:1,wheelbase:1.49,mass:230},
-  {id:'v2c',name:'V2 Corsa',caption:'V2 / CORSA REPARTO SPORT',style:'corsa',cc:850,isNew:true,color:'#e63b47',rgb:[.9,.12,.17],power:228,top:294,grip:1.22,accel:1.06,description:'Compatta e rapida nei cambi · 850 cc',character:'Agilità',handling:1.08,wheelbase:1.44,mass:217},
-  {id:'x4a',name:'X4 Aero',caption:'X4 / AERO PERFORMANCE',style:'aero',aeroDrag:.00088,cc:1000,isNew:true,color:'#a575f0',rgb:[.57,.28,.91],power:288,top:338,grip:.98,accel:1.005,description:'Aerodinamica e velocità · 1000 cc',character:'Velocità',handling:.95,wheelbase:1.54,mass:237},
-  {id:'r9e',name:'R9 Endurance',caption:'R9 / ENDURANCE WORKS',style:'endurance',cc:1000,isNew:true,color:'#53d9c2',rgb:[.12,.70,.57],power:252,top:306,grip:1.14,accel:1.025,description:'Cupolino alto e avantreno stabile · 1000 cc',character:'Controllo',handling:1,wheelbase:1.50,mass:234},
-  {id:'s3',name:'S3 Sprint',caption:'S3 / SPRINT DEVELOPMENT',style:'sprint',cc:600,isNew:true,price:24000,color:'#f6ba4e',rgb:[.94,.59,.12],power:188,top:270,grip:1.28,accel:1.08,description:'Leggera e precisa · 600 cc',character:'Tecnica',handling:1.12,wheelbase:1.42,mass:204},
-  {id:'t12',name:'VR12 Titan',caption:'VR12 / TITAN FACTORY',style:'titan',cc:1000,isNew:true,price:48000,aeroDrag:.00083,color:'#e3e8ef',rgb:[.82,.86,.91],power:296,top:342,grip:1.02,accel:1.01,description:'V4 evoluta e aero attiva · 1000 cc',character:'Allungo',handling:.98,wheelbase:1.54,mass:232},
-  {id:'gtr',name:'GT-R Carbon',caption:'GT-R / CARBON WORKS',style:'carbon',cc:1000,isNew:true,price:42000,aeroDrag:.00090,color:'#f18839',rgb:[.94,.36,.08],power:275,top:327,grip:1.16,accel:1.04,description:'Ciclistica in carbonio · 1000 cc',character:'Precisione',handling:1.08,wheelbase:1.47,mass:222},
-  {id:'i4',name:'I4 Sakura',caption:'I4 / SAKURA MOTORSPORT',style:'sakura',cc:1000,isNew:true,price:36000,color:'#f17fab',rgb:[.92,.34,.53],power:263,top:318,grip:1.16,accel:1.03,description:'Quattro cilindri progressiva · 1000 cc',character:'Equilibrio',handling:1.045,wheelbase:1.48,mass:226}
-
-];
-export const TRACKS = [
-  {id:'toscana',name:'Toscana Ring',country:'ITALIA / COLLINE',theme:'hills',turns:15,character:'Curve scorrevoli e staccate',points:[[0,-400],[0,-110],[45,65],[240,95],[350,220],[265,400],[40,430],[-120,320],[-275,345],[-395,215],[-315,100],[-175,130],[-140,-20],[-255,-170],[-145,-340]]},
-  {id:'adriatica',name:'Adriatica GP',country:'ITALIA / RIVIERA',theme:'coast',turns:13,character:'Rettilinei e curve veloci',points:[[0,-430],[0,0],[145,150],[385,85],[465,240],[340,405],[100,375],[-60,190],[-270,270],[-390,105],[-245,-35],[-275,-240],[-150,-415]]},
-  {id:'dune',name:'Dune International',country:'DESERTO / NOTTE DORATA',theme:'desert',turns:14,character:'Sequenze tecniche nel deserto',points:[[0,-365],[0,-20],[105,90],[260,-5],[390,115],[300,280],[120,220],[70,385],[-100,415],[-280,265],[-355,25],[-220,-130],[-285,-305],[-100,-405]]},
-  {id:'alpine',name:'Alpine Circuit',country:'AUSTRIA / ALPI',theme:'alpine',turns:14,isNew:true,character:'Tornanti e cambi di direzione',points:[[0,-320],[0,-70],[100,120],[290,160],[360,340],[180,445],[-30,385],[-120,215],[-310,225],[-390,70],[-280,-70],[-330,-250],[-180,-450],[0,-490]]},
-  {id:'sakura',name:'Sakura GP',country:'GIAPPONE / CILIEGI',theme:'sakura',turns:16,isNew:true,character:'Esse ritmate e doppio apice',points:[[0,-300],[0,-70],[130,45],[310,-10],[430,120],[350,315],[170,270],[60,400],[-180,360],[-260,190],[-100,90],[-190,-65],[-360,-150],[-280,-360],[-90,-460],[0,-460]]},
-  {id:'marina',name:'Marina Bay Ring',country:'SPAGNA / PORTO',theme:'marina',turns:15,isNew:true,character:'Allunghi e frenate decise',points:[[0,-330],[0,-80],[100,60],[335,60],[440,190],[340,340],[120,340],[-40,235],[-225,300],[-400,160],[-360,-20],[-180,-120],[-250,-330],[-100,-470],[0,-480]]},
-  {id:'azzurra',name:'Costa Azzurra GP',country:'FRANCIA / COSTA',theme:'coast',elevation:5,turns:15,isNew:true,character:'Curvoni sul mare e varianti',points:[[0,-350],[0,-70],[145,110],[360,65],[510,230],[380,430],[160,430],[40,290],[-130,360],[-330,270],[-420,80],[-270,-30],[-330,-230],[-180,-440],[0,-510]]},
-  {id:'nordland',name:'Nordland Ridge',country:'NORVEGIA / FORESTE',theme:'forest',elevation:22,turns:16,isNew:true,character:'Saliscendi e staccate in discesa',points:[[0,-360],[0,-80],[130,130],[350,160],[450,345],[270,490],[50,395],[-75,240],[-250,345],[-440,235],[-420,40],[-230,-55],[-320,-245],[-180,-455],[0,-520]]},
-  {id:'canyon',name:'Red Canyon Ring',country:'USA / CANYON',theme:'canyon',elevation:13,turns:15,isNew:true,character:'Rocce rosse e rettilinei veloci',points:[[0,-390],[0,-40],[180,70],[410,10],[540,180],[425,370],[230,320],[130,485],[-80,475],[-250,340],[-440,120],[-325,-80],[-385,-300],[-190,-500],[0,-550]]},
-  {id:'atlas',name:'Atlas Technical',country:'PORTOGALLO / COLLINE',theme:'hills',elevation:14,turns:17,isNew:true,character:'Dossi, esse e curve ad ampio raggio',points:[[0,-350],[0,-70],[115,75],[310,20],[440,180],[305,325],[140,235],[50,410],[-140,455],[-295,300],[-200,150],[-360,45],[-420,-145],[-240,-255],[-150,-455],[0,-510]]}
-
-];
-
-for(const bike of BIKES)Object.assign(bike,BIKE_IDENTITIES[bike.id]);
-for(const circuit of TRACKS)Object.assign(circuit,TRACK_IDENTITIES[circuit.id]);
+// Preserve catalog order: saved garage selections use these stable IDs/indexes.
+export const BIKES = Object.entries(BIKE_IDENTITIES).map(([id, spec]) => ({
+  id, grip: 1.1, accel: 1, handling: 1, mass: 230, aeroDrag:spec.category==='MotoGP'?.00078:.00090, ...spec,
+}));
+export const TRACKS = Object.entries(TRACK_IDENTITIES).map(([id, spec]) => ({
+  id, ...spec, ...CIRCUIT_LAYOUTS[id],
+}));
 
 function catmull(p0,p1,p2,p3,t){
   return [0,1].map(i=>.5*((2*p1[i])+(-p0[i]+p2[i])*t+(2*p0[i]-5*p1[i]+4*p2[i]-p3[i])*t*t+(-p0[i]+3*p1[i]-3*p2[i]+p3[i])*t*t*t));
 }
 export class Circuit{
   constructor(config){
-    this.config=config;this.halfWidth=9.25;
+    this.config=config;this.halfWidth=(config.width||18.5)/2;
     const dense=[],pts=config.points;
-    for(let j=0;j<pts.length;j++)for(let n=0;n<100;n++)dense.push(catmull(pts[mod(j-1,pts.length)],pts[j],pts[(j+1)%pts.length],pts[(j+2)%pts.length],n/100));
+    // Densely surveyed centre lines use linear interpolation. Catmull-Rom on
+    // unevenly spaced OSM nodes bends straights and can overshoot hairpins.
+    if(config.layoutVersion)dense.push(...pts);
+    else for(let j=0;j<pts.length;j++)for(let n=0;n<100;n++)dense.push(catmull(pts[mod(j-1,pts.length)],pts[j],pts[(j+1)%pts.length],pts[(j+2)%pts.length],n/100));
     dense.push(dense[0]);let length=0;const distances=[0];
     for(let i=1;i<dense.length;i++){length+=Math.hypot(dense[i][0]-dense[i-1][0],dense[i][1]-dense[i-1][1]);distances.push(length);}
     this.length=length;this.count=Math.ceil(length/4);this.step=length/this.count;this.nodes=[];let at=0;
@@ -56,14 +39,22 @@ export class Circuit{
       const prev=this.nodes[mod(i-1,this.count)],next=this.nodes[(i+1)%this.count],v=this.nodes[i];
       const l=Math.hypot(next.x-prev.x,next.z-prev.z);v.tx=(next.x-prev.x)/l;v.tz=(next.z-prev.z)/l;v.yaw=Math.atan2(v.tx,v.tz);
     }
-    for(let i=0;i<this.count;i++)this.nodes[i].k=wrapAngle(this.nodes[(i+1)%this.count].yaw-this.nodes[mod(i-1,this.count)].yaw)/(this.step*2);
+    // Estimate tyre curvature over 20 metres instead of individual survey
+    // segments, keeping AI braking and the racing line stable between nodes.
+    const span=config.layoutVersion?Math.max(1,Math.round(10/this.step)):1;
+    for(let i=0;i<this.count;i++)this.nodes[i].k=wrapAngle(this.nodes[mod(i+span,this.count)].yaw-this.nodes[mod(i-span,this.count)].yaw)/(this.step*span*2);
     this.bounds={minX:Math.min(...this.nodes.map(p=>p.x)),maxX:Math.max(...this.nodes.map(p=>p.x)),minZ:Math.min(...this.nodes.map(p=>p.z)),maxZ:Math.max(...this.nodes.map(p=>p.z))};
   }
   sample(s,offset=0){
     const f=mod(s,this.length)/this.step,i=Math.floor(f),t=f-i,a=this.nodes[i],b=this.nodes[(i+1)%this.count];
     const yaw=a.yaw+wrapAngle(b.yaw-a.yaw)*t,tx=Math.sin(yaw),tz=Math.cos(yaw);
-    const e=this.config.elevation||0,u=mod(s,this.length)/this.length*Math.PI*2;
-    const y=e?e*(Math.sin(u)*.55+Math.sin(u*2+.35)*.25):0,grade=e?e*(Math.cos(u)*.55+Math.cos(u*2+.35)*.50)*Math.PI*2/this.length:0;
+    const fraction=mod(s,this.length)/this.length,profile=this.config.elevationProfile;
+    let y=0,grade=0;
+    if(profile){
+      const end=profile.findIndex(p=>p[0]>fraction),a=profile[Math.max(0,end-1)],b=profile[end<0?profile.length-1:end];
+      const span=b[0]-a[0],u=span?(fraction-a[0])/span:0;
+      y=lerp(a[1],b[1],u*u*(3-2*u));grade=span?(b[1]-a[1])*6*u*(1-u)/(span*this.length):0;
+    }
     return {x:lerp(a.x,b.x,t)+tz*offset,z:lerp(a.z,b.z,t)-tx*offset,y,grade,tx,tz,yaw,k:lerp(a.k,b.k,t)};
   }
   cornerSpeed(s,grip=1){const f=mod(s,this.length)/this.step,i=Math.floor(f),k=lerp(this.nodes[i].k,this.nodes[(i+1)%this.count].k,f-i);return clamp(Math.sqrt(9.81*grip*1.43/Math.max(.001,Math.abs(k))),12,95);}
@@ -168,7 +159,7 @@ export class RaceModel{
       p.risk=lerp(p.risk,clamp(excess*.45+off*.045,0,1),dt*2);p.grip=clamp(surface*(1-p.risk*.25),.25,1);
       if(p.wheelie>.16&&Math.abs(p.lean)>.46&&p.speed>10)this.crashPlayer('wheelie',1);
       if(off>1&&this.messageCooldown<=0){this.offtrackEvents++;this.messageCooldown=3;this.emit('offtrack');}
-      const kph=p.speed*3.6;if(p.gear<6&&kph>p.gear*52+2){p.gear++;p.shiftTimer=.10;}else if(p.gear>1&&kph<(p.gear-1)*52-7)p.gear--;
+      const kph=p.speed*3.6,gearStep=gearSpeedStep(bike);if(p.gear<6&&kph>p.gear*gearStep+2){p.gear++;p.shiftTimer=.10;}else if(p.gear>1&&kph<(p.gear-1)*gearStep-7)p.gear--;
     }
 
     const pace={rookie:.79,sport:.94,pro:1.045}[this.options.difficulty]??.94;

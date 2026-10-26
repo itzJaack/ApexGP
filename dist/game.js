@@ -8,7 +8,8 @@ import {ONLINE_CONFIG} from './online-config.js';
 import {OverviewRenderer} from './overview.js';
 import {Career,normalizeProfile,UPGRADES,LIVERIES} from './progression.js';
 import {FLAGS} from './race-control.js';
-import {BIKES,TRACKS,Circuit,RaceModel,clamp,lerp,mod,formatTime,wrapAngle} from './simulation.js';
+import {BIKES,TRACKS,Circuit,RaceModel,clamp,lerp,mod,formatTime,wrapAngle,gearSpeedStep} from './simulation.js';
+import {circuitRecordKey,validRecordKey} from './records.js';
 import {Renderer,buildWorld,buildBike,bikeParts,modelMatrix} from './engine.js';
 import {DrivingControls,bindTouchControls} from './controls.js';
 import {disposeBike,disposeWorld,AssetTransition} from './runtime.js';
@@ -39,7 +40,7 @@ let socialUI=null,lastSocialPresence='';
 let localPause=false,lanLatest=null,lastLanRender=0;const peerBikes=new Map();
 const lan=new MultiplayerClient({onNetworkStats:stats=>{const text=`DATI ↑ ${(stats.tx/1024).toFixed(1)} · ↓ ${(stats.rx/1024).toFixed(1)} KB/s`;$('lan-traffic').textContent=text;$('hud-network').textContent=text;},onState:receiveLanState,onStart:startLanRace,onResult:finishLanRace,onError:m=>{$('lan-status').textContent=m;},onDisconnect:()=>{if(race?.options.mode==='lan'){backToMenu();setPage('lan');}$('lan-status').textContent='Connessione chiusa. Ricollegati al server per rientrare.';show('lan-room',false);renderLobbyPlayers(null);},onReset:m=>{if(race?.options.mode==='lan'){Object.assign(race.player,{x:m.pose.x,z:m.pose.z,heading:m.pose.heading,progress:m.progress,speed:m.pose.speed,y:m.pose.y||0});}},onPenalty:m=>{message(`PENALITÀ ${m.reason} · +${m.seconds} SECONDI`);}});
 const saveSettings=()=>{if(applyingSnapshot)return;safeWrite('apexgp.settings.v1',settings);accountUI?.change();};
-const recordKey=()=>`${track.config.id}:${settings.weather}`;
+const recordKey=()=>circuitRecordKey(track.config,settings.weather);
 const readRecord=()=>{const r=records[recordKey()];return r&&Number.isFinite(r.time)&&r.time>0&&Array.isArray(r.samples)?r:null;};
 
 const sharedSettings=['line','assist','tcs','track','bike','mode','weather','laps','difficulty'];
@@ -51,7 +52,7 @@ function applySnapshot(value){
   career.profile=normalizeProfile(value.career);
   for(const key of Object.keys(records))delete records[key];
   for(const[key,r]of Object.entries(value.records||{})){
-   if(!/^(toscana|adriatica|dune|alpine|sakura|marina|azzurra|nordland|canyon|atlas):(day|rain|sunset)$/.test(key)||!Number.isFinite(r?.time)||r.time<=0||!Array.isArray(r.samples))continue;
+   if(!validRecordKey(key)||!Number.isFinite(r?.time)||r.time<=0||!Array.isArray(r.samples))continue;
    records[key]={...r,samples:r.samples.slice(0,2000).filter(p=>p&&['t','s','x','a','l'].every(k=>Number.isFinite(p[k]??0)))};
   }
   const prefs=value.settings||{};
@@ -77,15 +78,15 @@ function freeBike(bike){disposeBike(renderer,bike);}
 function freeRaceAssets(){for(const b of botBikes)freeBike(b);botBikes=[];for(const b of peerBikes.values())freeBike(b);peerBikes.clear();freeBike(ghostBike);ghostBike=null;}
 function selectTrack(index){
   settings.track=mod(index,TRACKS.length);saveSettings();track=new Circuit(TRACKS[settings.track]);renderer.weather=settings.weather;freeWorld();world=buildWorld(renderer,track);camera=null;
-  $('track-name').textContent=track.config.name;$('track-country').textContent=track.config.country;$('track-spec').textContent=`${(track.length/1000).toFixed(2).replace('.',',')} km · ${track.config.turns} curve`;$('track-index').textContent=`${String(settings.track+1).padStart(2,'0')} / ${String(TRACKS.length).padStart(2,'0')}`;
+  $('track-name').textContent=track.config.name;$('track-country').textContent=track.config.country;$('track-spec').textContent=`${(track.length/1000).toFixed(3).replace('.',',')} km · ${track.config.turns} curve`;$('track-index').textContent=`${String(settings.track+1).padStart(2,'0')} / ${String(TRACKS.length).padStart(2,'0')}`;
   const b=track.bounds,scale=Math.min(142/(b.maxX-b.minX),88/(b.maxZ-b.minZ)),map=p=>[9+(p.x-b.minX)*scale,8+(p.z-b.minZ)*scale];
   const points=track.nodes.filter((_,i)=>i%4===0).map(p=>map(p).join(',')).join(' '),start=map(track.sample(0));
   $('track-preview').innerHTML=`<polyline points="${points} ${map(track.nodes[0]).join(',')}" stroke-linejoin="round" stroke-linecap="round"/><circle cx="${start[0]}" cy="${start[1]}" r="3" fill="#f3f3ef" stroke="none"/>`;
-  $('hud-track').textContent=track.config.name.toUpperCase();$('track-select').value=String(settings.track);$('track-character').textContent=track.config.character;show('track-new',!!track.config.isNew);
+  $('track-source').href=track.config.source;$('hud-track').textContent=track.config.name.toUpperCase();$('track-select').value=String(settings.track);$('track-character').textContent=track.config.character;show('track-new',!!track.config.isNew);
 }
 function selectBike(index){
   settings.bike=mod(index,BIKES.length);index=settings.bike;saveSettings();freeBike(playerBike);freeBike(ghostBike);ghostBike=null;playerBike=buildBike(renderer,BIKES[index].rgb,27,1,BIKES[index].style,career.profile.liveries[BIKES[index].id]);
-  $('hero-displacement').textContent=`${BIKES[index].cc} cc · PROTOTYPE`;$('garage-character').textContent=`${BIKES[index].name} · ${BIKES[index].character.toUpperCase()} · ${BIKES[index].power} CV`;$('hero-power').textContent=effectiveBike().power;$('hero-top').textContent=effectiveBike().top;$('hero-bike').textContent=BIKES[index].caption;
+  $('hero-displacement').textContent=`${BIKES[index].cc} cc · ${BIKES[index].category.toUpperCase()} · ${BIKES[index].year}`;$('garage-character').textContent=BIKES[index].description;$('hero-power').textContent=effectiveBike().power;$('hero-top').textContent=effectiveBike().top;$('hero-bike').textContent=BIKES[index].caption;
   document.querySelectorAll('.bike-card').forEach((el,i)=>el.classList.toggle('active',i===index));refreshCareer();
 }
 function setPage(value){page=value;$('menu').dataset.page=value;for(const p of['race','garage','workshop','lan','settings'])show(`${p}-panel`,p===value);document.querySelectorAll('.nav-link').forEach(b=>b.classList.toggle('active',b.dataset.page===value));$('menu').scrollTop=0;}
@@ -153,7 +154,7 @@ function ghostAt(t){
 }
 function updateHUD(){
   if(!race)return;const p=race.player,rec=readRecord();$('position').textContent=race.position;$('lap').innerHTML=`${race.lap} <small>/ ${settings.laps}</small>`;$('lap-time').textContent=clock(race.currentLapTime);$('best-time').textContent=rec?`BEST ${formatTime(rec.time)}`:'BEST —';$('speed').textContent=String(Math.round(p.speed*3.6)).padStart(3,'0');$('gear').textContent=p.gear;$('lean-value').textContent=`${Math.round(Math.abs(p.lean)*180/Math.PI)}°`;$('grip-value').textContent=`${Math.round(p.grip*100)}%`;show('slipstream',p.slipstream);show('wheelie-status',p.wheelie>.08);show('tcs-status',p.tcs);const flag=race.control.info(race);$('flag-label').textContent=flag.label;$('flag-text').textContent=flag.text;$('flag-icon').style.color=flag.color;$('flag-panel').style.borderLeftColor=flag.color;const canvas=$('world');canvas.dataset.heading=String(p.heading);canvas.dataset.progress=String(p.progress);canvas.dataset.speed=String(p.speed);canvas.dataset.wheelie=String(p.wheelie);canvas.dataset.raceState=race.state;canvas.dataset.audioState=sound.enabled?(sound.context?.state||'unavailable'):'muted';
-  const rpm=mod(p.speed*3.6,52)/52;document.querySelectorAll('#rpm-bars i').forEach((b,i)=>b.classList.toggle('on',i/18<.25+rpm*.75));
+  const rpm=mod(p.speed*3.6,gearSpeedStep(race.options.bike))/gearSpeedStep(race.options.bike);document.querySelectorAll('#rpm-bars i').forEach((b,i)=>b.classList.toggle('on',i/18<.25+rpm*.75));
   $('steering-value').textContent=input.left&&!input.right?'←':input.right&&!input.left?'→':'—';$('steering-value').style.color=input.left!==input.right?'#ff6033':'#f3f3ef';
   if(settings.mode==='race'||settings.mode==='lan'){
     const order=race.order,leader=order[0];$('leaderboard').innerHTML=order.map((r,i)=>leaderRow(r,i,i===0?'LEADER':r.finishTime!==null?'FINISH':`+${Math.max(0,(leader.progress-r.progress)/Math.max(20,r.speed)).toFixed(1)}`)).join('');
@@ -205,7 +206,7 @@ function renderRace(dt){
   renderer.begin(eye,target,fov,roll);renderer.draw(world.mesh);if(settings.line)renderer.draw(world.line);for(const b of world.boards)renderer.draw(b.mesh,b.matrix,1,b.texture);
   for(const r of nearby){if(r.isPlayer&&cameraMode===1)continue;const q=riderPoint(r),bike=bikeFor(r);renderer.draw(bike.shadow,modelMatrix([q.x,q.y||0,q.z],q.yaw+(r.angle||0)),.17);}
   for(const o of parts){drawParts(o.r.isPlayer&&cameraMode===1?o.parts.filter(p=>!p.rider):o.parts);}
-  const ghost=ghostAt(race.currentLapTime);if(ghost&&ghostBike){const q=track.sample(ghost.s,ghost.x);drawParts(bikeParts(ghostBike,modelMatrix([ghost.wx??q.x,.035,ghost.wz??q.z],ghost.h??q.yaw+ghost.a,-ghost.l),ghost.s),.28);}
+  const ghost=ghostAt(race.currentLapTime);if(ghost&&ghostBike){const q=track.sample(ghost.s,ghost.x);drawParts(bikeParts(ghostBike,modelMatrix([ghost.wx??q.x,q.y+.035,ghost.wz??q.z],ghost.h??q.yaw+ghost.a,-ghost.l),ghost.s),.28);}
   drawRaceFlags();renderer.finish();
 }
 function frame(now){
@@ -274,7 +275,7 @@ function toggleSound(){settings.audio=!settings.audio;sound.enabled=settings.aud
 function returnLanLobby(){freeRaceAssets();localPause=false;sound.tick(null);clearInput();race=null;settings.mode='race';show('result-overlay',false);show('pause-overlay',false);show('hud',false);show('menu');setPage('lan');if(lan.state?.hostId===lan.id)lan.send({type:'lobby'});receiveLanState(lan.state);}
 function effectiveBike(){return career.bike(BIKES[settings.bike].id,{stock:settings.mode==='lan'});}
 function renderGarage(){
- $('bike-list').innerHTML=BIKES.map((b,i)=>`<button class="bike-card ${i===settings.bike?'active':''} ${career.owns(b.id)?'':'locked'}" data-bike="${i}"><i class="bike-color" style="background:${b.color}"></i><span><strong>${b.name}${b.price?'<em class="new-bike">NEW</em>':''}</strong><small>${b.description}</small><span class="bike-owned">${career.owns(b.id)?'NEL GARAGE':b.price.toLocaleString('it-IT')+' CR'}</span></span><span class="bike-metrics"><span><b>${career.bike(b.id).power}</b>CV</span><span><b>${career.bike(b.id).top}</b>KM/H</span></span></button>`).join('');
+ $('bike-list').innerHTML=BIKES.map((b,i)=>`<button class="bike-card ${i===settings.bike?'active':''} ${career.owns(b.id)?'':'locked'}" data-bike="${i}"><i class="bike-color" style="background:${b.color}"></i><span><strong>${b.name}${b.isNew?'<em class="new-bike">NEW</em>':''}</strong><small>${b.description}</small><span class="bike-owned">${career.owns(b.id)?'NEL GARAGE':b.price.toLocaleString('it-IT')+' CR'}</span></span><span class="bike-metrics"><span><b>${career.bike(b.id).power}</b>CV</span><span><b>${career.bike(b.id).top}</b>KM/H</span></span></button>`).join('');
  document.querySelectorAll('[data-bike]').forEach(el=>el.addEventListener('click',()=>selectBike(Number(el.dataset.bike))));
 }
 function refreshCareer(){

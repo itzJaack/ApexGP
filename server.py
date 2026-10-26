@@ -239,7 +239,7 @@ def addresses(port):
  return [f'http://{ip}:{port}' for ip in sorted(found) if ipaddress.ip_address(ip).is_private or ip.startswith('127.')]
 
 def create_server(host='0.0.0.0',port=8765,root=None,catalog=None):
- root=(Path(root) if root else ROOT/'dist').resolve();catalog=catalog or json.loads((ROOT/'data'/'race-data.json').read_text());server=ThreadingHTTPServer((host,port),Handler);server.daemon_threads=True;server.root=root;server.hub=Hub(catalog);return server
+ root=(Path(root) if root else ROOT/'dist').resolve();catalog=catalog or json.loads((ROOT/'data'/'race-data.json').read_text(encoding='utf-8'));server=ThreadingHTTPServer((host,port),Handler);server.daemon_threads=True;server.root=root;server.hub=Hub(catalog);return server
 
 def main():
  if sys.version_info<(3,10):print('Serve Python 3.10 o successivo per ospitare la partita LAN.');return 1

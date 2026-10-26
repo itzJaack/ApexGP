@@ -20,7 +20,7 @@ function straightTrack(){
   return t;
 }
 
-test('all ten closed circuits have continuous tangents and finite geometry',()=>{
+test('all catalogued closed circuits have continuous tangents and finite geometry',()=>{
   for(const config of TRACKS){
     const circuit=new Circuit(config);
     assert(circuit.length>2000&&circuit.length<6000);
@@ -194,7 +194,7 @@ test('new motorcycles finish new circuits with their own handling in dry and wet
   for(let i=3;i<BIKES.length;i++)for(const weather of ['day','rain']){
     const race=new RaceModel(new Circuit(TRACKS[i%TRACKS.length]),{mode:'time',laps:1,bike:BIKES[i],weather});race.countdown=0;let maxOffset=0;
     for(let f=0;f<24000&&race.state!=='finished';f++){race.update(1/120,drive(race,.82));race.events=[];maxOffset=Math.max(maxOffset,Math.abs(race.player.offset));}
-    assert.equal(race.state,'finished',`${BIKES[i].name} on ${TRACKS[i].name} / ${weather}`);
+    assert.equal(race.state,'finished',`${BIKES[i].name} on ${TRACKS[i%TRACKS.length].name} / ${weather}`);
     assert.equal(race.penalties,0);assert(maxOffset<8.5,'A clean lap must stay on the asphalt');
   }
 });
