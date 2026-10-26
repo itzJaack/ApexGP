@@ -2,6 +2,14 @@
 
 Gioco di corse in moto 3D per browser. **[Gioca su GitHub Pages](https://itzjaack.github.io/ApexGP/)** · [Sorgenti e aggiornamenti](https://github.com/itzJaack/ApexGP).
 
+## Smartphone e tablet
+
+Apri lo stesso link dal browser del telefono: non serve installare un’app. Menu, garage, officina, account e lobby si adattano sia in verticale sia in orizzontale e scorrono quando lo spazio è ridotto. I campi di accesso restano leggibili con la tastiera a schermo; i comandi rispettano notch e barra dei gesti.
+
+I comandi touch appaiono automaticamente sui dispositivi tattili. Tieni **GAS** e **◀ / ▶** con due dita per accelerare e sterzare insieme; **FRENO** rallenta e **↑ MOTO** impenna. Puoi scorrere un dito da un pulsante all’altro. Uscire dall’area dei pulsanti, annullare un tocco, cambiare app o ruotare il dispositivo rilascia i comandi per evitare accelerazioni bloccate. In alto trovi visuale, audio, amici, **↗ RIENTRA** (+2 secondi) e pausa.
+
+In **Impostazioni → Comandi touch** puoi scegliere Automatici, Sempre visibili o Disattivati. La scelta resta su questo dispositivo. **Schermo intero** è disponibile nei browser che lo supportano; se consentito dal browser prova anche a orientare lo schermo in orizzontale. Puoi comunque giocare in verticale. La modalità grafica iniziale rimane **Prestazioni**, con risoluzione adattiva e modelli leggeri.
+
 ## Account e progressi
 
 Apri **Accedi → Registrati**, scegli un nome utente e una password di almeno otto caratteri e salva il codice di recupero. Lo stesso account ritrova crediti, moto acquistate, potenziamenti, livree, statistiche, record con ghost e preferenze di guida sui diversi dispositivi. Il codice di recupero consente di reimpostare la password: è personale, non condividerlo. Puoi sostituirlo dal profilo; il precedente smette di funzionare.

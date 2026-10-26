@@ -12,3 +12,35 @@ export class DrivingControls{
   sync(){for(const action of Object.keys(this.state))this.state[action]=[...this.keys.values(),...this.pointers.values()].includes(action);}
   clear(){this.keys.clear();this.pointers.clear();this.sync();}
 }
+
+// Each finger owns its input. Slides, interrupted gestures and lost capture
+// release only that finger, without dropping another finger or a keyboard key.
+export function bindTouchControls({root,controls,isEnabled,onChange=()=>{},onEngage=()=>{}}){
+  const document=root.ownerDocument,active=new Set();
+  const release=event=>{
+    if(!active.delete(event.pointerId))return;
+    controls.pointerUp(event.pointerId);onChange();
+  };
+  for(const button of root.querySelectorAll('[data-control]')){
+    button.addEventListener('pointerdown',event=>{
+      if(event.button>0||!isEnabled())return;
+      event.preventDefault();active.add(event.pointerId);
+      controls.pointerDown(event.pointerId,button.dataset.control);onChange();onEngage();
+      try{button.setPointerCapture?.(event.pointerId);}catch{/* Document handlers also release the finger. */}
+    });
+    button.addEventListener('lostpointercapture',release);
+    button.addEventListener('contextmenu',event=>event.preventDefault());
+  }
+  document.addEventListener('pointermove',event=>{
+    if(!active.has(event.pointerId))return;
+    if(!isEnabled()){release(event);return;}
+    event.preventDefault();
+    const button=document.elementFromPoint(event.clientX,event.clientY)?.closest('[data-control]');
+    if(button&&root.contains(button))controls.pointerDown(event.pointerId,button.dataset.control);
+    else controls.pointerUp(event.pointerId);
+    onChange();
+  },{passive:false});
+  document.addEventListener('pointerup',release);
+  document.addEventListener('pointercancel',release);
+  return{reset(){for(const id of active)controls.pointerUp(id);active.clear();onChange();}};
+}

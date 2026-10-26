@@ -1,0 +1,134 @@
+/* Touch layouts are independent of the 3D rendering resolution. */
+:root{--safe-top:env(safe-area-inset-top,0px);--safe-right:env(safe-area-inset-right,0px);--safe-bottom:env(safe-area-inset-bottom,0px);--safe-left:env(safe-area-inset-left,0px)}
+html{-webkit-text-size-adjust:100%}
+button,a,select,input{touch-action:manipulation}
+.touch-only{display:none!important}
+.touch-controls{display:none!important;touch-action:none;-webkit-user-select:none;-webkit-touch-callout:none}
+.touch-mode .touch-only{display:block!important}
+.touch-mode .keyboard-only{display:none!important}
+.touch-mode .touch-controls{display:flex!important;bottom:calc(12px + var(--safe-bottom));left:max(12px,var(--safe-left));right:max(12px,var(--safe-right));gap:12px}
+.touch-mode .touch-controls>div{gap:6px}
+.touch-mode .touch-controls button{height:64px;width:clamp(48px,13vw,64px);min-width:44px;border-radius:14px;border-color:#ffffff70;background:#14202cde;box-shadow:0 3px 12px #0005;touch-action:none;-webkit-touch-callout:none;transition:background .08s}
+.touch-mode .touch-controls .wheelie-button{font-size:9px;color:#ffcf85;border-color:#c89047}
+.touch-mode .touch-controls .brake,.touch-mode .touch-controls .throttle{width:clamp(54px,15vw,80px);font-size:11px;font-weight:800}
+.touch-mode .touch-controls .throttle{background:#ff6033ed;color:#101215}
+.touch-mode .touch-controls .pressed{background:#809bae;border-color:#fff}
+.touch-mode .touch-controls .throttle.pressed{background:#ffb38e}
+.touch-mode .hud-bottom{bottom:calc(100px + var(--safe-bottom))}
+.touch-mode .hud-button{width:44px;height:44px;flex-shrink:0}
+.touch-mode .hud-top{top:max(12px,var(--safe-top));left:max(16px,var(--safe-left));right:max(16px,var(--safe-right))}
+.reset-button{font-size:21px;line-height:1;gap:0;align-content:center}
+.reset-button small{font-size:6px;letter-spacing:.2px}
+.overlay{top:var(--viewport-top,0px);bottom:auto;height:var(--app-height,100dvh);padding-top:max(16px,var(--safe-top));padding-bottom:max(16px,var(--safe-bottom));padding-left:max(16px,var(--safe-left));padding-right:max(16px,var(--safe-right))}
+.modal{max-height:calc(var(--app-height,100dvh) - max(16px,var(--safe-top)) - max(16px,var(--safe-bottom)));overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin}
+
+@media(max-width:1024px){
+  .menu{height:var(--app-height,100dvh);bottom:auto;overflow-x:hidden;overflow-y:auto;overscroll-behavior-y:contain;background:linear-gradient(100deg,#090d13d9,#090d1355),linear-gradient(0deg,#090d13,transparent 90%)}
+  .topbar{position:sticky;top:0;z-index:3;display:grid;grid-template-columns:1fr auto;align-content:center;align-items:center;gap:4px 12px;flex:none;height:auto;min-height:0;margin:0;padding:max(10px,var(--safe-top)) max(16px,var(--safe-right)) 0 max(16px,var(--safe-left));background:#0e141bea;backdrop-filter:blur(12px)}
+  .topbar .brand{font-size:25px;margin:0;justify-self:start}
+  .topbar .profile{display:none}
+  .topbar .account-nav{min-height:44px;padding:10px 15px;font-size:11px}
+  .topbar nav{grid-column:1/-1;order:3;display:flex;justify-content:flex-start;flex-wrap:nowrap;gap:2px;width:100%;height:48px;min-width:0;margin:0;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:none}
+  .topbar nav::-webkit-scrollbar{display:none}
+  .topbar .nav-link{flex:0 0 auto;font-size:10px;letter-spacing:.7px;padding:12px;min-height:44px;white-space:nowrap}
+  .hero{position:relative;left:auto;top:auto;margin:24px max(20px,var(--safe-left)) 20px;flex-shrink:0}
+  .hero h1{font-size:70px;line-height:.92;margin:15px 0 0}
+  .hero p,.hero-stats,.hero .v-tag,.bike-caption{display:none}
+  .hero .eyebrow{font-size:8px;letter-spacing:1px}
+  .menu[data-page]:not([data-page="race"]) .hero{display:none}
+  .setup-panel{position:relative;left:auto;right:auto;top:auto;bottom:auto;flex:none;width:calc(100% - 32px - var(--safe-left) - var(--safe-right));max-width:600px;margin:0 auto 18px;padding:20px}
+  .menu[data-page]:not([data-page="race"]) .setup-panel{margin-top:20px}
+  #garage-panel,#workshop-panel,#lan-panel,#settings-panel{max-height:none;overflow:visible}
+  .bike-list{max-height:none;overflow:visible;padding:0}
+  .bike-card{min-height:78px}
+  .bike-card strong{font-size:14px}.bike-card small{font-size:11px}
+  .bike-card .bike-owned{font-size:9px}.bike-metrics{gap:8px}
+  .page-panel h2{font-size:34px;margin:12px 0 20px}
+  .panel-top .eyebrow,.selection-label,.field-label{font-size:10px;line-height:1.5}
+  .small-tag{font-size:8px}.mode{min-height:64px;padding:12px;gap:8px}
+  .mode>span{font-size:12px}.mode small{font-size:9px;line-height:1.4}
+  .track-info{white-space:normal}.track-info strong{font-size:22px}
+  .track-info .eyebrow,.track-info>span:last-child,.track-character{font-size:10px;line-height:1.4}
+  .track-character{display:block}.track-selector{gap:10px}
+  .square-button{height:44px;width:44px}
+  #track-preview{width:84px;height:65px;flex-shrink:0}
+  .menu select,.modal select,.menu input:not([type=checkbox]):not([type=range]):not([type=file]),.modal input:not([type=checkbox]):not([type=range]):not([type=file]){font-size:16px;min-height:44px}
+  .track-dropdown{padding:10px}.race-options{gap:10px}.race-options label{font-size:9px}
+  .primary-button,.secondary-button,.text-button,.upgrade-row button,.social-action{min-height:44px}
+  .panel-note{font-size:9px;text-align:center;line-height:1.5}
+  .muted,.page-panel .muted,.social-modal .muted,.account-modal .muted{font-size:12px;line-height:1.65}
+  .toggle-row{min-height:60px;padding:12px 0}.toggle-row small{font-size:10px;line-height:1.5}
+  .range-row{display:block;font-size:10px}.range-row select,.range-row input[type=range]{width:100%;margin-top:10px}.upgrade-row small{font-size:10px}
+  .upgrade-row button{font-size:10px}.backup-actions{flex-wrap:wrap}
+  .lan-join{grid-template-columns:1fr}.lobby-settings{padding:4px 12px}
+  .menu-footer{position:relative;left:auto;right:auto;bottom:auto;display:flex;flex:none;justify-content:center;width:auto;height:auto;min-height:44px;margin:0 max(16px,var(--safe-left));padding:14px 0 calc(18px + var(--safe-bottom));font-size:9px;line-height:1.7;text-align:center;letter-spacing:.3px}
+  .footer-brand{display:none}.menu-footer .touch-only{max-width:400px}
+  .modal{width:min(100%,500px);padding:22px}.modal h2{font-size:32px}
+  .modal>p{font-size:12px;line-height:1.65}.social-modal{width:min(100%,460px)}
+  .social-heading .text-button{min-height:44px}.social-action{font-size:10px}
+  .social-section-title,.social-section-title h3{font-size:12px}
+  .social-notice{left:max(12px,var(--safe-left));right:max(12px,var(--safe-right));top:calc(12px + var(--safe-top));max-width:460px;margin-left:auto}
+  .social-notice button{min-height:44px}
+}
+
+@media(max-width:650px){
+  .hud-top{display:grid;grid-template-columns:auto auto 1fr;gap:10px 14px;left:max(12px,var(--safe-left));right:max(12px,var(--safe-right));top:max(10px,var(--safe-top))}
+  .position-block{padding-right:12px;gap:8px}.position-block>span{font-size:38px}
+  .position-block>div,.lap-block>span,.lap-time>span{font-size:8px;letter-spacing:.4px}
+  .position-block small{font-size:15px}.lap-block strong{font-size:24px}
+  .lap-time{padding-left:12px;min-width:0}.lap-time strong{font-size:18px}.lap-time small{font-size:8px}
+  .hud-actions{grid-column:1/-1;justify-self:end;gap:5px;margin:0}
+  .hud-actions .hud-button{width:44px;height:44px}.hud-actions #sound-button{display:grid}
+  .hud-button svg{width:20px;height:20px}
+  .flag-panel{top:140px;min-width:0;width:max-content;max-width:calc(100% - 24px);padding:7px 12px}
+  .flag-panel b{font-size:10px}.flag-panel small{font-size:9px}
+  .leaderboard{left:max(12px,var(--safe-left));top:204px;width:150px}
+  .leaderboard .leader-row:nth-child(n+4):not(.me){display:none}
+  .hud-bottom{left:max(12px,var(--safe-left));right:max(12px,var(--safe-right))}
+  .telemetry{width:160px}.telemetry-foot{flex-wrap:wrap;gap:6px;font-size:8px}.telemetry-foot b{font-size:8px}
+  .circuit-hud{width:106px}#minimap{width:106px;height:80px}.surface{font-size:8px}.circuit-hud .eyebrow{font-size:8px}
+  .driving-hint{bottom:154px;max-width:95%;white-space:normal;text-align:center}.driving-hint>span{font-size:10px;letter-spacing:.5px}
+  .race-message{top:44%;font-size:11px;line-height:1.5;letter-spacing:.5px}
+  .hud-network{top:122px;right:max(12px,var(--safe-right));font-size:8px}
+  .touch-mode .hud-bottom{bottom:calc(98px + var(--safe-bottom))}
+}
+
+@media(max-width:360px){
+  .setup-panel{padding:15px}.topbar .nav-link{padding:12px 10px}
+  .hero h1{font-size:60px}.mode{padding:10px 8px}.mode svg{display:none}
+  #track-preview{width:55px;height:55px}.track-selector{gap:6px}
+  .track-info strong{font-size:18px}.race-options{gap:6px}
+  .modal .input-row{flex-wrap:wrap}.modal .input-row input{flex:1 0 100%;width:100%}
+  .modal .input-row button{max-width:none;flex:1}
+  .hud-actions{gap:3px}.hud-actions .hud-button{width:44px}
+  .telemetry{width:150px}.circuit-hud{width:90px}#minimap{width:90px;height:68px}
+}
+
+@media(max-height:700px) and (orientation:portrait){
+  .hero{margin-top:18px;margin-bottom:16px}.hero h1{font-size:56px}
+  .leaderboard{display:none}.driving-hint{display:none}
+}
+
+@media(max-height:540px) and (orientation:landscape){
+  .menu .hero{display:none}.menu .setup-panel{margin-top:16px}
+  .topbar{padding-top:max(6px,var(--safe-top))}.topbar nav{height:44px}
+  .hud-top{display:flex;gap:16px;left:max(12px,var(--safe-left));right:max(12px,var(--safe-right));top:max(8px,var(--safe-top))}
+  .hud-actions{margin-left:auto;gap:4px}.hud-actions .hud-button{width:44px;height:44px}
+  .position-block>span{font-size:36px}.position-block>div{font-size:7px}.position-block small{font-size:13px}
+  .lap-block strong{font-size:22px}.lap-time strong{font-size:17px}
+  .leaderboard{display:none}.flag-panel{top:76px;left:50%;max-width:300px;padding:5px 10px}
+  .flag-panel b{font-size:9px}.flag-panel small{font-size:8px}.flag-panel #flag-icon{font-size:20px}
+  .hud-network{top:62px;right:max(12px,var(--safe-right));font-size:8px}
+  .hud-bottom,.touch-mode .hud-bottom{bottom:calc(92px + var(--safe-bottom));left:max(16px,var(--safe-left));right:max(16px,var(--safe-right))}
+  .circuit-hud{width:90px}#minimap{width:90px;height:62px;margin:3px 0}.circuit-hud .eyebrow{font-size:7px}.surface{font-size:7px}
+  .telemetry{width:166px}.speed strong{font-size:49px}.gear strong{font-size:32px}.rpm-bars{height:5px;margin-bottom:6px}
+  .telemetry-foot{margin-top:5px;padding-top:5px;font-size:7px}.telemetry-foot b{font-size:8px}
+  .touch-mode .touch-controls{bottom:calc(8px + var(--safe-bottom))}.touch-mode .touch-controls button{height:60px}
+  .driving-hint{display:none}.race-message{top:43%;font-size:10px}
+  .modal{margin:auto;padding:20px}.modal h2{font-size:28px}.pause-modal .controls-summary{display:none}
+}
+
+@media(any-pointer:coarse){
+  .menu button,.modal button{min-height:44px}
+  .menu select,.modal select,.menu input:not([type=checkbox]):not([type=range]):not([type=file]),.modal input:not([type=checkbox]):not([type=range]):not([type=file]){font-size:16px;min-height:44px}
+}
