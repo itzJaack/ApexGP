@@ -26,11 +26,11 @@ async function decompress(bytes){if(typeof DecompressionStream!=='function')thro
 function base64bytes(s){return Uint8Array.from(atob(s),c=>c.charCodeAt(0));}
 export async function prepareModelAssets({readAsset=null,readImage=null,onProgress=()=>{},quality='high'}={}){
  const tag=globalThis.document?.getElementById?.('apex-model-assets'),embedded=tag?JSON.parse(tag.textContent):null;
- const base='assets/models/';const binary=assetBinary||=async path=>{if(embedded?.files[path])return base64bytes(embedded.files[path]);if(readAsset)return new Uint8Array(await readAsset(path));const r=await fetch(base+path+'?v=4.0');if(!r.ok)throw Error('Modello 3D non disponibile: '+path);return new Uint8Array(await r.arrayBuffer());};
+ const base='assets/models/';const binary=assetBinary||=async path=>{if(embedded?.files[path])return base64bytes(embedded.files[path]);if(readAsset)return new Uint8Array(await readAsset(path));const r=await fetch(base+path+'?v=4.0',{signal:AbortSignal.timeout(20000)});if(!r.ok)throw Error('Modello 3D non disponibile: '+path);return new Uint8Array(await r.arrayBuffer());};
  const manifest=modelManifest||embedded?.manifest||JSON.parse(new TextDecoder().decode(await binary('manifest.json')));
  const levels=quality==='low'?['low','distant']:['high','race'];
  const names=[...new Set([...Object.values(manifest.bikes),manifest.rider].flatMap(b=>levels.map(l=>b[l]||b.race)))].filter(n=>!SOURCE_MODELS.has(n)&&!PARSED_MODELS.has(n));
- let done=0,next=0;const work=async()=>{while(next<names.length){const name=names[next++];SOURCE_MODELS.set(name,await decompress(await binary(name)));onProgress(++done,names.length);}};await Promise.all(Array.from({length:3},work));
+ let done=0,next=0,failure=null;const loaded=[];const work=async()=>{while(!failure&&next<names.length){const name=names[next++];try{SOURCE_MODELS.set(name,await decompress(await binary(name)));loaded.push(name);onProgress(++done,names.length);}catch(error){failure||=error;}}};await Promise.all(Array.from({length:3},work));if(failure){for(const name of loaded)SOURCE_MODELS.delete(name);throw failure;}
  const keep=new Set([...Object.values(manifest.bikes),manifest.rider].flatMap(b=>levels.map(l=>b[l]||b.race)));
  for(const path of SOURCE_MODELS.keys())if(!keep.has(path))SOURCE_MODELS.delete(path);
  for(const path of PARSED_MODELS.keys())if(!keep.has(path))PARSED_MODELS.delete(path);

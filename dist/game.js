@@ -11,6 +11,7 @@ import {FLAGS} from './race-control.js';
 import {BIKES,TRACKS,Circuit,RaceModel,clamp,lerp,mod,formatTime,wrapAngle} from './simulation.js';
 import {Renderer,buildWorld,buildBike,bikeParts,modelMatrix} from './engine.js';
 import {DrivingControls,bindTouchControls} from './controls.js';
+import {disposeBike,disposeWorld,AssetTransition} from './runtime.js';
 import {mountMobileUI} from './mobile.js';
 
 let accountUI=null,applyingSnapshot=false;
@@ -20,7 +21,7 @@ const safeWrite=(key,value)=>{if(applyingSnapshot)return;if(accountUI?.active&&[
 const clock=t=>t<=0?'00:00.000':formatTime(t);
 const stored=safeRead('apexgp.settings.v1',{});
 const settings={line:true,assist:true,tcs:true,audio:true,volume:45,quality:'low',touch:'auto',track:0,bike:0,mode:'race',weather:'sunset',laps:3,difficulty:'sport',...stored};
-if(!['high','low'].includes(settings.quality))settings.quality='low';
+if(!['high','low'].includes(settings.quality)||new URLSearchParams(location.search).get('quality')==='low')settings.quality='low';
 if(!['auto','on','off'].includes(settings.touch))settings.touch='auto';
 settings.track=clamp(Math.trunc(Number(settings.track)||0),0,TRACKS.length-1);settings.bike=clamp(Math.trunc(Number(settings.bike)||0),0,BIKES.length-1);
 if(!['sunset','day','rain'].includes(settings.weather))settings.weather='sunset';
@@ -68,8 +69,12 @@ function applySnapshot(value){
  }finally{applyingSnapshot=false;}
 }
 
-function freeWorld(){if(!world)return;renderer.destroy(world.mesh);renderer.destroy(world.line);for(const b of world.boards)renderer.destroy(b.mesh);for(const mesh of Object.values(world.flagMeshes||{}))renderer.destroy(mesh);for(const texture of world.textures)renderer.gl.deleteTexture(texture);}
-function freeBike(bike){if(bike){for(const mesh of new Set(bikeParts(bike,modelMatrix()).map(p=>p.mesh)))renderer.destroy(mesh);renderer.destroy(bike.shadow);for(const t of bike.textures||[])renderer.gl.deleteTexture(t);}}
+const qualityTransition=new AssetTransition(busy=>{
+ $('loading').lastElementChild.textContent=busy?'CAMBIO QUALITÀ GRAFICA…':'PREPARIAMO LA PISTA';show('loading',busy);
+});
+function freeWorld(){disposeWorld(renderer,world);}
+function freeBike(bike){disposeBike(renderer,bike);}
+function freeRaceAssets(){for(const b of botBikes)freeBike(b);botBikes=[];for(const b of peerBikes.values())freeBike(b);peerBikes.clear();freeBike(ghostBike);ghostBike=null;}
 function selectTrack(index){
   settings.track=mod(index,TRACKS.length);saveSettings();track=new Circuit(TRACKS[settings.track]);renderer.weather=settings.weather;freeWorld();world=buildWorld(renderer,track);camera=null;
   $('track-name').textContent=track.config.name;$('track-country').textContent=track.config.country;$('track-spec').textContent=`${(track.length/1000).toFixed(2).replace('.',',')} km · ${track.config.turns} curve`;$('track-index').textContent=`${String(settings.track+1).padStart(2,'0')} / ${String(TRACKS.length).padStart(2,'0')}`;
@@ -89,6 +94,7 @@ function updateInputDisplay(){document.querySelectorAll('[data-control]').forEac
 function clearInput(){touchInput?.reset();controls.clear();updateInputDisplay();}
 function message(text,duration=2.5){$('race-message').textContent=text;messageUntil=performance.now()+duration*1000;$('race-message').classList.add('show');}
 function startRace(networkConfig=null){
+  if(qualityTransition.busy)return;
   if(accountUI?.isSwitching()){message('CARICAMENTO DEL PROFILO…');return;}
   lastFrame=performance.now();
   if(!networkConfig?.roundId&&settings.mode==='lan'){returnLanLobby();return;}
@@ -98,13 +104,13 @@ function startRace(networkConfig=null){
   race=new RaceModel(track,{mode:settings.mode,laps:settings.laps,difficulty:settings.difficulty,weather:settings.weather,assist:settings.assist,tcs:settings.tcs,bike:effectiveBike()});
   race.player.name=career.profile.name;
   if(lanRound){const mine=lanRound.players.find(p=>p.id===lan.id);race.countdown=Math.max(.02,(lanRound.startAt-lan.now())/1000);race.player.progress=mine.progress;race.player.offset=mine.slot%2?1.85:-1.85;race.placePlayer();race.networkRound=lanRound.roundId;race.runId=lanRound.roundId+':'+lan.id;}
-  ghostRecord=settings.mode==='time'?readRecord():null;ghostBike=ghostBike||buildBike(renderer,[.37,.80,.93],0,.65,BIKES[settings.bike].style);
+  ghostRecord=settings.mode==='time'?readRecord():null;if(ghostRecord)ghostBike=ghostBike||buildBike(renderer,[.37,.80,.93],0,.65,BIKES[settings.bike].style);else{freeBike(ghostBike);ghostBike=null;}
   for(const b of botBikes)freeBike(b);botBikes=race.bots.map((b,i)=>buildBike(renderer,b.color,b.number,.45,BIKES[i%BIKES.length].style));
   show('menu',false);show('pause-overlay',false);show('result-overlay',false);show('hud');show('countdown');lastCountdown=-1;camera=null;cameraMode=0;accumulator=0;messageUntil=0;$('race-message').classList.remove('show');
   $('surface-label').textContent=settings.weather==='rain'?'BAGNATO · GRIP RIDOTTO':'ASCIUTTO';$('position-total').textContent=settings.mode==='lan'?`/ ${lanRound.players.length+(lanRound.bots?.length||0)}`:settings.mode==='race'?'/ 8':'SOLO';$('position').textContent=settings.mode==='race'?'8':'1';
   sound.start();$('world').focus({preventScroll:true});lastFrame=performance.now();if(lanRound)race.countdown=Math.max(.02,(lanRound.startAt-lan.now())/1000);updateHUD();
 }
-function backToMenu(){const wasLan=race?.options.mode==='lan';if(wasLan)lan.leave();for(const b of peerBikes.values())freeBike(b);peerBikes.clear();lanLatest=null;localPause=false;race=null;clearInput();sound.tick(null);show('hud',false);show('pause-overlay',false);show('result-overlay',false);show('menu');camera=null;if(wasLan)setMode('race');setPage('race');refreshCareer();$('start-button').focus({preventScroll:true});lastSocialPresence='';socialUI?.presenceChanged();}
+function backToMenu(){const wasLan=race?.options.mode==='lan';if(wasLan)lan.leave();freeRaceAssets();lanLatest=null;localPause=false;race=null;clearInput();sound.tick(null);show('hud',false);show('pause-overlay',false);show('result-overlay',false);show('menu');camera=null;if(wasLan)setMode('race');setPage('race');refreshCareer();$('start-button').focus({preventScroll:true});lastSocialPresence='';socialUI?.presenceChanged();}
 function pause(on=true){
   if(!race||race.state==='finished')return;
   const network=race.options.mode==='lan';$('pause-description').textContent=network?'La gara multiplayer continua: gli altri piloti restano in pista. Riprendi per tornare ai comandi.':'Il cronometro si è fermato. La pista ti aspetta.';$('restart-button').disabled=network;$('restart-button').classList.toggle('hidden',network);
@@ -160,14 +166,14 @@ function updateHUD(){
 function drawMap(){
   const canvas=$('minimap'),c=canvas.getContext('2d'),b=track.bounds,w=canvas.width,h=canvas.height,scale=Math.min((w-34)/(b.maxX-b.minX),(h-24)/(b.maxZ-b.minZ));
   const left=(w-(b.maxX-b.minX)*scale)/2,top=(h-(b.maxZ-b.minZ)*scale)/2,project=p=>[left+(p.x-b.minX)*scale,top+(p.z-b.minZ)*scale];
-  c.clearRect(0,0,w,h);c.beginPath();track.nodes.forEach((p,i)=>{const [x,y]=project(p);if(i===0)c.moveTo(x,y);else c.lineTo(x,y);});c.closePath();c.lineJoin='round';c.lineWidth=5;c.strokeStyle='rgba(0,0,0,.4)';c.stroke();c.lineWidth=2;c.strokeStyle='rgba(229,237,237,.65)';c.stroke();
+  if(!c)return;c.clearRect(0,0,w,h);c.beginPath();track.nodes.forEach((p,i)=>{const [x,y]=project(p);if(i===0)c.moveTo(x,y);else c.lineTo(x,y);});c.closePath();c.lineJoin='round';c.lineWidth=5;c.strokeStyle='rgba(0,0,0,.4)';c.stroke();c.lineWidth=2;c.strokeStyle='rgba(229,237,237,.65)';c.stroke();
   const start=project(track.sample(0));c.fillStyle='#eee';c.fillRect(start[0]-3,start[1]-2,6,4);
   if(!race)return;for(const r of race.riders){const [x,y]=project(riderPoint(r));c.beginPath();c.arc(x,y,r.isPlayer?4.4:2.6,0,Math.PI*2);c.fillStyle=r.isPlayer?'#ff6033':colorCSS(r.color);c.fill();if(r.isPlayer){c.strokeStyle='#fff';c.lineWidth=1.3;c.stroke();}}
 }
 
 const rainCanvas=document.createElement('canvas');rainCanvas.style.cssText='position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:1;opacity:.4';document.body.insertBefore(rainCanvas,$('menu'));const rainContext=rainCanvas.getContext('2d');
 function drawRain(time){
-  const active=settings.weather==='rain';rainCanvas.style.display=active?'block':'none';if(!active)return;
+  const active=settings.weather==='rain'&&!!rainContext;rainCanvas.style.display=active?'block':'none';if(!active)return;
   const w=innerWidth,h=innerHeight;if(rainCanvas.width!==w||rainCanvas.height!==h){rainCanvas.width=w;rainCanvas.height=h;}rainContext.clearRect(0,0,w,h);rainContext.strokeStyle='rgba(221,238,247,.48)';rainContext.lineWidth=1;rainContext.beginPath();
   const count=settings.quality==='low'?55:120;for(let i=0;i<count;i++){const x=mod(i*137.17-time*.14,w+200)-100,y=mod(i*87.71+time*.75,h+60)-30;rainContext.moveTo(x,y);rainContext.lineTo(x-6,y+19);}rainContext.stroke();
 }
@@ -219,7 +225,7 @@ function frame(now){
     drawRain(now);if(now>messageUntil)$('race-message').classList.remove('show');if(now-telemetryAt>1000){telemetryAt=now;const c=$('world');c.dataset.renderTriangles=renderer.stats?.triangles||0;c.dataset.renderDraws=renderer.stats?.draws||0;c.dataset.frameMs=(renderer.governor?.average*1000||dt*1000).toFixed(1);}frameId=requestAnimationFrame(frame);
   }catch(error){fatal(error);}
 }
-function fatal(error){cancelAnimationFrame(frameId);show('loading',false);show('error-overlay');$('error-text').textContent=error?.message||'Il renderer non è riuscito a inizializzarsi. Prova a ricaricare il gioco.';console.error(error);sound.tick(null);}
+function fatal(error){cancelAnimationFrame(frameId);clearInput();if(race&&race.state!=='finished')pause(true);show('loading',false);show('error-overlay');$('error-text').textContent=error?.message||'Il renderer non è riuscito a inizializzarsi. Prova a ricaricare il gioco.';console.error(error);sound.tick(null);}
 
 function setupUI(){
   renderGarage();
@@ -240,7 +246,7 @@ function setupUI(){
   $('prev-track').addEventListener('click',()=>selectTrack(settings.track-1));$('next-track').addEventListener('click',()=>selectTrack(settings.track+1));$('weather-select').addEventListener('change',()=>{settings.weather=$('weather-select').value;selectTrack(settings.track);});
   for(const id of['laps','difficulty'])$(id+'-select').addEventListener('change',()=>{settings[id]=id==='laps'?Number($(id+'-select').value):$(id+'-select').value;saveSettings();});
   for(const [id,key] of[['line-toggle','line'],['assist-toggle','assist'],['tcs-toggle','tcs'],['audio-toggle','audio']])$(id).addEventListener('change',()=>{settings[key]=$(id).checked;sound.enabled=settings.audio;saveSettings();updateSoundButton();if(settings.audio)sound.start();});
-  $('volume-range').addEventListener('input',()=>{settings.volume=Number($('volume-range').value);sound.volume=settings.volume/100;saveSettings();});$('quality-select').addEventListener('change',async()=>{const value=$('quality-select').value;$('quality-select').disabled=true;try{if(!renderer.compat)await prepareModelAssets({quality:value});settings.quality=value;renderer.quality=value;document.body.classList.toggle('performance-mode',value==='low');selectTrack(settings.track);selectBike(settings.bike);saveSettings();}catch(error){$('quality-select').value=settings.quality;$('performance-note').textContent=error.message;}finally{$('quality-select').disabled=false;}});
+  $('volume-range').addEventListener('input',()=>{settings.volume=Number($('volume-range').value);sound.volume=settings.volume/100;saveSettings();});$('quality-select').addEventListener('change',()=>{if(qualityTransition.busy)return;const value=$('quality-select').value,previous=settings.quality;if(accountUI?.isSwitching()){$('quality-select').value=previous;return;}$('quality-select').disabled=true;qualityTransition.run(async()=>{freeRaceAssets();if(!renderer.compat)await prepareModelAssets({quality:value});settings.quality=value;renderer.quality=value;document.body.classList.toggle('performance-mode',value==='low');selectTrack(settings.track);selectBike(settings.bike);saveSettings();}).catch(error=>{$('quality-select').value=settings.quality;$('performance-note').textContent=error.message;if(settings.quality!==previous)fatal(error);}).finally(()=>{$('quality-select').disabled=false;});});
   $('start-button').addEventListener('click',startRace);$('restart-button').addEventListener('click',startRace);$('race-again').addEventListener('click',startRace);$('menu-button').addEventListener('click',backToMenu);$('result-menu').addEventListener('click',backToMenu);$('pause-button').addEventListener('click',()=>pause(true));$('resume-button').addEventListener('click',()=>pause(false));$('camera-button').addEventListener('click',changeCamera);$('sound-button').addEventListener('click',toggleSound);
   $('show-controls').addEventListener('click',()=>{show('controls-overlay');$('close-controls').focus();});$('close-controls').addEventListener('click',()=>{show('controls-overlay',false);$('show-controls').focus();});
   document.querySelector('.brand').addEventListener('click',e=>{e.preventDefault();setPage('race');});
@@ -259,13 +265,13 @@ function setupUI(){
   window.addEventListener('blur',()=>{clearInput();if(race&&race.state!=='finished')pause(true);});document.addEventListener('visibilitychange',()=>{if(document.hidden){clearInput();pause(true);}});
   $('world').addEventListener('webglcontextlost',e=>{e.preventDefault();fatal(new Error('Il browser ha sospeso la grafica 3D. Ricarica per tornare in pista; i tuoi record sono già salvati.'));});
   setupCareerAndLan();socialUI=mountSocialUI({config:ONLINE_CONFIG,lan,getName:()=>career.profile.name,getRace:()=>race,isPaused:()=>localPause||race?.state==='paused',pause,onJoin:joinFromFriend,onLobbyChange:()=>renderLobbyPlayers()});setMode(settings.mode);updateSoundButton();
-  accountUI=mountAccounts({getSnapshot:snapshot,applySnapshot,freshSnapshot:()=>({version:1,career:normalizeProfile(),records:{},settings:{}}),social:socialUI,canSwitch:()=>!race&&!lan.state,onOpen:()=>{clearInput();if(race)pause(true);}});
+  accountUI=mountAccounts({getSnapshot:snapshot,applySnapshot,freshSnapshot:()=>({version:1,career:normalizeProfile(),records:{},settings:{}}),social:socialUI,canSwitch:()=>!race&&!lan.state&&!qualityTransition.busy,onOpen:()=>{clearInput();if(race)pause(true);}});
 }
 function changeCamera(){if(!race)return;cameraMode=1-cameraMode;camera=null;message(cameraMode?'VISUALE CASCO':'VISUALE CHASE',1.2);}
 function updateSoundButton(){$('sound-button').classList.toggle('sound-off',!settings.audio);$('sound-button').setAttribute('aria-pressed',String(settings.audio));}
 function toggleSound(){settings.audio=!settings.audio;sound.enabled=settings.audio;$('audio-toggle').checked=settings.audio;saveSettings();updateSoundButton();if(settings.audio)sound.start();}
 
-function returnLanLobby(){localPause=false;sound.tick(null);clearInput();race=null;settings.mode='race';show('result-overlay',false);show('pause-overlay',false);show('hud',false);show('menu');setPage('lan');if(lan.state?.hostId===lan.id)lan.send({type:'lobby'});receiveLanState(lan.state);}
+function returnLanLobby(){freeRaceAssets();localPause=false;sound.tick(null);clearInput();race=null;settings.mode='race';show('result-overlay',false);show('pause-overlay',false);show('hud',false);show('menu');setPage('lan');if(lan.state?.hostId===lan.id)lan.send({type:'lobby'});receiveLanState(lan.state);}
 function effectiveBike(){return career.bike(BIKES[settings.bike].id,{stock:settings.mode==='lan'});}
 function renderGarage(){
  $('bike-list').innerHTML=BIKES.map((b,i)=>`<button class="bike-card ${i===settings.bike?'active':''} ${career.owns(b.id)?'':'locked'}" data-bike="${i}"><i class="bike-color" style="background:${b.color}"></i><span><strong>${b.name}${b.price?'<em class="new-bike">NEW</em>':''}</strong><small>${b.description}</small><span class="bike-owned">${career.owns(b.id)?'NEL GARAGE':b.price.toLocaleString('it-IT')+' CR'}</span></span><span class="bike-metrics"><span><b>${career.bike(b.id).power}</b>CV</span><span><b>${career.bike(b.id).top}</b>KM/H</span></span></button>`).join('');
@@ -318,7 +324,8 @@ function receiveLanState(state){
  if(race?.options.mode==='lan'&&state.roundId===race.networkRound){if(race.state!=='finished')race.control.set(state.flag,state.flagRemaining,state.flagZone);const mine=state.players.find(p=>p.id===lan.id);if(mine?.finishTime!==null&&mine?.finishTime!==undefined)race.player.finishTime=mine.finishTime;if(mine&&race.state!=='countdown'&&state.elapsed>0){race.time=state.elapsed+mine.penalties;race.penalties=mine.penalties;}}
 }
 function escapeText(text){return String(text).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-function startLanRace(state){
+async function startLanRace(state){
+ if(qualityTransition.busy){try{await qualityTransition.pending;}catch{return;}if(lan.state?.roundId!==state.roundId)return;state=lan.state;}
  settings.mode='lan';settings.track=TRACKS.findIndex(t=>t.id===state.options.trackId);settings.weather=state.options.weather;settings.laps=state.options.laps;const me=state.players.find(p=>p.id===lan.id);settings.bike=Math.max(0,BIKES.findIndex(b=>b.id===me.bikeId));$('laps-select').value=String(settings.laps);$('weather-select').value=settings.weather;selectTrack(settings.track);selectBike(settings.bike);
  for(const b of peerBikes.values())freeBike(b);peerBikes.clear();for(const p of [...state.players,...(state.bots||lan.botRiders())])if(p.id!==lan.id){const b=BIKES.find(b=>b.id===p.bikeId)||BIKES[0];peerBikes.set(p.id,buildBike(renderer,b.rgb,p.number||27+p.slot,.55,b.style,p.livery));}
  startRace(state);lanLatest=state;updateLanFrame(performance.now(),0);
@@ -339,4 +346,5 @@ async function boot(){try{
 }catch(error){fatal(error);}
 
 }
+$('safe-graphics-button').addEventListener('click',()=>{const url=new URL(location.href);url.searchParams.set('quality','low');location.href=url.href;});
 const bootReady=boot();

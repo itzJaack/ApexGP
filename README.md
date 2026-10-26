@@ -44,6 +44,12 @@ I circuiti hanno corsia box, segnaletica dei settori e delle frenate, vie di fug
 
 Riferimenti dei nomi: [calendario ufficiale MotoGP](https://www.motogp.com/en/calendar), [Yamaha YZR-M1](https://www.yamaha-racing.com/series/grand-prix/motogp/bike/), [Ducati](https://www.ducati.com/), [Aprilia Racing](https://www.aprilia.com/), [KTM](https://www.ktm.com/). Nomi e marchi appartengono ai rispettivi titolari. Progetto indipendente, senza affiliazione ufficiale.
 
+## Stabilità e recupero
+
+Al ritorno al menu vengono liberati moto degli avversari e ghost; il ghost si crea soltanto quando c’è un record da mostrare. Le allocazioni grafiche parziali vengono ripulite se la costruzione di una scena fallisce. Durante il cambio di qualità il gioco attende il caricamento dei modelli; un download interrotto conserva i modelli della qualità precedente e si può ritentare. I download hanno un timeout.
+
+I pacchetti multiplayer e le risposte social incomplete vengono scartati senza sostituire i dati validi già caricati. La schermata di errore permette anche di **riprovare con grafica leggera**. Queste correzioni coprono i casi verificati nei test; il browser di verifica non dispone di WebGL, quindi non sostituiscono una prova 3D sui dispositivi reali.
+
 ## Sviluppo e pubblicazione
 
 Richiede Node.js 22 o superiore e Python 3.10 o superiore.

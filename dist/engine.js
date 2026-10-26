@@ -1,3 +1,4 @@
+import {allocateScene} from './runtime.js';
 import {createImportedBike} from './models.js';
 import {clamp,lerp,mod} from './simulation.js';
 import {ResolutionGovernor} from './quality.js';
@@ -153,7 +154,7 @@ export class Renderer{
  }
  programFrom(v,f){const gl=this.gl,compile=(type,source)=>{const s=gl.createShader(type);gl.shaderSource(s,source);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))throw new Error(gl.getShaderInfoLog(s));return s;};const p=gl.createProgram(),vs=compile(gl.VERTEX_SHADER,v),fs=compile(gl.FRAGMENT_SHADER,f);gl.attachShader(p,vs);gl.attachShader(p,fs);gl.linkProgram(p);gl.deleteShader(vs);gl.deleteShader(fs);if(!gl.getProgramParameter(p,gl.LINK_STATUS))throw new Error(gl.getProgramInfoLog(p));return p;}
  resize(){const gl=this.gl,max=gl.getParameter(gl.MAX_TEXTURE_SIZE)||4096,dpr=this.quality==='low'?Math.min(1,1280/this.canvas.clientWidth,720/this.canvas.clientHeight)*this.governor.scale:Math.min(globalThis.devicePixelRatio||1,1.65,max/Math.max(this.canvas.clientWidth,this.canvas.clientHeight));const w=Math.max(1,Math.floor(this.canvas.clientWidth*dpr)),h=Math.max(1,Math.floor(this.canvas.clientHeight*dpr));if(this.canvas.width!==w||this.canvas.height!==h){this.canvas.width=w;this.canvas.height=h;}this.aspect=w/h;}
- mesh(g){const gl=this.gl,buffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buffer);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(g.data),gl.STATIC_DRAW);const m={buffer,count:g.data.length/12};this.meshes.push(m);return m;}
+ mesh(g){const gl=this.gl,buffer=gl.createBuffer();if(!buffer)throw Error('Memoria grafica insufficiente. Riprova con la grafica Prestazioni.');gl.bindBuffer(gl.ARRAY_BUFFER,buffer);try{const data=g.data instanceof Float32Array?g.data:new Float32Array(g.data);gl.bufferData(gl.ARRAY_BUFFER,data,gl.STATIC_DRAW);if(gl.getError()===gl.OUT_OF_MEMORY)throw Error('Memoria grafica insufficiente. Riprova con la grafica Prestazioni.');}catch(error){gl.deleteBuffer(buffer);throw error;}const m={buffer,count:g.data.length/12};this.meshes.push(m);return m;}
  destroy(mesh){if(!mesh)return;if(mesh.chunks){for(const chunk of mesh.chunks)this.destroy(chunk);return;}this.gl.deleteBuffer(mesh.buffer);const i=this.meshes.indexOf(mesh);if(i>=0)this.meshes.splice(i,1);}
  spatialMesh(g){
   const cells=new Map(),size=100;
@@ -283,7 +284,8 @@ function buildTerrain(g,track,height,color){
  const b=track.bounds,axis=(min,max)=>{const arr=[-2200];for(let x=Math.floor((min-180)/12)*12;x<=max+180;x+=12)arr.push(x);arr.push(2200);return arr;},xs=axis(b.minX,b.maxX),zs=axis(b.minZ,b.maxZ);
  for(let i=0;i<xs.length-1;i++)for(let j=0;j<zs.length-1;j++){const x=xs[i],X=xs[i+1],z=zs[j],Z=zs[j+1],point=(x,z)=>[x,height(x,z)-.10,z];g.quad(point(x,z),point(x,Z),point(X,Z),point(X,z),color,2);}
 }
-export function buildWorld(renderer,track){
+export function buildWorld(renderer,track){return allocateScene(renderer,scope=>createWorld(scope,track));}
+function createWorld(renderer,track){
   if(renderer.compat)return{mesh:{},line:{},boards:[],textures:[],flags:[]};
   const low=renderer.quality==='low';Geometry.detail=low?.35:1;
   const g=new Geometry(),line=new Geometry(),rng=seeded(track.config.id.split('').reduce((n,c)=>n+c.charCodeAt(0)*129,0)),desert=['desert','canyon'].includes(track.config.theme),coast=track.config.theme==='coast',alpine=track.config.theme==='alpine',forest=track.config.theme==='forest',sakura=track.config.theme==='sakura',marina=track.config.theme==='marina';
@@ -437,8 +439,9 @@ function tube(g,points,radii,color,surface=7,sides=12){
 }
 
 
-export function buildBike(renderer,color=[1,.235,.085],number=27,detail=1,style='factory',livery='factory'){return createImportedBike(renderer,color,number,detail,style,livery);}
+export function buildBike(renderer,color=[1,.235,.085],number=27,detail=1,style='factory',livery='factory'){return allocateScene(renderer,scope=>createImportedBike(scope,color,number,detail,style,livery));}
 export function bikeParts(bike,matrix,travel=0,turn=0,speed=0,lean=0,crash=0,fallSign=1){
+  if(!bike)return [];
   const fall=crash>0?multiply(matrix,modelMatrix([fallSign*Math.min(1.5,(2.5-crash)*.8),-.02,-.3],0,fallSign*.7,0)):matrix;
   const steeringAngle=clamp(Math.atan(turn*(bike.wheelbase??1.49)/Math.max(1,speed)),-.38,.38),pivot=bike.steeringPivot||[0,.326,.745],steeringMatrix=multiply(matrix,multiply(modelMatrix(pivot,steeringAngle),modelMatrix(pivot.map(v=>-v))));
   return[{mesh:bike.mesh,matrix},...(bike.steering?[{mesh:bike.steering,matrix:steeringMatrix}]:[]),...(bike.rider?[{mesh:bike.rider,matrix:fall,rider:true,lean}]:[]),...bike.wheels.map(w=>({mesh:w.mesh,matrix:multiply(matrix,modelMatrix([0,w.radius,w.z],w.front?clamp(Math.atan(turn*(bike.wheelbase??1.49)/Math.max(1,speed)),-.38,.38):0,0,travel/w.radius))})),...(bike.decals||[]).map(d=>({...d,matrix})),...(bike.riderDecals||[]).map(d=>({...d,matrix:fall,rider:true,lean})),{mesh:bike.glass,matrix,alpha:.34}];

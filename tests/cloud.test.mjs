@@ -38,3 +38,15 @@ test('lobby social identities reach every peer, survive host migration and do no
   next.setSocialIdentity(null);await flush();assert.equal(p.state.players.find(q=>q.id===next.id).social,null);
  }finally{f.close();}
 });
+
+test('malformed presence, snapshots and clock/reset replies cannot corrupt a running client',async()=>{
+ const f=clients();try{
+  await lobby(f);const[h,p]=f.cs,room=h.snapshot();
+  for(const raw of[null,[],{bad:null},{bad:{metas:{}}},{bad:{metas:[null,{}]}}])assert.doesNotThrow(()=>p.presence(raw));
+  const old=p.room;for(const bad of[null,{from:h.id,room:{...room,players:[null]}}])assert.doesNotThrow(()=>p.applySnapshot(bad));assert.equal(p.room,old);
+  const offset=p.offset,reply={v:32,k:'reply',from:h.id,to:p.id};
+  assert.doesNotThrow(()=>p.broadcast('c',{...reply,type:'clock'}));assert.equal(p.offset,offset);
+  assert.doesNotThrow(()=>p.broadcast('c',{...reply,type:'reset',pose:null}));assert.equal(f.events[1].resets.length,0);
+  await start(f);assert.equal(h.acceptPose(p.id,{...pose(p,10),heading:NaN}),false);assert.equal(h.acceptPose(p.id,{...pose(p,10),speed:NaN}),false);
+ }finally{f.close();}
+});
