@@ -20,17 +20,21 @@ export function validTiltCalibration(c){
   const l=c.left-c.center,r=c.right-c.center;
   return l*r<0&&Math.abs(l)>=8&&Math.abs(r)>=8&&Math.abs(l)<=75&&Math.abs(r)<=75;
 }
-export function calibratedSteering(value,c){
+export function calibratedSteering(value,c,inverted=false){
   if(!Number.isFinite(value)||!validTiltCalibration(c))return 0;
   const d=value-c.center,left=c.left-c.center,right=c.right-c.center;
   const sign=d*left>0?1:-1,range=Math.abs(sign>0?left:right),dead=1.8;
-  return sign*Math.pow(limit((Math.abs(d)-dead)/(range-dead),0,1),1.15);
+  return (inverted?-1:1)*sign*Math.pow(limit((Math.abs(d)-dead)/(range-dead),0,1),1.15);
 }
 
+// Apply the reported direction correction to existing calibrations once.
+// Fresh calibrations learn left/right and start without an extra inversion.
+export const tiltDirectionInverted=(value,calibration)=>typeof value==='boolean'?value:validTiltCalibration(calibration);
+
 export class TiltSteering{
-  constructor({controls,target=globalThis.window,eventType=globalThis.DeviceOrientationEvent,secure=globalThis.isSecureContext===true,getAngle=()=>globalThis.screen?.orientation?.angle??globalThis.window?.orientation??0,now=()=>performance.now(),setTimer=(fn,ms)=>globalThis.setTimeout(fn,ms),clearTimer=id=>globalThis.clearTimeout(id),isDriving=()=>false,onLost=()=>{}}={}){
+  constructor({controls,inverted=false,target=globalThis.window,eventType=globalThis.DeviceOrientationEvent,secure=globalThis.isSecureContext===true,getAngle=()=>globalThis.screen?.orientation?.angle??globalThis.window?.orientation??0,now=()=>performance.now(),setTimer=(fn,ms)=>globalThis.setTimeout(fn,ms),clearTimer=id=>globalThis.clearTimeout(id),isDriving=()=>false,onLost=()=>{}}={}){
     Object.assign(this,{controls,target,eventType,secure,getAngle,now,setTimer,clearTimer,isDriving,onLost});
-    this.generation=0;this.running=false;this.latest=null;this.calibration=null;this.filtered=0;this.sample=null;this.waiter=null;this.lost=false;
+    this.inverted=!!inverted;this.generation=0;this.running=false;this.latest=null;this.calibration=null;this.filtered=0;this.sample=null;this.waiter=null;this.lost=false;
     this.receive=event=>this.read(event);
   }
   get angle(){return screenAngle(this.getAngle());}
@@ -38,6 +42,7 @@ export class TiltSteering{
   get ready(){return this.running&&this.fresh&&validTiltCalibration(this.calibration)&&this.calibration.angle===this.angle;}
   get samplingProgress(){return this.sample?limit((this.now()-this.sample.started)/1000,0,1):0;}
   setCalibration(value){this.calibration=validTiltCalibration(value)?{...value}:null;this.release();}
+  setInverted(value){this.inverted=!!value;this.release();}
   release(){this.filtered=0;this.controls.pointerUp(SOURCE);}
   disable(){
     this.generation++;this.running=false;this.latest=null;this.lost=false;
@@ -101,7 +106,7 @@ export class TiltSteering{
       this.lost=true;this.release();this.rejectSample(fail('no-data','Segnale del giroscopio interrotto. Riprova.'));this.onLost(this.latest.angle!==this.angle?'rotated':'stale');
     }
     if(!this.ready||!this.isDriving()){this.release();return 0;}
-    const desired=calibratedSteering(this.latest.value,this.calibration);
+    const desired=calibratedSteering(this.latest.value,this.calibration,this.inverted);
     this.filtered+=(desired-this.filtered)*(1-Math.exp(-limit(dt,0,.1)*12));
     this.controls.pointerAxis(SOURCE,this.filtered);return this.filtered;
   }

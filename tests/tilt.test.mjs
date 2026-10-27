@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {DrivingControls} from '../dist/controls.js';
-import {TiltSteering,tiltAngle,screenAngle,tiltMode,validTiltCalibration,calibratedSteering} from '../dist/tilt.js';
+import {TiltSteering,tiltAngle,screenAngle,tiltMode,validTiltCalibration,calibratedSteering,tiltDirectionInverted} from '../dist/tilt.js';
 
 function fixture({permission='granted',secure=true,eventType}={}){
   let time=0,next=0,angle=0,driving=true,requests=0;const timers=new Map(),target=new EventTarget(),controls=new DrivingControls(),lost=[];
@@ -29,6 +29,31 @@ test('calibration learns both directions, neutral dead zone and asymmetric comfo
   const reversed={version:1,angle:90,center:12,left:-8,right:42};
   assert(validTiltCalibration(reversed));assert.equal(calibratedSteering(-8,reversed),1);assert.equal(calibratedSteering(42,reversed),-1);
   for(const c of [{...cal,left:2},{...cal,right:15},{...cal,angle:45},{...cal,center:NaN},{...cal,version:2},null])assert(!validTiltCalibration(c));
+});
+
+test('saved calibrations receive the direction fix once while explicit choices and fresh calibrations are preserved',()=>{
+  assert.equal(tiltDirectionInverted(undefined,cal),true);
+  assert.equal(tiltDirectionInverted(undefined,null),false);
+  assert.equal(tiltDirectionInverted(false,cal),false);
+  assert.equal(tiltDirectionInverted(true,cal),true);
+  assert.equal(calibratedSteering(20,cal,true),-1);
+  assert.equal(calibratedSteering(-20,cal,true),1);
+  assert.equal(Math.abs(calibratedSteering(1,cal,true)),0);
+});
+
+test('direction inversion releases old steering and applies to the sensor without reversing keyboard or brake controls',async()=>{
+  const f=fixture();await f.enable();f.sensor.setCalibration(cal);f.emit(0,-20);
+  for(let i=0;i<60;i++)f.sensor.tick(1/60);
+  assert(f.controls.state.steering>.99);
+  f.controls.pointerDown(7,'brake');f.sensor.setInverted(true);
+  assert.equal(f.controls.state.steering,0);assert(f.controls.state.brake);
+  for(let i=0;i<60;i++)f.sensor.tick(1/60);
+  assert(f.controls.state.steering<-.99);assert(f.controls.state.brake);
+  f.controls.keyDown({code:'KeyA'});f.sensor.tick(1/60);
+  assert.equal(f.controls.state.steering,1);
+  f.controls.keyUp({code:'KeyA'});f.sensor.setInverted(false);
+  for(let i=0;i<60;i++)f.sensor.tick(1/60);
+  assert(f.controls.state.steering>.99);
 });
 
 test('permission is requested only when explicitly enabled; denial and insecure pages keep controls neutral',async()=>{

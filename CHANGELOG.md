@@ -1,5 +1,16 @@
 # Changelog ApexGP
 
+## 4.4.1 — 27 ottobre 2026
+
+Avvisi di gara e giroscopio.
+
+- Nuovi riquadri compatti per bandiere e avvisi: icone dedicate, accenti di colore, testo su due livelli e indicatore della durata.
+- Bandiera verde nascosta; penalità, fuori pista, contatti, cadute e rientri visibili per 0,75 secondi, seguiti da 0,2 secondi di dissolvenza.
+- Una colonna sotto la telemetria superiore: le bandiere attive restano sopra agli avvisi, anche su mobile in verticale e orizzontale.
+- Gli avvisi ravvicinati si accodano con priorità alle penalità e alle cadute. I messaggi informativi non cancellano un avviso importante; la coda si svuota tornando al menu o iniziando un’altra gara.
+- Verso del giroscopio invertito una volta per le calibrazioni precedenti, con preferenza locale salvata e comando Inverti direzione nelle Impostazioni e nella prova finale. Le nuove calibrazioni apprendono sinistra e destra e partono senza inversione aggiuntiva.
+- Corretto il nome delle penalità VSC anche quando il motivo arriva in maiuscolo.
+
 ## 4.4.0 — 27 ottobre 2026
 
 Traiettoria dinamica.

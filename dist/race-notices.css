@@ -1,0 +1,79 @@
+/* Flags and transient race warnings occupy one column below the top HUD. */
+.race-notices {
+  position:absolute;
+  top:106px;
+  left:50%;
+  transform:translateX(-50%);
+  width:352px;
+  max-width:calc(100% - 32px - var(--safe-left, 0px) - var(--safe-right, 0px));
+  display:flex;
+  flex-direction:column;
+  gap:7px;
+  pointer-events:none;
+}
+.race-notice {
+  --notice-color:#9dc6ff;
+  position:relative;
+  display:flex;
+  align-items:center;
+  gap:12px;
+  min-width:0;
+  padding:12px 14px;
+  overflow:hidden;
+  border:1px solid #ffffff20;
+  border-left:3px solid var(--notice-color);
+  border-radius:5px 10px 10px 5px;
+  background:linear-gradient(110deg,#202b36f5,#101820f5);
+  box-shadow:0 5px 18px #0004,inset 0 1px #ffffff08;
+  color:#f5f7fa;
+}
+.notice-icon {
+  display:grid;
+  place-items:center;
+  flex:0 0 34px;
+  width:34px;
+  height:34px;
+  border-radius:7px;
+  border:1px solid currentColor;
+  color:var(--notice-color);
+  background:#080e185c;
+}
+.notice-icon svg {width:22px;height:22px;stroke-width:1.8;stroke-linejoin:round;stroke-linecap:round}
+.notice-copy {min-width:0;flex:1}
+.notice-copy b {display:block;font-size:12px;line-height:1.3;letter-spacing:.7px;color:var(--notice-color)}
+.notice-copy small {display:block;margin-top:4px;font-size:11px;line-height:1.4;color:#d2dbe4;overflow-wrap:anywhere}
+.flag-shape {fill:currentColor;stroke:none}
+.flag-code {display:none;font-size:11px;font-weight:800;letter-spacing:-.3px}
+.flag-panel[data-flag=vsc] .flag-glyph {display:none}
+.flag-panel[data-flag=vsc] .flag-code {display:block}
+.flag-panel[data-flag=chequered] .flag-shape {fill:url(#flag-checks)}
+.race-alert {opacity:1}
+.race-alert.is-leaving {opacity:0;transition:opacity .2s ease}
+.race-alert[data-tone=warning] {--notice-color:#ffd16a}
+.race-alert[data-tone=penalty],.race-alert[data-tone=danger] {--notice-color:#ff8589}
+.race-alert[data-tone=success] {--notice-color:#99e0b3}
+.race-alert .notice-icon svg {display:none}
+.race-alert[data-icon=info] .notice-info,.race-alert[data-icon=warning] .notice-warning,.race-alert[data-icon=penalty] .notice-penalty {display:block}
+.notice-lifetime {position:absolute;bottom:0;left:0;right:0;height:2px;background:var(--notice-color);opacity:.75;transform-origin:left;transform:scaleX(var(--notice-progress, 1))}
+@media(max-width:650px) {
+  .race-notices {top:calc(140px + var(--safe-top, 0px));width:320px;gap:6px}
+  .race-notice {padding:10px 12px;gap:10px}
+  .notice-icon {flex-basis:30px;width:30px;height:30px}
+  .notice-icon svg {width:20px;height:20px}
+  .notice-copy b {font-size:11px;letter-spacing:.5px}
+  .notice-copy small {font-size:10px;margin-top:3px}
+  .race-notices:has(.race-notice:not(.hidden)) ~ .leaderboard {top:calc(220px + var(--safe-top, 0px))}
+  .race-notices:has(.flag-panel:not(.hidden)):has(.race-alert:not(.hidden)) ~ .leaderboard {top:calc(300px + var(--safe-top, 0px))}
+}
+@media(max-height:540px) and (orientation:landscape) {
+  .race-notices {top:calc(76px + var(--safe-top, 0px));width:300px;gap:5px}
+  .race-notice {padding:8px 10px;gap:9px}
+  .notice-icon {flex-basis:26px;width:26px;height:26px;border-radius:5px}
+  .notice-icon svg {width:18px;height:18px}
+  .notice-copy b {font-size:10px;letter-spacing:.4px}
+  .notice-copy small {font-size:10px;line-height:1.3;margin-top:2px}
+}
+@media(max-height:380px) and (orientation:landscape) {
+  .race-notice {padding-top:6px;padding-bottom:6px}
+  .notice-copy small {font-size:9px}
+}

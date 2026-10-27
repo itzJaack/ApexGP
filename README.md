@@ -1,8 +1,12 @@
-# ApexGP 4.4.0
+# ApexGP 4.4.1
 
 Gioco di corse in moto 3D per browser. **[Gioca su GitHub Pages](https://itzjaack.github.io/ApexGP/)** · [Sorgenti e aggiornamenti](https://github.com/itzJaack/ApexGP).
 
-La versione attuale è **4.4.0**. Lo storico delle novità si trova in fondo a **Impostazioni → Changelog**, con l’ultima release aperta e le precedenti espandibili. È disponibile anche in [CHANGELOG.md](CHANGELOG.md).
+La versione attuale è **4.4.1**. Lo storico delle novità si trova in fondo a **Impostazioni → Changelog**, con l’ultima release aperta e le precedenti espandibili. È disponibile anche in [CHANGELOG.md](CHANGELOG.md).
+
+## Bandiere e avvisi di gara
+
+La bandiera verde non occupa l’HUD. Gialla, blu, rossa, VSC e scacchi compaiono solo quando attive. Penalità, fuori pista, contatti, cadute e rientri appaiono nello stesso spazio per **0,75 secondi**, seguiti da **0,2 secondi di dissolvenza**. Se c’è una bandiera attiva, resta sopra all’avviso. Gli avvisi ravvicinati si accodano e quelli importanti hanno precedenza sui messaggi informativi.
 
 ## Traiettoria dinamica
 
@@ -25,6 +29,8 @@ In **Impostazioni** puoi scegliere visibilità dei comandi touch e gas automatic
 ### Sterzo inclinando il telefono
 
 Lo sterzo mobile predefinito resta **Pulsanti**. In **Impostazioni → Sterzo mobile** puoi scegliere **Inclinazione · tilt to steer**. La procedura **Calibra giroscopio** registra per un secondo ciascuna la posizione neutra, l’inclinazione massima desiderata a sinistra e quella a destra; una quarta schermata permette di provare il risultato prima di applicarlo. La calibrazione apprende il verso e l’escursione comoda, con una piccola zona neutra e risposta progressiva.
+
+La 4.4.1 inverte una volta il verso delle calibrazioni già salvate. Il comando **Inverti verso del giroscopio** nelle Impostazioni permette di scegliere il verso sul proprio dispositivo; la preferenza resta salvata. Le nuove calibrazioni imparano il verso dalle posizioni registrate: nella prova finale controlla che sinistra e destra seguano il telefono e usa **Inverti direzione** se necessario.
 
 Apri il gioco via HTTPS e, se richiesto dal browser, consenti l’accesso ai sensori. Se il sensore non è supportato, non fornisce dati o il permesso viene negato, puoi usare i pulsanti. Se il browser richiede una nuova attivazione al riavvio, premi **Attiva sensori** nelle Impostazioni. La scelta e la calibrazione restano locali al dispositivo. Calibra nello stesso orientamento con cui giocherai; dopo una rotazione ricalibra. Dalla guida in modalità inclinazione trovi **Ricalibra**. La gara va in pausa durante la procedura o se il segnale si interrompe; la tastiera continua a funzionare.
 

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#101215">
   <meta name="description" content="APEX GP. Entra in pista in un gioco di corse in moto 3D: gare contro avversari, cronometro, 14 circuiti reali, 15 moto, carriera e multiplayer Internet e LAN, con comandi da tastiera o touch.">
-  <title>APEX GP 4.4.0 — Ride the limit</title>
+  <title>APEX GP 4.4.1 — Ride the limit</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23121417'/%3E%3Cpath d='M12 47 30 14h12L28 47zm19 0 12-23h10L41 47z' fill='%23ff6033'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="accounts.css">
@@ -13,6 +13,7 @@
   <link rel="stylesheet" href="social.css">
   <link rel="stylesheet" href="changelog.css">
   <link rel="stylesheet" href="tilt.css">
+  <link rel="stylesheet" href="race-notices.css">
 </head>
 <body>
   <canvas id="world" aria-label="Circuito di corse in moto 3D"></canvas>
@@ -21,7 +22,7 @@
 
   <main id="menu" class="menu hidden" data-page="race">
     <header class="topbar">
-      <a class="brand" href="#" aria-label="APEX GP, menu principale">APEX<span>GP</span><i></i><small class="build-version">v4.4.0</small></a>
+      <a class="brand" href="#" aria-label="APEX GP, menu principale">APEX<span>GP</span><i></i><small class="build-version">v4.4.1</small></a>
       <nav aria-label="Menu"><button class="nav-link active" data-page="race">CORRI</button><button class="nav-link" data-page="garage">GARAGE</button><button class="nav-link" data-page="workshop">OFFICINA</button><button class="nav-link" data-page="lan">MULTIPLAYER</button><button id="social-nav" class="nav-link" aria-haspopup="dialog" aria-controls="social-overlay">AMICI</button><button class="nav-link" data-page="settings">IMPOSTAZIONI</button></nav>
       <button id="account-nav" class="account-nav" aria-haspopup="dialog" aria-controls="account-overlay">ACCEDI</button><div class="profile"><span class="profile-icon">27</span><span><b id="profile-name">JACK</b><small id="wallet">12.000 CR</small></span></div>
     </header>
@@ -97,6 +98,7 @@
       <label class="range-row">STERZO MOBILE<select id="touch-steering-select"><option value="buttons" selected>Pulsanti · predefinito</option><option value="tilt">Inclinazione · tilt to steer</option></select></label>
       <div class="tilt-settings-actions"><button id="tilt-calibrate" class="secondary-button">CALIBRA GIROSCOPIO</button><button id="tilt-enable" class="secondary-button hidden">ATTIVA SENSORI</button></div>
       <p id="tilt-status" class="muted hidden" role="status" aria-live="polite"></p>
+      <label class="toggle-row"><span>Inverti verso del giroscopio<small>Cambia sinistra e destra se la moto risponde al contrario.</small></span><input id="tilt-invert-toggle" type="checkbox"><span class="toggle"></span></label>
       <label class="toggle-row"><span>Gas automatico su touch<small>Accelera dal via. Tu devi solo sterzare e frenare.</small></span><input id="auto-gas-toggle" type="checkbox" checked><span class="toggle"></span></label>
       <p class="muted touch-only">Tieni premuti i pulsanti grandi ◀ e ▶ a sinistra per sterzare. Puoi scorrere il dito da un pulsante all’altro. A destra, tieni FRENO per rallentare e rilascialo per accelerare. Puoi disattivare GAS AUTO anche durante la corsa per usare il gas manuale. Le preferenze touch restano su questo dispositivo.</p>
       <button class="secondary-button" data-fullscreen>SCHERMO INTERO ↗</button>
@@ -105,9 +107,18 @@
       <p id="render-resolution" class="muted"></p>
       <button id="show-controls" class="text-button">Tutti i comandi ↗</button>
       <section id="settings-changelog" class="settings-changelog" aria-labelledby="changelog-heading">
-        <div class="changelog-heading"><h3 id="changelog-heading">Changelog</h3><span class="changelog-current">VERSIONE ATTUALE · 4.4.0</span></div>
+        <div class="changelog-heading"><h3 id="changelog-heading">Changelog</h3><span class="changelog-current">VERSIONE ATTUALE · 4.4.1</span></div>
         <p class="changelog-intro">Tutte le novità, dalla più recente. Tocca una versione per leggere i dettagli.</p>
         <details class="release-note" open>
+          <summary><span class="release-version">v4.4.1</span><span class="release-title">Avvisi di gara e giroscopio</span><time datetime="2026-10-27">27 ott 2026</time></summary>
+          <ul>
+            <li>Nuova UI compatta per bandiere e avvisi, con icone dedicate, colori distinti e testo più leggibile.</li>
+            <li>La bandiera verde non rimane visibile. Penalità, fuori pista, contatti e cadute occupano lo stesso spazio per 0,75 secondi e poi sfumano.</li>
+            <li>Le bandiere attive restano sopra agli avvisi. I messaggi ravvicinati attendono il proprio turno, senza cancellare le penalità.</li>
+            <li>Invertito il verso del giroscopio nelle calibrazioni precedenti. Nuovo comando per cambiare direzione nelle Impostazioni e nella prova della calibrazione.</li>
+          </ul>
+        </details>
+        <details class="release-note">
           <summary><span class="release-version">v4.4.0</span><span class="release-title">Traiettoria dinamica</span><time datetime="2026-10-27">27 ott 2026</time></summary>
           <ul>
             <li>Frecce più grandi, con colori che reagiscono alla velocità: verde per accelerare, giallo per prepararsi e rosso per frenare.</li>
@@ -165,8 +176,19 @@
       <div class="lap-time"><span>TEMPO GIRO</span><strong id="lap-time">00:00.000</strong><small id="best-time">BEST —</small></div>
       <div class="hud-actions"><button id="camera-button" class="hud-button" aria-label="Cambia visuale" title="Cambia visuale (C)"><svg viewBox="0 0 24 24"><path d="M3 7h5l2-3h4l2 3h5v13H3z"/><circle cx="12" cy="13" r="4"/></svg></button><button id="sound-button" class="hud-button" aria-label="Attiva o disattiva audio"><svg viewBox="0 0 24 24"><path d="m11 4-6 5H2v6h3l6 5zm4 4a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14"/></svg></button><button id="social-hud" class="hud-button" aria-label="Apri amici" title="Amici e inviti"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 21v-2a6 6 0 0 1 12 0v2M17 5a3 3 0 0 1 0 6m1 4a5 5 0 0 1 3 6"/></svg><small id="social-badge" class="social-badge hidden"></small></button><button id="reset-button" class="hud-button reset-button" aria-label="Rientra in pista, penalità di due secondi" title="Rientra in pista (+2 s)">↗<small>RIENTRA</small></button><button id="fullscreen-button" class="hud-button" data-fullscreen aria-label="Schermo intero" title="Schermo intero"><svg viewBox="0 0 24 24"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/></svg></button><button id="pause-button" class="hud-button" aria-label="Metti in pausa"><svg viewBox="0 0 24 24"><path d="M8 5v14M16 5v14"/></svg></button></div>
     </div>
-    <small id="hud-network" class="hud-network"></small><div id="flag-panel" class="flag-panel" role="status"><span id="flag-icon">▰</span><div><b id="flag-label">VERDE</b><small id="flag-text">Pista libera</small></div></div><div id="leaderboard" class="leaderboard"></div>
-    <div id="race-message" class="race-message" role="status"></div>
+    <small id="hud-network" class="hud-network"></small>
+    <div class="race-notices" aria-label="Bandiere e avvisi di gara">
+      <div id="flag-panel" class="race-notice flag-panel hidden" role="status" aria-atomic="true" data-flag="green">
+        <span id="flag-icon" class="notice-icon" aria-hidden="true"><svg class="flag-glyph" viewBox="0 0 24 24"><defs><pattern id="flag-checks" width="6" height="6" patternUnits="userSpaceOnUse"><rect width="6" height="6" fill="#fff" stroke="none"/><path d="M0 0h3v3H0zM3 3h3v3H3z" fill="#18212b" stroke="none"/></pattern></defs><path d="M5 21V3"/><path class="flag-shape" d="M6 3h7l2 3h6v11h-7l-2-3H6z"/></svg><span class="flag-code">VSC</span></span>
+        <div class="notice-copy"><b id="flag-label" data-notice-title></b><small id="flag-text" data-notice-text></small></div>
+      </div>
+      <div id="race-message" class="race-notice race-alert hidden" role="status" aria-atomic="true">
+        <span class="notice-icon" aria-hidden="true"><svg class="notice-warning" viewBox="0 0 24 24"><path d="M10.3 4.5a2 2 0 0 1 3.4 0l8 13.5a2 2 0 0 1-1.7 3H4a2 2 0 0 1-1.7-3zM12 9v5m0 3v.1"/></svg><svg class="notice-penalty" viewBox="0 0 24 24"><circle cx="12" cy="14" r="8"/><path d="M12 10v5l3 1M9 2h6m-3 0v4m6 1 2-2"/></svg><svg class="notice-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6m0-10v.1"/></svg></span>
+        <div class="notice-copy"><b data-notice-title></b><small data-notice-text></small></div>
+        <span class="notice-lifetime" aria-hidden="true"></span>
+      </div>
+    </div>
+    <div id="leaderboard" class="leaderboard"></div>
     <div id="countdown" class="countdown hidden" aria-live="assertive"><span>3</span><small>PREPARATI</small></div>
     <div class="hud-bottom"><div class="circuit-hud"><div class="eyebrow" id="hud-track">MUGELLO</div><canvas id="minimap" width="240" height="180" aria-label="Mappa e posizione dei piloti"></canvas><div class="surface"><span class="live-dot"></span><span id="surface-label">ASCIUTTO</span><b id="delta-label">—</b></div></div>
       <div class="driving-hint"><span id="corner-hint">TROVA IL TUO RITMO</span><div class="keyboard-only"><b class="key">A</b><b class="key">D</b> PIEGA <b class="key">S</b> FRENA <span><b class="key">R</b> RIENTRA</span></div></div>
@@ -194,6 +216,7 @@
       <p id="tilt-error" class="shop-status" role="status" aria-live="polite"></p>
       <div id="tilt-acquisition" class="tilt-acquisition hidden" aria-label="Acquisizione della posizione"><span id="tilt-acquisition-bar"></span></div>
       <button id="tilt-capture" class="primary-button" disabled>MEMORIZZA CENTRO</button>
+      <button id="tilt-flip" class="secondary-button hidden" aria-pressed="false">INVERTI DIREZIONE</button>
       <button id="tilt-restart" class="secondary-button hidden">RICOMINCIA DAL CENTRO</button>
       <button id="tilt-cancel" class="text-button">Annulla e usa i pulsanti</button>
       <p class="muted">Le impostazioni del giroscopio restano su questo dispositivo. Se ruoti lo schermo, calibra di nuovo in quell’orientamento.</p>

@@ -96,15 +96,15 @@ button,a,select,input{touch-action:manipulation}
   .hud-actions{grid-column:1/-1;justify-self:end;gap:5px;margin:0}
   .hud-actions .hud-button{width:44px;height:44px}.hud-actions #sound-button{display:grid}
   .hud-button svg{width:20px;height:20px}
-  .flag-panel{top:140px;min-width:0;width:max-content;max-width:calc(100% - 24px);padding:7px 12px}
-  .flag-panel b{font-size:10px}.flag-panel small{font-size:9px}
+
+
   .leaderboard{left:max(12px,var(--safe-left));top:204px;width:150px}
   .leaderboard .leader-row:nth-child(n+4):not(.me){display:none}
   .hud-bottom{left:max(12px,var(--safe-left));right:max(12px,var(--safe-right))}
   .telemetry{width:160px}.telemetry-foot{flex-wrap:wrap;gap:6px;font-size:8px}.telemetry-foot b{font-size:8px}
   .circuit-hud{width:106px}#minimap{width:106px;height:80px}.surface{font-size:8px}.circuit-hud .eyebrow{font-size:8px}
   .driving-hint{bottom:154px;max-width:95%;white-space:normal;text-align:center}.driving-hint>span{font-size:10px;letter-spacing:.5px}
-  .race-message{top:44%;font-size:11px;line-height:1.5;letter-spacing:.5px}
+
   .hud-network{top:122px;right:max(12px,var(--safe-right));font-size:8px}
   .touch-mode .hud-bottom{bottom:calc(178px + var(--safe-bottom))}
 }
@@ -132,8 +132,8 @@ button,a,select,input{touch-action:manipulation}
   .hud-actions{margin-left:auto;gap:4px}.hud-actions .hud-button{width:44px;height:44px}
   .position-block>span{font-size:36px}.position-block>div{font-size:7px}.position-block small{font-size:13px}
   .lap-block strong{font-size:22px}.lap-time strong{font-size:17px}
-  .leaderboard{display:none}.flag-panel{top:76px;left:50%;max-width:300px;padding:5px 10px}
-  .flag-panel b{font-size:9px}.flag-panel small{font-size:8px}.flag-panel #flag-icon{font-size:20px}
+  .leaderboard{display:none}
+
   .hud-network{top:62px;right:max(12px,var(--safe-right));font-size:8px}
   .hud-bottom,.touch-mode .hud-bottom{bottom:calc(152px + var(--safe-bottom));left:max(16px,var(--safe-left));right:max(16px,var(--safe-right))}
   .circuit-hud{width:90px}#minimap{width:90px;height:62px;margin:3px 0}.circuit-hud .eyebrow{font-size:7px}.surface{font-size:7px}
@@ -142,7 +142,7 @@ button,a,select,input{touch-action:manipulation}
   .touch-mode .touch-controls{bottom:calc(8px + var(--safe-bottom))}
   .touch-mode .touch-steer-buttons button{height:80px}
   .touch-mode .touch-controls .brake,.touch-mode .touch-controls .throttle{height:80px}
-  .driving-hint{display:none}.race-message{top:43%;font-size:10px}
+  .driving-hint{display:none}
   .modal{margin:auto;padding:20px}.modal h2{font-size:28px}.pause-modal .controls-summary{display:none}
 }
 
