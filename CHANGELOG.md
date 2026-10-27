@@ -1,5 +1,15 @@
 # Changelog ApexGP
 
+## 4.4.0 — 27 ottobre 2026
+
+Traiettoria dinamica.
+
+- Frecce più grandi e leggibili che cambiano gradualmente dal verde al giallo, all’arancione e al rosso in base alla velocità del pilota e alla frenata necessaria.
+- Previsione della velocità e dello spazio di frenata, con aderenza, pioggia, pendenze, caratteristiche della moto e potenziamenti dei freni.
+- Percorso continuo dall’esterno all’apice e in uscita, corretto per ridurre le curve troppo strette e mantenere le frecce dentro la pista.
+- Distanza visibile che cresce con la velocità, colori stabili mentre rallenti e suggerimenti dell’HUD collegati alla stessa previsione.
+- Rispetto di bandiere gialle locali, limite VSC e sospensione per bandiera rossa. Stesse indicazioni nella vista dall’alto; l’opzione si può disattivare nelle Impostazioni.
+
 ## 4.3.0 — 27 ottobre 2026
 
 Giroscopio e Cinema nativo.

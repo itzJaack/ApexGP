@@ -1,8 +1,16 @@
-# ApexGP 4.3.0
+# ApexGP 4.4.0
 
 Gioco di corse in moto 3D per browser. **[Gioca su GitHub Pages](https://itzjaack.github.io/ApexGP/)** · [Sorgenti e aggiornamenti](https://github.com/itzJaack/ApexGP).
 
-La versione attuale è **4.3.0**. Lo storico delle novità si trova in fondo a **Impostazioni → Changelog**, con l’ultima release aperta e le precedenti espandibili. È disponibile anche in [CHANGELOG.md](CHANGELOG.md).
+La versione attuale è **4.4.0**. Lo storico delle novità si trova in fondo a **Impostazioni → Changelog**, con l’ultima release aperta e le precedenti espandibili. È disponibile anche in [CHANGELOG.md](CHANGELOG.md).
+
+## Traiettoria dinamica
+
+Le frecce sulla pista reagiscono alla velocità effettiva: **verde** per accelerare, **giallo** per prepararsi o mantenere il ritmo, **arancione e rosso** quando serve frenare. Rallentando, le indicazioni tornano progressivamente verdi. L’HUD usa la stessa previsione con **Prepara il freno**, **Frena** e **Mantieni**, oltre alla velocità consigliata al punto attuale.
+
+La previsione considera la forma della traiettoria, il tratto successivo, aderenza della moto, potenziamenti dei freni, pioggia e pendenze. Il percorso si allarga in ingresso e uscita e cerca l’apice mantenendo un margine dai bordi. La sezione visibile passa da circa 120 a 440 metri con la velocità. La linea tiene conto delle bandiere gialle nella zona dell’incidente, del limite VSC di 90 km/h e della bandiera rossa. Le indicazioni sono disponibili anche nella vista dall’alto. Si disattivano con **Impostazioni → Traiettoria dinamica**.
+
+Il percorso e il profilo di frenata sono precalcolati; durante la guida si aggiornano le frecce vicine usando un buffer grafico riutilizzato. La guida della moto resta manuale e la previsione è un aiuto arcade.
 
 ## Smartphone e tablet
 

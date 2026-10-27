@@ -73,6 +73,7 @@ float depthAt(vec2 uv){return dot(texture2D(uShadowMap,uv).rg,vec2(1.0,1.0/255.0
 float shadow(float nl){if(uShadows<.5)return 1.0;vec3 q=vShadow.xyz/vShadow.w*.5+.5;if(q.x<.003||q.x>.997||q.y<.003||q.y>.997||q.z<0.0||q.z>1.0)return 1.0;float z=q.z-(.00060+.00030*(1.0-nl)),t=uShadowTexel*1.25;float s=step(z,depthAt(q.xy));s+=step(z,depthAt(q.xy+vec2(t,t)));s+=step(z,depthAt(q.xy+vec2(-t,t)));s+=step(z,depthAt(q.xy+vec2(t,-t)));s+=step(z,depthAt(q.xy-vec2(t,t)));return .18+.82*s*.2;}
 vec3 environment(vec3 d){vec3 c=mix(uFog*.62,vec3(.19,.33,.51),smoothstep(0.0,.8,d.y));if(d.y<0.0)c=mix(uFog*.32,vec3(.055,.065,.045),clamp(-d.y*2.0,0.0,1.0));float sun=pow(max(dot(d,normalize(uSun)),0.0),180.0);return c+uSunColor*sun*uSunIntensity*.55;}
 void main(){
+ if(vSurface>13.5&&vSurface<14.5){gl_FragColor=vec4(vColor,uAlpha*vUV.x);return;}
  vec3 n=normalize(vNormal),view=normalize(uEye-vWorld),light=normalize(uSun),halfway=normalize(view+light);
  vec3 base=pow(max(vColor,vec3(.001)),vec3(2.2));float roughness=.83,metalness=0.0,coat=0.0;
  if(vSurface>.5&&vSurface<1.5){base*=.96+hash(vWorld.xz*86.0)*.075;roughness=mix(.78,.075,uRain);base*=mix(1.0,.50,uRain);n=normalize(n+vec3(hash(vWorld.xz*67.0)-.5,0.0,hash(vWorld.xz*111.0)-.5)*.07*(1.0-uRain*.85));}
@@ -121,6 +122,7 @@ uniform float uAlpha;uniform float uTextureOn;uniform sampler2D uTexture;
 varying vec3 vColor;varying vec3 vNormal;varying vec3 vWorld;
 varying float vSurface;varying vec2 vUV;
 void main(){
+ if(vSurface>13.5&&vSurface<14.5){gl_FragColor=vec4(vColor,uAlpha*vUV.x);return;}
  vec3 n=normalize(vNormal);float diffuse=max(dot(n,normalize(uSun)),0.0);
  vec4 decal=vec4(1.0);if(uTextureOn>.5){decal=texture2D(uTexture,vec2(gl_FrontFacing?vUV.x:1.0-vUV.x,vUV.y));if(decal.a<.03)discard;}
  vec3 color=vColor*decal.rgb*(.54+diffuse*.61);
@@ -159,6 +161,16 @@ export class Renderer{
   if(this.canvas.width!==width||this.canvas.height!==height){this.canvas.width=width;this.canvas.height=height;}this.aspect=width/height;
  }
  mesh(g){const gl=this.gl,buffer=gl.createBuffer();if(!buffer)throw Error('Memoria grafica insufficiente. Riprova con la grafica Prestazioni.');gl.bindBuffer(gl.ARRAY_BUFFER,buffer);try{const data=g.data instanceof Float32Array?g.data:new Float32Array(g.data);gl.bufferData(gl.ARRAY_BUFFER,data,gl.STATIC_DRAW);if(gl.getError()===gl.OUT_OF_MEMORY)throw Error('Memoria grafica insufficiente. Riprova con la grafica Prestazioni.');}catch(error){gl.deleteBuffer(buffer);throw error;}const m={buffer,count:g.data.length/12};this.meshes.push(m);return m;}
+ updateMesh(mesh,g){
+  const gl=this.gl,data=g.data;gl.bindBuffer(gl.ARRAY_BUFFER,mesh.buffer);
+  if(!mesh.capacity||mesh.capacity<data.byteLength){
+   // Reserve the complete reusable backing store on the first update. Changing
+   // the visible range then only uploads vertices, without reallocating a VBO.
+   mesh.capacity=data.buffer.byteLength;gl.bufferData(gl.ARRAY_BUFFER,mesh.capacity,gl.DYNAMIC_DRAW);
+   if(gl.getError()===gl.OUT_OF_MEMORY)throw Error('Memoria grafica insufficiente. Riprova con la grafica Prestazioni.');
+  }
+  if(data.length)gl.bufferSubData(gl.ARRAY_BUFFER,0,data);mesh.count=data.length/12;
+ }
  destroy(mesh){if(!mesh)return;if(mesh.chunks){for(const chunk of mesh.chunks)this.destroy(chunk);return;}this.gl.deleteBuffer(mesh.buffer);const i=this.meshes.indexOf(mesh);if(i>=0)this.meshes.splice(i,1);}
  spatialMesh(g){
   const cells=new Map(),size=100;
@@ -292,7 +304,7 @@ export function buildWorld(renderer,track){return allocateScene(renderer,scope=>
 function createWorld(renderer,track){
   if(renderer.compat)return{mesh:{},line:{},boards:[],textures:[],flags:[]};
   const low=renderer.quality==='low';Geometry.detail=low?.35:1;
-  const g=new Geometry(),line=new Geometry(),rng=seeded(track.config.id.split('').reduce((n,c)=>n+c.charCodeAt(0)*129,0)),desert=['desert','canyon'].includes(track.config.theme),coast=track.config.theme==='coast',alpine=track.config.theme==='alpine',forest=track.config.theme==='forest',sakura=track.config.theme==='sakura',marina=track.config.theme==='marina';
+  const g=new Geometry(),rng=seeded(track.config.id.split('').reduce((n,c)=>n+c.charCodeAt(0)*129,0)),desert=['desert','canyon'].includes(track.config.theme),coast=track.config.theme==='coast',alpine=track.config.theme==='alpine',forest=track.config.theme==='forest',sakura=track.config.theme==='sakura',marina=track.config.theme==='marina';
   const grass=desert?[.57,.43,.29]:alpine?[.21,.34,.25]:sakura?[.30,.38,.27]:marina?[.35,.39,.37]:coast?[.27,.38,.22]:[.29,.36,.20],gravel=desert?[.68,.53,.34]:[.65,.59,.45],road=[.20,.22,.23];
   const terrain=terrainSampler(track);if(track.config.elevation)buildTerrain(g,track,terrain,grass);else g.quad([-2200,-.07,-2200],[-2200,-.07,2200],[2200,-.07,2200],[2200,-.07,-2200],grass,2);
   const w=track.halfWidth,pitSide=track.config.pitSide||-1;
@@ -300,7 +312,6 @@ function createWorld(renderer,track){
     const s=i*track.step,e=(i+1)*track.step;
     strip(g,track,s,e,-w,w,.025,road,1);
     for(const sign of[-1,1]){strip(g,track,s,e,sign*w,sign*(w+.8),.047,Math.floor(i/2)%2===0?(alpine?[.13,.38,.67]:marina?[.08,.53,.54]:[.86,.11,.09]):[.91,.89,.81]);strip(g,track,s,e,sign*(w+.8),sign*(w+3.2),.012,desert?[.27,.38,.33]:[.20,.40,.27]);strip(g,track,s,e,sign*(w+3.2),sign*(w+15),.005,gravel,3);strip(g,track,s,e,sign*(w-.15),sign*(w-.3),.032,[.77,.78,.73]);}
-    if(i%3!==0){const p=track.sample(s),apex=clamp(p.k*220,-3.7,3.7),speed=track.targetSpeed(s,renderer.weather==='rain'?.74:1),color=speed<43?[1,.29,.075]:[.39,.87,.43];strip(line,track,s,e,apex-.10,apex+.10,.048,color);}
   }
   for(let j=0;j<24;j++)for(let r=0;r<2;r++)strip(g,track,r*.75,(r+1)*.75,-w+j*w*2/24,-w+(j+1)*w*2/24,.035,(j+r)%2?[.035,.04,.045]:[.94,.94,.89]);
   for(let i=0;i<8;i++){const s=-i*7-5,side=i%2?-1.65:1.65;strip(g,track,s,s+.13,side-.8,side+.8,.035,[.72,.74,.72]);strip(g,track,s,s+2,side-.8,side-.70,.035,[.72,.74,.72]);strip(g,track,s,s+2,side+.70,side+.8,.035,[.72,.74,.72]);}
@@ -415,7 +426,7 @@ function createWorld(renderer,track){
   for(const [name,col] of Object.entries(flagColors)){const mesh=new Geometry();for(let i=0;i<8;i++)for(let j=0;j<5;j++)mesh.quad([i*.13,j*.13,0],[(i+1)*.13,j*.13,0],[(i+1)*.13,(j+1)*.13,0],[i*.13,(j+1)*.13,0],name==='chequered'&&(i+j)%2?[.025,.03,.035]:col,5);flagMeshes[name]=renderer.mesh(mesh);}
   const flagPosts=[];for(let station=0;station<track.length;station+=115){const p=track.sample(station,(station%230?-1:1)*(w+18));flagPosts.push({progress:station,matrix:modelMatrix([p.x,terrain(p.x,p.z)+2.9,p.z],p.yaw)});}
   Geometry.detail=1;
-  return{mesh:renderer.spatialMesh(g),line:renderer.spatialMesh(line),boards,textures,flagMeshes,flagPosts};
+  return{mesh:renderer.spatialMesh(g),line:renderer.mesh({data:new Float32Array(0)}),boards,textures,flagMeshes,flagPosts};
 }
 
 

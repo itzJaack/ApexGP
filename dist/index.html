@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#101215">
   <meta name="description" content="APEX GP. Entra in pista in un gioco di corse in moto 3D: gare contro avversari, cronometro, 14 circuiti reali, 15 moto, carriera e multiplayer Internet e LAN, con comandi da tastiera o touch.">
-  <title>APEX GP 4.3.0 — Ride the limit</title>
+  <title>APEX GP 4.4.0 — Ride the limit</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23121417'/%3E%3Cpath d='M12 47 30 14h12L28 47zm19 0 12-23h10L41 47z' fill='%23ff6033'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="accounts.css">
@@ -21,7 +21,7 @@
 
   <main id="menu" class="menu hidden" data-page="race">
     <header class="topbar">
-      <a class="brand" href="#" aria-label="APEX GP, menu principale">APEX<span>GP</span><i></i><small class="build-version">v4.3.0</small></a>
+      <a class="brand" href="#" aria-label="APEX GP, menu principale">APEX<span>GP</span><i></i><small class="build-version">v4.4.0</small></a>
       <nav aria-label="Menu"><button class="nav-link active" data-page="race">CORRI</button><button class="nav-link" data-page="garage">GARAGE</button><button class="nav-link" data-page="workshop">OFFICINA</button><button class="nav-link" data-page="lan">MULTIPLAYER</button><button id="social-nav" class="nav-link" aria-haspopup="dialog" aria-controls="social-overlay">AMICI</button><button class="nav-link" data-page="settings">IMPOSTAZIONI</button></nav>
       <button id="account-nav" class="account-nav" aria-haspopup="dialog" aria-controls="account-overlay">ACCEDI</button><div class="profile"><span class="profile-icon">27</span><span><b id="profile-name">JACK</b><small id="wallet">12.000 CR</small></span></div>
     </header>
@@ -89,7 +89,7 @@
     <section id="settings-panel" class="setup-panel page-panel hidden">
       <div class="panel-top"><span class="eyebrow">CONFIGURA LA CORSA</span><span class="small-tag">PREFERENZE LOCALI</span></div>
       <h2>Trova il tuo<br>ritmo.</h2>
-      <label class="toggle-row"><span>Traiettoria ideale<small>Verde: accelera. Arancione: frena.</small></span><input id="line-toggle" type="checkbox" checked><span class="toggle"></span></label>
+      <label class="toggle-row"><span>Traiettoria dinamica<small>Verde: accelera · giallo: prepara · rosso: frena. Reagisce alla tua velocità.</small></span><input id="line-toggle" type="checkbox" checked><span class="toggle"></span></label>
       <label class="toggle-row"><span>Stabilizzazione dello sterzo<small>Smussa i comandi. Le curve le fai tu.</small></span><input id="assist-toggle" type="checkbox" checked><span class="toggle"></span></label>
       <label class="toggle-row"><span>Controllo di trazione<small>Modula la potenza in piega.</small></span><input id="tcs-toggle" type="checkbox" checked><span class="toggle"></span></label><label class="toggle-row"><span>Audio di gara<small>Motori, marce, gomme, vento e avversari stereo.</small></span><input id="audio-toggle" type="checkbox" checked><span class="toggle"></span></label>
       <label class="range-row">VOLUME<input id="volume-range" type="range" min="0" max="100" value="45" aria-label="Volume audio"></label>
@@ -105,9 +105,18 @@
       <p id="render-resolution" class="muted"></p>
       <button id="show-controls" class="text-button">Tutti i comandi ↗</button>
       <section id="settings-changelog" class="settings-changelog" aria-labelledby="changelog-heading">
-        <div class="changelog-heading"><h3 id="changelog-heading">Changelog</h3><span class="changelog-current">VERSIONE ATTUALE · 4.3.0</span></div>
+        <div class="changelog-heading"><h3 id="changelog-heading">Changelog</h3><span class="changelog-current">VERSIONE ATTUALE · 4.4.0</span></div>
         <p class="changelog-intro">Tutte le novità, dalla più recente. Tocca una versione per leggere i dettagli.</p>
         <details class="release-note" open>
+          <summary><span class="release-version">v4.4.0</span><span class="release-title">Traiettoria dinamica</span><time datetime="2026-10-27">27 ott 2026</time></summary>
+          <ul>
+            <li>Frecce più grandi, con colori che reagiscono alla velocità: verde per accelerare, giallo per prepararsi e rosso per frenare.</li>
+            <li>Previsione della frenata in base a curve, aderenza, pioggia, pendenze e freni della moto, compresi i potenziamenti.</li>
+            <li>Percorso più fluido dall’esterno all’apice e in uscita, con distanza visibile che cresce con la velocità.</li>
+            <li>Indicazioni coordinate con l’HUD e i limiti di bandiere gialle, VSC e rosse. Disponibile anche nella vista dall’alto.</li>
+          </ul>
+        </details>
+        <details class="release-note">
           <summary><span class="release-version">v4.3.0</span><span class="release-title">Giroscopio e Cinema nativo</span><time datetime="2026-10-27">27 ott 2026</time></summary>
           <ul>
             <li>Sterzo mobile tramite inclinazione selezionabile nelle Impostazioni. I pulsanti restano la scelta predefinita.</li>
