@@ -21,16 +21,18 @@ const safeRead=(key,fallback)=>{try{return JSON.parse(localStorage.getItem(key))
 const safeWrite=(key,value)=>{if(applyingSnapshot)return;if(accountUI?.active&&['apexgp.career.v1','apexgp.records.v4'].includes(key)){accountUI.change();return;}try{localStorage.setItem(key,JSON.stringify(value));}catch{/* The game remains playable in private browsing. */}};
 const clock=t=>t<=0?'00:00.000':formatTime(t);
 const stored=safeRead('apexgp.settings.v1',{});
-const settings={line:true,assist:true,tcs:true,audio:true,volume:45,quality:'low',touch:'auto',track:0,bike:0,mode:'race',weather:'sunset',laps:3,difficulty:'sport',...stored};
+const settings={line:true,assist:true,tcs:true,audio:true,volume:45,quality:'low',touch:'auto',touchSteering:'pad',autoThrottle:true,track:0,bike:0,mode:'race',weather:'sunset',laps:3,difficulty:'sport',...stored};
 if(!['high','low'].includes(settings.quality)||new URLSearchParams(location.search).get('quality')==='low')settings.quality='low';
 if(!['auto','on','off'].includes(settings.touch))settings.touch='auto';
+if(!['pad','buttons'].includes(settings.touchSteering))settings.touchSteering='pad';
+if(typeof settings.autoThrottle!=='boolean')settings.autoThrottle=true;
 settings.track=clamp(Math.trunc(Number(settings.track)||0),0,TRACKS.length-1);settings.bike=clamp(Math.trunc(Number(settings.bike)||0),0,BIKES.length-1);
 if(!['sunset','day','rain'].includes(settings.weather))settings.weather='sunset';
 if(!['race','time'].includes(settings.mode))settings.mode='race';
 if(!['rookie','sport','pro'].includes(settings.difficulty))settings.difficulty='sport';
 if(![2,3,5].includes(Number(settings.laps)))settings.laps=3;
 const records=safeRead('apexgp.records.v4',{}),controls=new DrivingControls(),input=controls.state;
-let touchInput=null,mobileUI=null;
+let touchInput=null,mobileUI=null,touchEngaged=false;
 let renderer,world,track,playerBike,botBikes=[],ghostBike,race=null,page='race',cameraMode=0,lastFrame=0,accumulator=0,hudAt=0,menuTime=0,messageUntil=0,frameId=0,lastCountdown=-1,camera=null,ghostRecord=null,telemetryAt=0;
 const reducedMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -91,8 +93,18 @@ function selectBike(index){
 }
 function setPage(value){page=value;$('menu').dataset.page=value;for(const p of['race','garage','workshop','lan','settings'])show(`${p}-panel`,p===value);document.querySelectorAll('.nav-link').forEach(b=>b.classList.toggle('active',b.dataset.page===value));$('menu').scrollTop=0;}
 function setMode(value){settings.mode=value;saveSettings();document.querySelectorAll('.mode').forEach(b=>b.classList.toggle('active',b.dataset.mode===value));$('difficulty-select').disabled=value==='time';$('difficulty-select').style.opacity=value==='time'?.4:1;}
-function updateInputDisplay(){document.querySelectorAll('[data-control]').forEach(el=>{el.classList.toggle('pressed',input[el.dataset.control]);el.setAttribute('aria-pressed',String(input[el.dataset.control]));});}
-function clearInput(){touchInput?.reset();controls.clear();updateInputDisplay();}
+function updateInputDisplay(){
+  controls.setAutoThrottle(settings.autoThrottle&&touchEngaged&&mobileUI?.isTouch&&!!race&&!localPause&&['running','countdown'].includes(race.state));
+  document.querySelectorAll('[data-control]').forEach(el=>{el.classList.toggle('pressed',input[el.dataset.control]);el.setAttribute('aria-pressed',String(input[el.dataset.control]));});
+  const root=$('touch-controls');root.dataset.steering=settings.touchSteering;root.classList.toggle('auto-gas',settings.autoThrottle);
+  $('touch-steer-pad').style.setProperty('--steer-position',`${50-input.steering*36}%`);
+  $('touch-steer-pad').classList.toggle('pressed',Math.abs(input.steering)>.01);
+  $('auto-gas-button').setAttribute('aria-pressed',String(settings.autoThrottle));
+  $('auto-gas-button').setAttribute('aria-label',settings.autoThrottle?'Disattiva gas automatico':'Attiva gas automatico');
+  $('auto-gas-label').textContent=settings.autoThrottle?'GAS AUTO · ON':'GAS AUTO · OFF';
+  $('brake-help').textContent=settings.autoThrottle?'RILASCIA PER ACCELERARE':'TIENI PREMUTO';
+}
+function clearInput(){touchEngaged=false;controls.clear();touchInput?.reset();updateInputDisplay();}
 function message(text,duration=2.5){$('race-message').textContent=text;messageUntil=performance.now()+duration*1000;$('race-message').classList.add('show');}
 function startRace(networkConfig=null){
   if(qualityTransition.busy)return;
@@ -122,7 +134,7 @@ function pause(on=true){
 function handleEvents(){
   for(const event of race.events.splice(0)){
     sound.event(event);
-    if(event.type==='start'){message(mobileUI?.isTouch?'◀ ▶ STERZA · GAS · FRENO · ↑ MOTO IMPENNA':'A/D: PIEGA · S: FRENO · SHIFT: IMPENNATA +BOOST',4);sound.beep(780,.18);}
+    if(event.type==='start'){message(mobileUI?.isTouch?(settings.autoThrottle?'TOCCA LO STERZO PER PARTIRE · FRENO A DESTRA':'STERZA A SINISTRA · GAS E FRENO A DESTRA'):'A/D: PIEGA · S: FRENO · SHIFT: IMPENNATA +BOOST',4);sound.beep(780,.18);}
     if(event.type==='offtrack')message('FUORI PISTA · RALLENTA E RIENTRA');
     if(event.type==='contact')message('CONTATTO · LASCIA SPAZIO',1.5);
     if(event.type==='crash'){message(event.kind==='wheelie'?'CADUTA · TROPPO STERZO IN IMPENNATA':'CADUTA · IMPATTO AD ALTA VELOCITÀ',3);if(settings.mode==='lan')lan.send({type:'incident',severity:event.severity||1});}
@@ -155,7 +167,7 @@ function ghostAt(t){
 function updateHUD(){
   if(!race)return;const p=race.player,rec=readRecord();$('position').textContent=race.position;$('lap').innerHTML=`${race.lap} <small>/ ${settings.laps}</small>`;$('lap-time').textContent=clock(race.currentLapTime);$('best-time').textContent=rec?`BEST ${formatTime(rec.time)}`:'BEST —';$('speed').textContent=String(Math.round(p.speed*3.6)).padStart(3,'0');$('gear').textContent=p.gear;$('lean-value').textContent=`${Math.round(Math.abs(p.lean)*180/Math.PI)}°`;$('grip-value').textContent=`${Math.round(p.grip*100)}%`;show('slipstream',p.slipstream);show('wheelie-status',p.wheelie>.08);show('tcs-status',p.tcs);const flag=race.control.info(race);$('flag-label').textContent=flag.label;$('flag-text').textContent=flag.text;$('flag-icon').style.color=flag.color;$('flag-panel').style.borderLeftColor=flag.color;const canvas=$('world');canvas.dataset.heading=String(p.heading);canvas.dataset.progress=String(p.progress);canvas.dataset.speed=String(p.speed);canvas.dataset.wheelie=String(p.wheelie);canvas.dataset.raceState=race.state;canvas.dataset.audioState=sound.enabled?(sound.context?.state||'unavailable'):'muted';
   const rpm=mod(p.speed*3.6,gearSpeedStep(race.options.bike))/gearSpeedStep(race.options.bike);document.querySelectorAll('#rpm-bars i').forEach((b,i)=>b.classList.toggle('on',i/18<.25+rpm*.75));
-  $('steering-value').textContent=input.left&&!input.right?'←':input.right&&!input.left?'→':'—';$('steering-value').style.color=input.left!==input.right?'#ff6033':'#f3f3ef';
+  $('steering-value').textContent=input.steering>.01?'←':input.steering<-.01?'→':'—';$('steering-value').style.color=Math.abs(input.steering)>.01?'#ff6033':'#f3f3ef';
   if(settings.mode==='race'||settings.mode==='lan'){
     const order=race.order,leader=order[0];$('leaderboard').innerHTML=order.map((r,i)=>leaderRow(r,i,i===0?'LEADER':r.finishTime!==null?'FINISH':`+${Math.max(0,(leader.progress-r.progress)/Math.max(20,r.speed)).toFixed(1)}`)).join('');
   }else $('leaderboard').innerHTML=`<div class="leader-row me"><span class="rank">TT</span><span class="rider-name">${escapeText(career.profile.name)}</span><span class="gap">TIME ATTACK</span></div><div class="leader-row"><span class="rider-name">${ghostRecord?'GHOST PERSONALE':'IL TUO PRIMO RECORD'}</span><span class="gap">${ghostRecord?formatTime(ghostRecord.time):'—'}</span></div>`;
@@ -236,10 +248,16 @@ function setupUI(){
   $('laps-select').value=settings.laps;$('difficulty-select').value=settings.difficulty;$('weather-select').value=settings.weather;$('quality-select').value=settings.quality;$('line-toggle').checked=settings.line;$('assist-toggle').checked=settings.assist;$('tcs-toggle').checked=settings.tcs;$('audio-toggle').checked=settings.audio;$('volume-range').value=settings.volume;
   $('compat-button').addEventListener('click',()=>{const u=new URL(location.href);u.searchParams.set('view','top');location.href=u.href;});
   $('world').tabIndex=0;$('world').style.outline='none';
-  touchInput=bindTouchControls({root:$('touch-controls'),controls,isEnabled:()=>!!race&&!localPause&&['running','countdown'].includes(race.state),onChange:updateInputDisplay,onEngage:()=>sound.start()});
+  touchInput=bindTouchControls({root:$('touch-controls'),controls,isEnabled:()=>mobileUI?.isTouch&&!!race&&!localPause&&['running','countdown'].includes(race.state),onChange:updateInputDisplay,onEngage:()=>{touchEngaged=true;sound.start();},onInterrupt:()=>{touchEngaged=false;updateInputDisplay();}});
   mobileUI=mountMobileUI({mode:settings.touch,onClearInput:clearInput});
   $('touch-select').value=settings.touch;
   $('touch-select').addEventListener('change',()=>{settings.touch=$('touch-select').value;mobileUI.setMode(settings.touch);saveSettings();});
+  $('touch-steering-select').value=settings.touchSteering;
+  $('touch-steering-select').addEventListener('change',()=>{settings.touchSteering=$('touch-steering-select').value;clearInput();saveSettings();});
+  const setAutoGas=value=>{settings.autoThrottle=value;$('auto-gas-toggle').checked=value;clearInput();saveSettings();};
+  $('auto-gas-toggle').checked=settings.autoThrottle;
+  $('auto-gas-toggle').addEventListener('change',()=>setAutoGas($('auto-gas-toggle').checked));
+  $('auto-gas-button').addEventListener('click',()=>setAutoGas(!settings.autoThrottle));
   document.querySelectorAll('[data-fullscreen]').forEach(el=>el.addEventListener('click',()=>mobileUI.toggleFullscreen().catch(()=>message('SCHERMO INTERO NON DISPONIBILE IN QUESTO BROWSER',2))));
   $('reset-button').addEventListener('click',()=>{if(race?.state==='running'&&!localPause){clearInput();race.resetPlayer();}});
   document.querySelectorAll('[data-page]').forEach(el=>el.addEventListener('click',()=>setPage(el.dataset.page)));
@@ -257,7 +275,7 @@ function setupUI(){
     if(socialUI?.isOpen()){if(command==='Escape'){e.preventDefault();socialUI.close();}return;}
     if(/^(INPUT|TEXTAREA|SELECT)$/.test(e.target?.tagName||'')&&command!=='Escape')return;
     if(command==='Escape'&&!$('controls-overlay').classList.contains('hidden')){show('controls-overlay',false);return;}
-    if(!race)return;if(localPause){if(command==='Escape'||command==='KeyP'){e.preventDefault();pause(false);}return;}if(controls.actionFor(e)){e.preventDefault();if(race.state==='running'||race.state==='countdown'){controls.keyDown(e);updateInputDisplay();}return;}
+    if(!race)return;if(localPause){if(command==='Escape'||command==='KeyP'){e.preventDefault();pause(false);}return;}if(controls.actionFor(e)){e.preventDefault();if(race.state==='running'||race.state==='countdown'){touchEngaged=false;controls.keyDown(e);updateInputDisplay();}return;}
     if(e.repeat)return;
     if(command==='Escape'||command==='KeyP'){e.preventDefault();pause(race.options.mode==='lan'?!localPause:race.state!=='paused');}
     if(command==='KeyC')changeCamera();if(command==='KeyM')toggleSound();if(command==='KeyR'&&race.state==='running')race.resetPlayer();if(command==='KeyF')mobileUI.toggleFullscreen().catch(()=>{});

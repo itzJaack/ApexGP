@@ -6,9 +6,17 @@ Gioco di corse in moto 3D per browser. **[Gioca su GitHub Pages](https://itzjaac
 
 Apri lo stesso link dal browser del telefono: non serve installare un’app. Menu, garage, officina, account e lobby si adattano sia in verticale sia in orizzontale e scorrono quando lo spazio è ridotto. I campi di accesso restano leggibili con la tastiera a schermo; i comandi rispettano notch e barra dei gesti.
 
-I comandi touch appaiono automaticamente sui dispositivi tattili. Tieni **GAS** e **◀ / ▶** con due dita per accelerare e sterzare insieme; **FRENO** rallenta e **↑ MOTO** impenna. Puoi scorrere un dito da un pulsante all’altro. Uscire dall’area dei pulsanti, annullare un tocco, cambiare app o ruotare il dispositivo rilascia i comandi per evitare accelerazioni bloccate. In alto trovi visuale, audio, amici, **↗ RIENTRA** (+2 secondi) e pausa.
+I comandi touch appaiono automaticamente sui dispositivi tattili. Lo **sterzo progressivo** è a sinistra: piccoli movimenti del pollice danno piccole correzioni, gli estremi danno la piega massima e il centro è neutro. Il pad segue un solo dito; l’altro può frenare senza spostare lo sterzo. **↑ IMPENNA** ha un pulsante separato sopra il pad.
 
-In **Impostazioni → Comandi touch** puoi scegliere Automatici, Sempre visibili o Disattivati. La scelta resta su questo dispositivo. **Schermo intero** è disponibile nei browser che lo supportano; se consentito dal browser prova anche a orientare lo schermo in orizzontale. Puoi comunque giocare in verticale. La modalità grafica iniziale rimane **Prestazioni**, con risoluzione adattiva e modelli leggeri.
+Il **gas automatico**, inizialmente attivo su touch, parte dopo il primo tocco sui comandi: a destra basta tenere **FRENO** prima della curva e rilasciarlo per accelerare. Il pulsante **GAS AUTO · ON/OFF** passa al gas manuale anche durante la gara; in manuale puoi scorrere il dito tra GAS e FRENO. Mettere in pausa, cambiare app, ruotare il dispositivo o interrompere il gesto disattiva il gas automatico fino al prossimo tocco. I tasti della tastiera restano indipendenti e il gas automatico non si applica alla guida da tastiera.
+
+In **Impostazioni** puoi scegliere visibilità dei comandi touch, sterzo progressivo oppure a pulsanti e gas automatico. Queste scelte restano su questo dispositivo. I controlli principali hanno aree più grandi e rispettano gli spazi del telefono. In alto trovi visuale, audio, amici, **↗ RIENTRA** (+2 secondi) e pausa. **Schermo intero** è disponibile nei browser che lo supportano; se consentito dal browser prova anche a orientare lo schermo in orizzontale. Puoi comunque giocare in verticale. La modalità grafica iniziale rimane **Prestazioni**, con risoluzione adattiva e modelli leggeri.
+
+## Difficoltà degli avversari
+
+**Rookie** conserva il passo accessibile. **Sport** aumenta velocità in curva, accelerazione e ritmo sul giro. **Pro** frena più tardi, riparte più forte e mantiene una griglia più compatta, con meno oscillazioni nella traiettoria e velocità superiori sui rettilinei. Il passo non cambia in base al distacco dal giocatore. Pioggia, bandiere gialle, VSC e bandiera rossa continuano a limitare gli avversari.
+
+Anche i bot multiplayer usano il nuovo assetto Sport e pianificano la frenata sull’intera distanza di gara; il limite di 300 km/h conserva i limiti di velocità delle fasi VSC e gialla. I livelli di difficoltà si scelgono nel Gran Premio singolo.
 
 ## Account e progressi
 

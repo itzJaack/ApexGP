@@ -1,6 +1,7 @@
 import {RaceControl} from './race-control.js';
 import {BIKE_IDENTITIES,TRACK_IDENTITIES} from './catalog.js';
 import {CIRCUIT_LAYOUTS} from './circuit-layouts.js';
+import {botDriving} from './bot-driving.js';
 export const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
 export const lerp = (a,b,t)=>a+(b-a)*t;
 export const mod = (a,b)=>(a%b+b)%b;
@@ -58,9 +59,9 @@ export class Circuit{
     return {x:lerp(a.x,b.x,t)+tz*offset,z:lerp(a.z,b.z,t)-tx*offset,y,grade,tx,tz,yaw,k:lerp(a.k,b.k,t)};
   }
   cornerSpeed(s,grip=1){const f=mod(s,this.length)/this.step,i=Math.floor(f),k=lerp(this.nodes[i].k,this.nodes[(i+1)%this.count].k,f-i);return clamp(Math.sqrt(9.81*grip*1.43/Math.max(.001,Math.abs(k))),12,95);}
-  targetSpeed(s,grip=1,pace=1){
+  targetSpeed(s,grip=1,pace=1,braking=12,lookahead=180){
     let result=95;
-    for(let d=0;d<=180;d+=15){const v=this.cornerSpeed(s+d,grip)*pace;result=Math.min(result,Math.sqrt(v*v+2*12*d));}
+    for(let d=0;d<=lookahead;d+=15){const v=this.cornerSpeed(s+d,grip)*pace;result=Math.min(result,Math.sqrt(v*v+2*braking*d));}
     return result;
   }
   project(x,z,nearS){
@@ -109,7 +110,7 @@ export class RaceModel{
     if(p.crash>0){p.crash-=dt;p.speed=Math.max(0,p.speed-18*dt);p.x+=Math.sin(p.heading)*p.speed*dt;p.z+=Math.cos(p.heading)*p.speed*dt;const projected=tr.project(p.x,p.z,p.progress);p.progress=projected.progress;p.offset=projected.offset;p.angle=wrapAngle(p.heading-tr.sample(p.progress).yaw);p.lean=lerp(p.lean,1.2,dt*8);if(p.crash<=0){this.resetPlayer();this.emit('recovered');}}
     else{
       // A/D control roll; world heading comes only from tyre force, never the track tangent.
-      const throttle=input.throttle?1:0,brake=input.brake?1:0,steer=(input.left?1:0)-(input.right?1:0);
+      const throttle=input.throttle?1:0,brake=input.brake?1:0,steer=Number.isFinite(input.steering)?clamp(input.steering,-1,1):(input.left?1:0)-(input.right?1:0);
       p.steer=lerp(p.steer,steer,1-Math.exp(-dt*(this.options.assist?13:17)));
       p.throttle=lerp(p.throttle,brake?0:throttle,1-Math.exp(-dt*(brake?24:10)));
       p.brake=lerp(p.brake,brake,1-Math.exp(-dt*(brake?28:22)));
@@ -162,18 +163,19 @@ export class RaceModel{
       const kph=p.speed*3.6,gearStep=gearSpeedStep(bike);if(p.gear<6&&kph>p.gear*gearStep+2){p.gear++;p.shiftTimer=.10;}else if(p.gear>1&&kph<(p.gear-1)*gearStep-7)p.gear--;
     }
 
-    const pace={rookie:.79,sport:.94,pro:1.045}[this.options.difficulty]??.94;
-    for(const b of this.bots){
+    const driving=botDriving(this.options.difficulty),rookie=this.options.difficulty==='rookie';
+    for(const [index,b] of this.bots.entries()){
       if(b.finishTime!==null)continue;
-      const previous=b.progress,underFlag=this.control.flag==='vsc'||this.control.flag==='yellow'&&this.control.applies(b,tr),target=Math.min(underFlag?25:95,tr.targetSpeed(b.progress,weatherGrip*1.03,pace*b.pace));
-      const top=(300-b.phase*1.4)/3.6;
-      if(b.speed<Math.min(target,top))b.speed=Math.min(target,top,b.speed+(8.5-3.8*b.speed/top)*dt);
-      else b.speed=Math.max(target,b.speed-15*dt);
+      const previous=b.progress,underFlag=this.control.flag==='vsc'||this.control.flag==='yellow'&&this.control.applies(b,tr),top=(driving.top-index*driving.topSpread)/3.6;
+      const pace=driving.pace*(1-index*driving.spread),braking=driving.braking*(rookie?1:weatherGrip);
+      const target=Math.min(underFlag?25:top,tr.targetSpeed(b.progress,weatherGrip*1.03,pace,driving.planningBrake*(rookie?1:weatherGrip),rookie?180:Math.max(240,top*top/(2*braking))));
+      if(b.speed<target)b.speed=Math.min(target,b.speed+(driving.acceleration-3.8*b.speed/top)*dt);
+      else b.speed=Math.max(target,b.speed-braking*dt);
       b.progress+=b.speed*dt;
       const near=p.progress-b.progress;
       const avoid=near>-4&&near<15?Math.sign(b.offset-p.offset||1)*1.3:0;
-      const wanted=clamp(Math.sin(b.progress*.005+b.phase)*2.2+Math.sign(tr.sample(b.progress+25).k)*1.5+avoid,-6,6);
-      b.offset=lerp(b.offset,wanted,dt*1.1);b.lean=lerp(b.lean,clamp(Math.atan(b.speed*b.speed*tr.sample(b.progress).k/9.81),-1.04,1.04),dt*5);
+      const wanted=clamp(Math.sin(b.progress*.005+b.phase)*driving.wander+Math.sign(tr.sample(b.progress+25).k)*1.5+avoid,-6,6);
+      b.offset=lerp(b.offset,wanted,dt*driving.response);b.lean=lerp(b.lean,clamp(Math.atan(b.speed*b.speed*tr.sample(b.progress).k/9.81),-1.04,1.04),dt*5);
       if(Math.abs(b.progress-p.progress)<2.2&&Math.abs(b.offset-p.offset)<.8&&this.collisionCooldown<=0&&p.crash<=0){
         const relative=Math.abs(p.speed-b.speed)+Math.abs(wrapAngle(p.heading-tr.sample(b.progress).yaw))*p.speed*.25;this.contacts++;if(relative>10||p.wheelie>.12&&relative>5)this.crashPlayer('contact',relative>22?2:1);
         p.speed*=.87;b.speed*=.93;const bump=Math.sign(p.offset-b.offset||1)*.8,q=tr.sample(p.progress);p.offset+=bump;p.x+=q.tz*bump;p.z-=q.tx*bump;this.collisionCooldown=1.1;this.emit('contact');

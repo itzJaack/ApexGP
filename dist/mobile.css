@@ -6,15 +6,36 @@ button,a,select,input{touch-action:manipulation}
 .touch-controls{display:none!important;touch-action:none;-webkit-user-select:none;-webkit-touch-callout:none}
 .touch-mode .touch-only{display:block!important}
 .touch-mode .keyboard-only{display:none!important}
-.touch-mode .touch-controls{display:flex!important;bottom:calc(12px + var(--safe-bottom));left:max(12px,var(--safe-left));right:max(12px,var(--safe-right));gap:12px}
-.touch-mode .touch-controls>div{gap:6px}
-.touch-mode .touch-controls button{height:64px;width:clamp(48px,13vw,64px);min-width:44px;border-radius:14px;border-color:#ffffff70;background:#14202cde;box-shadow:0 3px 12px #0005;touch-action:none;-webkit-touch-callout:none;transition:background .08s}
-.touch-mode .touch-controls .wheelie-button{font-size:9px;color:#ffcf85;border-color:#c89047}
-.touch-mode .touch-controls .brake,.touch-mode .touch-controls .throttle{width:clamp(54px,15vw,80px);font-size:11px;font-weight:800}
+.touch-mode .touch-controls{display:flex!important;bottom:calc(12px + var(--safe-bottom));left:max(12px,var(--safe-left));right:max(12px,var(--safe-right));gap:16px;align-items:flex-end;pointer-events:none}
+.touch-mode .touch-controls>div{display:flex;flex-direction:column;gap:6px;pointer-events:auto}
+.touch-mode .touch-steering-group{width:clamp(136px,34vw,220px)}
+.touch-mode .touch-pedal-group{width:clamp(144px,36vw,216px)}
+.touch-mode .touch-controls button{height:44px;width:100%;min-width:44px;border-radius:14px;border-color:#ffffff70;background:#14202ce8;box-shadow:0 3px 12px #0005;touch-action:none;-webkit-touch-callout:none;transition:background .08s}
+.touch-mode .touch-controls button:active{transform:none}
+.touch-mode .touch-controls button small{display:block;font-size:7px;line-height:1.4;letter-spacing:.2px;margin-top:5px;font-weight:500}
+.touch-mode .touch-controls .wheelie-button{font-size:11px;color:#ffcf85;border-color:#c89047;letter-spacing:.7px}
+.touch-mode .touch-controls .auto-gas-button{font-size:11px;letter-spacing:.4px;border-color:#769597;color:#d5e8e7}
+.touch-mode .touch-controls .auto-gas-button[aria-pressed=true]{border-color:#9ddac2;background:#15332ee8;color:#b6f4da}
+.touch-mode .touch-pedals{display:flex;gap:6px}
+.touch-mode .touch-controls .brake,.touch-mode .touch-controls .throttle{height:80px;width:calc(50% - 3px);font-size:13px;font-weight:800;letter-spacing:.5px}
+.touch-mode .touch-controls .brake{border:2px solid #ffb5a0;background:#412628e8}
 .touch-mode .touch-controls .throttle{background:#ff6033ed;color:#101215}
 .touch-mode .touch-controls .pressed{background:#809bae;border-color:#fff}
+.touch-mode .touch-controls .brake.pressed{background:#bf4c3d}
 .touch-mode .touch-controls .throttle.pressed{background:#ffb38e}
-.touch-mode .hud-bottom{bottom:calc(100px + var(--safe-bottom))}
+.touch-mode .touch-controls.auto-gas .throttle{display:none}
+.touch-mode .touch-controls.auto-gas .brake{width:100%}
+.touch-mode .touch-steer-pad{position:relative;height:80px;overflow:hidden;border:1px solid #ffffff70;border-radius:18px;background:#14202ce8;touch-action:none;box-shadow:0 3px 12px #0005}
+.touch-mode .touch-steer-pad.pressed{background:#203b4ee8;border-color:#ffae86}
+.touch-mode .steer-label{position:absolute;top:10px;left:0;right:0;text-align:center;font-size:9px;font-weight:700;letter-spacing:1.5px;color:#bfcfd9;pointer-events:none}
+.touch-mode .steer-arrows{position:absolute;left:12px;right:12px;bottom:18px;display:flex;justify-content:space-between;font-size:18px;color:#e9f1f4;pointer-events:none}
+.touch-mode .steer-rail{position:absolute;left:24px;right:24px;bottom:28px;height:2px;background:#728b9b80;pointer-events:none}
+.touch-mode .steer-thumb{position:absolute;left:var(--steer-position,50%);bottom:16px;transform:translateX(-50%);width:26px;height:26px;border:2px solid #ffe5d5;border-radius:50%;background:#ff8057;box-shadow:0 2px 9px #0008;pointer-events:none}
+.touch-mode .touch-steer-buttons{display:none;gap:4px}
+.touch-mode .touch-steer-buttons button{height:80px;width:calc(50% - 2px);font-size:24px}
+.touch-mode .touch-controls[data-steering=buttons] .touch-steer-pad{display:none}
+.touch-mode .touch-controls[data-steering=buttons] .touch-steer-buttons{display:flex}
+.touch-mode .hud-bottom{bottom:calc(154px + var(--safe-bottom))}
 .touch-mode .hud-button{width:44px;height:44px;flex-shrink:0}
 .touch-mode .hud-top{top:max(12px,var(--safe-top));left:max(16px,var(--safe-left));right:max(16px,var(--safe-right))}
 .reset-button{font-size:21px;line-height:1;gap:0;align-content:center}
@@ -90,7 +111,7 @@ button,a,select,input{touch-action:manipulation}
   .driving-hint{bottom:154px;max-width:95%;white-space:normal;text-align:center}.driving-hint>span{font-size:10px;letter-spacing:.5px}
   .race-message{top:44%;font-size:11px;line-height:1.5;letter-spacing:.5px}
   .hud-network{top:122px;right:max(12px,var(--safe-right));font-size:8px}
-  .touch-mode .hud-bottom{bottom:calc(98px + var(--safe-bottom))}
+  .touch-mode .hud-bottom{bottom:calc(154px + var(--safe-bottom))}
 }
 
 @media(max-width:360px){
@@ -119,11 +140,13 @@ button,a,select,input{touch-action:manipulation}
   .leaderboard{display:none}.flag-panel{top:76px;left:50%;max-width:300px;padding:5px 10px}
   .flag-panel b{font-size:9px}.flag-panel small{font-size:8px}.flag-panel #flag-icon{font-size:20px}
   .hud-network{top:62px;right:max(12px,var(--safe-right));font-size:8px}
-  .hud-bottom,.touch-mode .hud-bottom{bottom:calc(92px + var(--safe-bottom));left:max(16px,var(--safe-left));right:max(16px,var(--safe-right))}
+  .hud-bottom,.touch-mode .hud-bottom{bottom:calc(136px + var(--safe-bottom));left:max(16px,var(--safe-left));right:max(16px,var(--safe-right))}
   .circuit-hud{width:90px}#minimap{width:90px;height:62px;margin:3px 0}.circuit-hud .eyebrow{font-size:7px}.surface{font-size:7px}
   .telemetry{width:166px}.speed strong{font-size:49px}.gear strong{font-size:32px}.rpm-bars{height:5px;margin-bottom:6px}
   .telemetry-foot{margin-top:5px;padding-top:5px;font-size:7px}.telemetry-foot b{font-size:8px}
-  .touch-mode .touch-controls{bottom:calc(8px + var(--safe-bottom))}.touch-mode .touch-controls button{height:60px}
+  .touch-mode .touch-controls{bottom:calc(8px + var(--safe-bottom))}
+  .touch-mode .touch-steer-pad,.touch-mode .touch-steer-buttons button,.touch-mode .touch-controls .brake,.touch-mode .touch-controls .throttle{height:64px}
+  .touch-mode .steer-label{top:6px}.touch-mode .steer-arrows{bottom:10px}.touch-mode .steer-rail{bottom:20px}.touch-mode .steer-thumb{bottom:8px}
   .driving-hint{display:none}.race-message{top:43%;font-size:10px}
   .modal{margin:auto;padding:20px}.modal h2{font-size:28px}.pause-modal .controls-summary{display:none}
 }

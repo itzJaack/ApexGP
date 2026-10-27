@@ -66,6 +66,20 @@ test('left and right controls turn to their corresponding side on screen',()=>{
   }
 });
 
+test('partial touch steering produces smaller corrections and can be combined with full braking',()=>{
+  const results=[];
+  for(const steering of [0,.2,.5,1]){
+    const m=new RaceModel(straightTrack(),{mode:'time'});m.track.halfWidth=10000;m.state='running';m.player.speed=25;
+    for(let i=0;i<60;i++)m.update(1/120,{steering,throttle:true});
+    results.push(m.player.lean);assert(Number.isFinite(m.player.heading));
+    const speed=m.player.speed;
+    for(let i=0;i<90;i++)m.update(1/120,{steering,throttle:true,brake:true});
+    assert(m.player.speed<speed-4,'Braking must retain authority with automatic gas and analog steering');
+  }
+  assert.equal(results[0],0);assert(results[1]>0&&results[1]<results[2]&&results[2]<results[3]);
+  const invalid=new RaceModel(straightTrack(),{mode:'time'});invalid.state='running';invalid.update(.05,{steering:NaN,left:true});assert(invalid.player.steer>0);
+});
+
 test('without steering the world heading stays fixed through bends with either stabilization setting',()=>{
   for(const config of TRACKS){
     const track=new Circuit(config),curved=track.nodes.findIndex(p=>Math.abs(p.k)>.015);
