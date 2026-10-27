@@ -21,10 +21,10 @@ const safeRead=(key,fallback)=>{try{return JSON.parse(localStorage.getItem(key))
 const safeWrite=(key,value)=>{if(applyingSnapshot)return;if(accountUI?.active&&['apexgp.career.v1','apexgp.records.v4'].includes(key)){accountUI.change();return;}try{localStorage.setItem(key,JSON.stringify(value));}catch{/* The game remains playable in private browsing. */}};
 const clock=t=>t<=0?'00:00.000':formatTime(t);
 const stored=safeRead('apexgp.settings.v1',{});
-const settings={line:true,assist:true,tcs:true,audio:true,volume:45,quality:'low',touch:'auto',touchSteering:'pad',autoThrottle:true,track:0,bike:0,mode:'race',weather:'sunset',laps:3,difficulty:'sport',...stored};
+const settings={line:true,assist:true,tcs:true,audio:true,volume:45,quality:'low',touch:'auto',autoThrottle:true,track:0,bike:0,mode:'race',weather:'sunset',laps:3,difficulty:'sport',...stored};
 if(!['high','low'].includes(settings.quality)||new URLSearchParams(location.search).get('quality')==='low')settings.quality='low';
 if(!['auto','on','off'].includes(settings.touch))settings.touch='auto';
-if(!['pad','buttons'].includes(settings.touchSteering))settings.touchSteering='pad';
+delete settings.touchSteering;
 if(typeof settings.autoThrottle!=='boolean')settings.autoThrottle=true;
 settings.track=clamp(Math.trunc(Number(settings.track)||0),0,TRACKS.length-1);settings.bike=clamp(Math.trunc(Number(settings.bike)||0),0,BIKES.length-1);
 if(!['sunset','day','rain'].includes(settings.weather))settings.weather='sunset';
@@ -32,7 +32,7 @@ if(!['race','time'].includes(settings.mode))settings.mode='race';
 if(!['rookie','sport','pro'].includes(settings.difficulty))settings.difficulty='sport';
 if(![2,3,5].includes(Number(settings.laps)))settings.laps=3;
 const records=safeRead('apexgp.records.v4',{}),controls=new DrivingControls(),input=controls.state;
-let touchInput=null,mobileUI=null,touchEngaged=false;
+let touchInput=null,mobileUI=null,keyboardDriving=false;
 let renderer,world,track,playerBike,botBikes=[],ghostBike,race=null,page='race',cameraMode=0,lastFrame=0,accumulator=0,hudAt=0,menuTime=0,messageUntil=0,frameId=0,lastCountdown=-1,camera=null,ghostRecord=null,telemetryAt=0;
 const reducedMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -93,18 +93,17 @@ function selectBike(index){
 }
 function setPage(value){page=value;$('menu').dataset.page=value;for(const p of['race','garage','workshop','lan','settings'])show(`${p}-panel`,p===value);document.querySelectorAll('.nav-link').forEach(b=>b.classList.toggle('active',b.dataset.page===value));$('menu').scrollTop=0;}
 function setMode(value){settings.mode=value;saveSettings();document.querySelectorAll('.mode').forEach(b=>b.classList.toggle('active',b.dataset.mode===value));$('difficulty-select').disabled=value==='time';$('difficulty-select').style.opacity=value==='time'?.4:1;}
+function syncAutomaticGas(){return controls.setAutoThrottle(settings.autoThrottle&&!keyboardDriving&&mobileUI?.isTouch&&!!race&&!localPause&&race.state==='running');}
 function updateInputDisplay(){
-  controls.setAutoThrottle(settings.autoThrottle&&touchEngaged&&mobileUI?.isTouch&&!!race&&!localPause&&['running','countdown'].includes(race.state));
+  syncAutomaticGas();
   document.querySelectorAll('[data-control]').forEach(el=>{el.classList.toggle('pressed',input[el.dataset.control]);el.setAttribute('aria-pressed',String(input[el.dataset.control]));});
-  const root=$('touch-controls');root.dataset.steering=settings.touchSteering;root.classList.toggle('auto-gas',settings.autoThrottle);
-  $('touch-steer-pad').style.setProperty('--steer-position',`${50-input.steering*36}%`);
-  $('touch-steer-pad').classList.toggle('pressed',Math.abs(input.steering)>.01);
+  $('touch-controls').classList.toggle('auto-gas',settings.autoThrottle);
   $('auto-gas-button').setAttribute('aria-pressed',String(settings.autoThrottle));
   $('auto-gas-button').setAttribute('aria-label',settings.autoThrottle?'Disattiva gas automatico':'Attiva gas automatico');
   $('auto-gas-label').textContent=settings.autoThrottle?'GAS AUTO · ON':'GAS AUTO · OFF';
   $('brake-help').textContent=settings.autoThrottle?'RILASCIA PER ACCELERARE':'TIENI PREMUTO';
 }
-function clearInput(){touchEngaged=false;controls.clear();touchInput?.reset();updateInputDisplay();}
+function clearInput(){controls.clear();touchInput?.reset();updateInputDisplay();}
 function message(text,duration=2.5){$('race-message').textContent=text;messageUntil=performance.now()+duration*1000;$('race-message').classList.add('show');}
 function startRace(networkConfig=null){
   if(qualityTransition.busy)return;
@@ -115,7 +114,7 @@ function startRace(networkConfig=null){
   clearInput();if(!lanRound){settings.laps=Number($('laps-select').value);settings.difficulty=$('difficulty-select').value;settings.weather=$('weather-select').value;saveSettings();}
   renderer.weather=settings.weather;renderer.quality=settings.quality;
   race=new RaceModel(track,{mode:settings.mode,laps:settings.laps,difficulty:settings.difficulty,weather:settings.weather,assist:settings.assist,tcs:settings.tcs,bike:effectiveBike()});
-  race.player.name=career.profile.name;
+  race.player.name=career.profile.name;keyboardDriving=false;
   if(lanRound){const mine=lanRound.players.find(p=>p.id===lan.id);race.countdown=Math.max(.02,(lanRound.startAt-lan.now())/1000);race.player.progress=mine.progress;race.player.offset=mine.slot%2?1.85:-1.85;race.placePlayer();race.networkRound=lanRound.roundId;race.runId=lanRound.roundId+':'+lan.id;}
   ghostRecord=settings.mode==='time'?readRecord():null;if(ghostRecord)ghostBike=ghostBike||buildBike(renderer,[.37,.80,.93],0,.65,BIKES[settings.bike].style);else{freeBike(ghostBike);ghostBike=null;}
   for(const b of botBikes)freeBike(b);botBikes=race.bots.map((b,i)=>buildBike(renderer,b.color,b.number,.45,BIKES[i%BIKES.length].style));
@@ -127,14 +126,14 @@ function backToMenu(){const wasLan=race?.options.mode==='lan';if(wasLan)lan.leav
 function pause(on=true){
   if(!race||race.state==='finished')return;
   const network=race.options.mode==='lan';$('pause-description').textContent=network?'La gara multiplayer continua: gli altri piloti restano in pista. Riprendi per tornare ai comandi.':'Il cronometro si è fermato. La pista ti aspetta.';$('restart-button').disabled=network;$('restart-button').classList.toggle('hidden',network);
-  if(network){localPause=on;clearInput();show('pause-overlay',on);if(!on)$('world').focus({preventScroll:true});return;}
+  if(network){localPause=on;if(!on)keyboardDriving=false;clearInput();show('pause-overlay',on);if(!on)$('world').focus({preventScroll:true});return;}
   if(on&&race.state!=='paused'){race.beforePause=race.state;race.state='paused';clearInput();show('pause-overlay');$('resume-button').focus({preventScroll:true});}
-  else if(!on&&race.state==='paused'){race.state=race.beforePause||'running';accumulator=0;lastFrame=performance.now();show('pause-overlay',false);sound.start();$('world').focus({preventScroll:true});}
+  else if(!on&&race.state==='paused'){race.state=race.beforePause||'running';keyboardDriving=false;updateInputDisplay();accumulator=0;lastFrame=performance.now();show('pause-overlay',false);sound.start();$('world').focus({preventScroll:true});}
 }
 function handleEvents(){
   for(const event of race.events.splice(0)){
     sound.event(event);
-    if(event.type==='start'){message(mobileUI?.isTouch?(settings.autoThrottle?'TOCCA LO STERZO PER PARTIRE · FRENO A DESTRA':'STERZA A SINISTRA · GAS E FRENO A DESTRA'):'A/D: PIEGA · S: FRENO · SHIFT: IMPENNATA +BOOST',4);sound.beep(780,.18);}
+    if(event.type==='start'){updateInputDisplay();message(mobileUI?.isTouch?(settings.autoThrottle?'◀ ▶ STERZA · GAS AUTOMATICO ATTIVO':'STERZA A SINISTRA · GAS E FRENO A DESTRA'):'A/D: PIEGA · S: FRENO · SHIFT: IMPENNATA +BOOST',4);sound.beep(780,.18);}
     if(event.type==='offtrack')message('FUORI PISTA · RALLENTA E RIENTRA');
     if(event.type==='contact')message('CONTATTO · LASCIA SPAZIO',1.5);
     if(event.type==='crash'){message(event.kind==='wheelie'?'CADUTA · TROPPO STERZO IN IMPENNATA':'CADUTA · IMPATTO AD ALTA VELOCITÀ',3);if(settings.mode==='lan')lan.send({type:'incident',severity:event.severity||1});}
@@ -226,12 +225,13 @@ function frame(now){
   try{
     if(settings.quality==='low')renderer.governor?.update(dt);
     renderer.scene={track,race};updateLanFrame(now,dt);lan.tick(now,race?.options.mode==='lan'?race.player:null);
+    if(syncAutomaticGas())updateInputDisplay();
     if(race){
       if(race.state!=='paused'&&race.state!=='finished'){
         accumulator+=dt;while(accumulator>=1/120){race.update(1/120,input);accumulator-=1/120;}handleEvents();
       }
       if(race.state==='countdown'){
-        const n=Math.ceil(race.countdown-.6),text=n>0?String(n):'GO';$('countdown').firstElementChild.textContent=text;$('countdown').firstElementChild.style.color=n>0?'#f3f3ef':'#ff6033';$('countdown').lastElementChild.textContent=n>0?'TIENI PRONTO IL GAS':'RIDE THE LIMIT';if(n!==lastCountdown){sound.beep(n>0?360:750,n>0?.07:.18);lastCountdown=n;}
+        const n=Math.ceil(race.countdown-.6),text=n>0?String(n):'GO';$('countdown').firstElementChild.textContent=text;$('countdown').firstElementChild.style.color=n>0?'#f3f3ef':'#ff6033';$('countdown').lastElementChild.textContent=n>0?(mobileUI?.isTouch&&settings.autoThrottle?'PRONTO A STERZARE':'TIENI PRONTO IL GAS'):'RIDE THE LIMIT';if(n!==lastCountdown){sound.beep(n>0?360:750,n>0?.07:.18);lastCountdown=n;}
       }else show('countdown',false);
       renderRace(dt);if(now-hudAt>80){updateHUD();hudAt=now;}sound.tick(localPause?null:race,input);
     }else renderMenu(dt);
@@ -248,13 +248,11 @@ function setupUI(){
   $('laps-select').value=settings.laps;$('difficulty-select').value=settings.difficulty;$('weather-select').value=settings.weather;$('quality-select').value=settings.quality;$('line-toggle').checked=settings.line;$('assist-toggle').checked=settings.assist;$('tcs-toggle').checked=settings.tcs;$('audio-toggle').checked=settings.audio;$('volume-range').value=settings.volume;
   $('compat-button').addEventListener('click',()=>{const u=new URL(location.href);u.searchParams.set('view','top');location.href=u.href;});
   $('world').tabIndex=0;$('world').style.outline='none';
-  touchInput=bindTouchControls({root:$('touch-controls'),controls,isEnabled:()=>mobileUI?.isTouch&&!!race&&!localPause&&['running','countdown'].includes(race.state),onChange:updateInputDisplay,onEngage:()=>{touchEngaged=true;sound.start();},onInterrupt:()=>{touchEngaged=false;updateInputDisplay();}});
-  mobileUI=mountMobileUI({mode:settings.touch,onClearInput:clearInput});
+  touchInput=bindTouchControls({root:$('touch-controls'),controls,isEnabled:()=>mobileUI?.isTouch&&!!race&&!localPause&&['running','countdown'].includes(race.state),onChange:updateInputDisplay,onEngage:()=>{keyboardDriving=false;sound.start();},onInterrupt:()=>pause(true)});
+  mobileUI=mountMobileUI({mode:settings.touch,onClearInput:()=>{if(race&&['running','countdown'].includes(race.state))pause(true);else clearInput();}});
   $('touch-select').value=settings.touch;
   $('touch-select').addEventListener('change',()=>{settings.touch=$('touch-select').value;mobileUI.setMode(settings.touch);saveSettings();});
-  $('touch-steering-select').value=settings.touchSteering;
-  $('touch-steering-select').addEventListener('change',()=>{settings.touchSteering=$('touch-steering-select').value;clearInput();saveSettings();});
-  const setAutoGas=value=>{settings.autoThrottle=value;$('auto-gas-toggle').checked=value;clearInput();saveSettings();};
+  const setAutoGas=value=>{settings.autoThrottle=value;keyboardDriving=false;$('auto-gas-toggle').checked=value;clearInput();saveSettings();};
   $('auto-gas-toggle').checked=settings.autoThrottle;
   $('auto-gas-toggle').addEventListener('change',()=>setAutoGas($('auto-gas-toggle').checked));
   $('auto-gas-button').addEventListener('click',()=>setAutoGas(!settings.autoThrottle));
@@ -275,7 +273,7 @@ function setupUI(){
     if(socialUI?.isOpen()){if(command==='Escape'){e.preventDefault();socialUI.close();}return;}
     if(/^(INPUT|TEXTAREA|SELECT)$/.test(e.target?.tagName||'')&&command!=='Escape')return;
     if(command==='Escape'&&!$('controls-overlay').classList.contains('hidden')){show('controls-overlay',false);return;}
-    if(!race)return;if(localPause){if(command==='Escape'||command==='KeyP'){e.preventDefault();pause(false);}return;}if(controls.actionFor(e)){e.preventDefault();if(race.state==='running'||race.state==='countdown'){touchEngaged=false;controls.keyDown(e);updateInputDisplay();}return;}
+    if(!race)return;if(localPause){if(command==='Escape'||command==='KeyP'){e.preventDefault();pause(false);}return;}if(controls.actionFor(e)){e.preventDefault();if(race.state==='running'||race.state==='countdown'){keyboardDriving=true;controls.keyDown(e);updateInputDisplay();}return;}
     if(e.repeat)return;
     if(command==='Escape'||command==='KeyP'){e.preventDefault();pause(race.options.mode==='lan'?!localPause:race.state!=='paused');}
     if(command==='KeyC')changeCamera();if(command==='KeyM')toggleSound();if(command==='KeyR'&&race.state==='running')race.resetPlayer();if(command==='KeyF')mobileUI.toggleFullscreen().catch(()=>{});

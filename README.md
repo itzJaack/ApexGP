@@ -1,16 +1,18 @@
-# ApexGP 4.1
+# ApexGP 4.2.0
 
 Gioco di corse in moto 3D per browser. **[Gioca su GitHub Pages](https://itzjaack.github.io/ApexGP/)** · [Sorgenti e aggiornamenti](https://github.com/itzJaack/ApexGP).
+
+La versione attuale è **4.2.0**. Lo storico delle novità si trova in fondo a **Impostazioni → Changelog**, con l’ultima release aperta e le precedenti espandibili. È disponibile anche in [CHANGELOG.md](CHANGELOG.md).
 
 ## Smartphone e tablet
 
 Apri lo stesso link dal browser del telefono: non serve installare un’app. Menu, garage, officina, account e lobby si adattano sia in verticale sia in orizzontale e scorrono quando lo spazio è ridotto. I campi di accesso restano leggibili con la tastiera a schermo; i comandi rispettano notch e barra dei gesti.
 
-I comandi touch appaiono automaticamente sui dispositivi tattili. Lo **sterzo progressivo** è a sinistra: piccoli movimenti del pollice danno piccole correzioni, gli estremi danno la piega massima e il centro è neutro. Il pad segue un solo dito; l’altro può frenare senza spostare lo sterzo. **↑ IMPENNA** ha un pulsante separato sopra il pad.
+I comandi touch appaiono automaticamente sui dispositivi tattili. A sinistra trovi due pulsanti **◀ SINISTRA / ▶ DESTRA** più grandi: tienili premuti per sterzare oppure scorri il dito tra i due. Il tocco resta agganciato allo sterzo anche se scivoli leggermente fuori dal bordo; spostandoti molto lontano il comando si rilascia. L’altro dito può frenare senza spostare lo sterzo. **↑ IMPENNA** ha un pulsante separato sopra le frecce.
 
-Il **gas automatico**, inizialmente attivo su touch, parte dopo il primo tocco sui comandi: a destra basta tenere **FRENO** prima della curva e rilasciarlo per accelerare. Il pulsante **GAS AUTO · ON/OFF** passa al gas manuale anche durante la gara; in manuale puoi scorrere il dito tra GAS e FRENO. Mettere in pausa, cambiare app, ruotare il dispositivo o interrompere il gesto disattiva il gas automatico fino al prossimo tocco. I tasti della tastiera restano indipendenti e il gas automatico non si applica alla guida da tastiera.
+Il **gas automatico**, inizialmente attivo su touch, accelera dal via senza richiedere un tocco aggiuntivo: a destra basta tenere **FRENO** prima della curva e rilasciarlo per accelerare. **GAS AUTO · ON/OFF** lo attiva o disattiva immediatamente anche durante la gara; in manuale puoi scorrere il dito tra GAS e FRENO. In pausa il gas si ferma e riparte premendo **Riprendi**. Cambiare app, ruotare il dispositivo o interrompere il gesto mette in pausa la gara. Passare ai tasti di guida interrompe il gas automatico finché torni ai comandi touch o lo riattivi esplicitamente.
 
-In **Impostazioni** puoi scegliere visibilità dei comandi touch, sterzo progressivo oppure a pulsanti e gas automatico. Queste scelte restano su questo dispositivo. I controlli principali hanno aree più grandi e rispettano gli spazi del telefono. In alto trovi visuale, audio, amici, **↗ RIENTRA** (+2 secondi) e pausa. **Schermo intero** è disponibile nei browser che lo supportano; se consentito dal browser prova anche a orientare lo schermo in orizzontale. Puoi comunque giocare in verticale. La modalità grafica iniziale rimane **Prestazioni**, con risoluzione adattiva e modelli leggeri.
+In **Impostazioni** puoi scegliere visibilità dei comandi touch e gas automatico. Queste scelte restano su questo dispositivo. I controlli rispettano gli spazi del telefono. In alto trovi visuale, audio, amici, **↗ RIENTRA** (+2 secondi) e pausa. **Schermo intero** è disponibile nei browser che lo supportano; se consentito dal browser prova anche a orientare lo schermo in orizzontale. Puoi comunque giocare in verticale. La modalità grafica iniziale rimane **Prestazioni**, con risoluzione adattiva e modelli leggeri.
 
 ## Difficoltà degli avversari
 
@@ -52,7 +54,7 @@ Il catalogo contiene **14 circuiti e 15 moto**. Mugello, Misano, Lusail, Red Bul
 
 Le dieci moto esistenti hanno carene, frontali, codoni, aerodinamica, scarichi e livree ricostruiti per la specifica edizione. Le cinque nuove sono **BMW M 1000 RR 2025, Aprilia RSV4 Factory 2025, Yamaha YZF-R1 2024, Honda Fireblade SP 2024 e Suzuki GSX-R1000R 2024**. Il garage distingue anno e categoria. La M1 rappresenta il quattro in linea del 2025; la GSX-RR la versione 2022. Ogni moto dispone di quattro livelli di dettaglio e di un audio motore dedicato. Geometrie originali approssimate, senza asset di altri videogiochi; prestazioni e guida rimangono arcade.
 
-Gli identificativi e l'ordine dei dieci veicoli e circuiti precedenti restano stabili: acquisti, potenziamenti e scelte salvate rimangono validi. I vecchi tempi e ghost restano nei backup; i nuovi percorsi usano record separati, perché distanze e coordinate sono cambiate. Le lobby comprendono l'intero catalogo. Per giocare insieme, aggiornare tutti i dispositivi alla 4.1.
+Gli identificativi e l'ordine dei dieci veicoli e circuiti precedenti restano stabili: acquisti, potenziamenti e scelte salvate rimangono validi. I vecchi tempi e ghost restano nei backup; i nuovi percorsi usano record separati, perché distanze e coordinate sono cambiate. Le lobby comprendono l'intero catalogo. Per giocare insieme, aggiornare tutti i dispositivi alla versione attuale.
 
 Dati delle piste: **© OpenStreetMap contributors, ODbL 1.0**. Coordinate e provenienza in `art/references/circuits.json`; conversione offline in `tools/build-circuits.mjs`. [Fonti e dettagli](art/references/README.md), disponibili anche nel gioco tramite il collegamento a `references.html`. Nomi e marchi appartengono ai rispettivi titolari. Progetto indipendente, senza affiliazione ufficiale.
 

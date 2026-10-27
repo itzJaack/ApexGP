@@ -10,7 +10,7 @@ export class DrivingControls{
   pointerDown(id,action){if(!Object.values(CODES).includes(action))return;this.pointers.set(id,action);this.sync();}
   pointerAxis(id,value){if(!Number.isFinite(value))return;this.axes.set(id,Math.max(-1,Math.min(1,value)));this.sync();}
   pointerUp(id){this.pointers.delete(id);this.axes.delete(id);this.sync();}
-  setAutoThrottle(value){if(this.autoThrottle===!!value)return;this.autoThrottle=!!value;this.sync();}
+  setAutoThrottle(value){if(this.autoThrottle===!!value)return false;this.autoThrottle=!!value;this.sync();return true;}
   sync(){
     const held=[...this.keys.values(),...this.pointers.values()];
     for(const action of ['throttle','brake','left','right','wheelie'])this.state[action]=held.includes(action);
@@ -31,9 +31,10 @@ export function touchSteeringAt(clientX,rect){
 // Each finger owns its input. Slides, interrupted gestures and lost capture
 // release only that finger, without dropping another finger or a keyboard key.
 export function bindTouchControls({root,controls,isEnabled,onChange=()=>{},onEngage=()=>{},onInterrupt=()=>{}}){
-  const document=root.ownerDocument,active=new Set(),pad=root.querySelector?.('[data-steer-pad]');let steeringPointer=null;
+  const document=root.ownerDocument,active=new Set(),steeringFingers=new Set(),pad=root.querySelector?.('[data-steer-pad]'),steeringArea=root.querySelector?.('[data-steer-buttons]');let steeringPointer=null;
   const release=event=>{
     if(!active.delete(event.pointerId))return;
+    steeringFingers.delete(event.pointerId);
     if(event.pointerId===steeringPointer)steeringPointer=null;
     controls.pointerUp(event.pointerId);onChange();
     if(event.type==='pointercancel'||event.type==='lostpointercapture')onInterrupt();
@@ -51,6 +52,7 @@ export function bindTouchControls({root,controls,isEnabled,onChange=()=>{},onEng
     button.addEventListener('pointerdown',event=>{
       if(event.button>0||!isEnabled())return;
       event.preventDefault();active.add(event.pointerId);
+      if(steeringArea&&['left','right'].includes(button.dataset.control))steeringFingers.add(event.pointerId);
       controls.pointerDown(event.pointerId,button.dataset.control);onEngage();onChange();capture(button,event);
     });
     button.addEventListener('lostpointercapture',release);
@@ -60,6 +62,12 @@ export function bindTouchControls({root,controls,isEnabled,onChange=()=>{},onEng
     if(!active.has(event.pointerId))return;
     if(!isEnabled()){release(event);return;}
     event.preventDefault();
+    if(steeringFingers.has(event.pointerId)){
+      const rect=steeringArea.getBoundingClientRect(),outside=event.clientX<rect.left-28||event.clientX>rect.right+28||event.clientY<rect.top-28||event.clientY>rect.bottom+28;
+      if(outside)controls.pointerUp(event.pointerId);
+      else controls.pointerDown(event.pointerId,event.clientX<rect.left+rect.width/2?'left':'right');
+      onChange();return;
+    }
     if(event.pointerId===steeringPointer){
       const rect=pad.getBoundingClientRect(),outside=event.clientX<rect.left-28||event.clientX>rect.right+28||event.clientY<rect.top-28||event.clientY>rect.bottom+28;
       controls.pointerAxis(event.pointerId,outside?0:touchSteeringAt(event.clientX,rect));onChange();return;
@@ -71,5 +79,5 @@ export function bindTouchControls({root,controls,isEnabled,onChange=()=>{},onEng
   },{passive:false});
   document.addEventListener('pointerup',release);
   document.addEventListener('pointercancel',release);
-  return{reset(){for(const id of active)controls.pointerUp(id);active.clear();steeringPointer=null;onChange();}};
+  return{reset(){for(const id of active)controls.pointerUp(id);active.clear();steeringFingers.clear();steeringPointer=null;onChange();}};
 }

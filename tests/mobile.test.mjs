@@ -8,14 +8,15 @@ const send=(target,type,props={})=>{
   Object.assign(event,{pointerId:1,button:0,clientX:0,clientY:0,...props});
   target.dispatchEvent(event);return event;
 };
-function fixture(){
+function fixture({largeSteering=false}={}){
   const document=new EventTarget(),controls=new DrivingControls();
   const buttons=['left','right','wheelie','brake','throttle'].map(action=>{
     const button=new EventTarget();button.dataset={control:action};button.closest=()=>button;button.setPointerCapture=()=>{};return button;
   });
   document.elementFromPoint=(x,y)=>y<0?null:buttons[x]||null;
   const pad=new EventTarget();pad.getBoundingClientRect=()=>({left:0,right:160,top:0,bottom:80,width:160,height:80});pad.setPointerCapture=()=>{};
-  const root={ownerDocument:document,querySelector:()=>pad,querySelectorAll:()=>buttons,contains:button=>buttons.includes(button)};
+  const steeringArea={getBoundingClientRect:()=>({left:20,right:180,top:20,bottom:124,width:160,height:104})};
+  const root={ownerDocument:document,querySelector:selector=>selector==='[data-steer-pad]'?pad:largeSteering?steeringArea:null,querySelectorAll:()=>buttons,contains:button=>buttons.includes(button)};
   let enabled=true;
   const binding=bindTouchControls({root,controls,isEnabled:()=>enabled,onInterrupt:()=>controls.setAutoThrottle(false)});
   return{document,controls,buttons,pad,binding,setEnabled:value=>{enabled=value;}};
@@ -108,4 +109,25 @@ test('automatic gas yields to the brake and is disarmed by a canceled gesture or
     send(interruption==='lostpointercapture'?pad:document,interruption);assert(!controls.state.throttle&&controls.state.steering===0);
     controls.pointerAxis(3,.3);assert(!controls.state.throttle,'Touching a control alone does not silently rearm automatic gas');
   }
+});
+
+test('large steering buttons keep their input through edge drift and slide directly between directions',()=>{
+  const {document,controls,buttons}=fixture({largeSteering:true});
+  send(buttons[0],'pointerdown',{clientX:45,clientY:60});
+  send(buttons[3],'pointerdown',{pointerId:2});
+  send(document,'pointermove',{clientX:10,clientY:5});assert(controls.state.left&&controls.state.brake);
+  send(document,'pointermove',{clientX:150,clientY:10});assert(controls.state.right&&!controls.state.left&&controls.state.brake);
+  send(document,'pointermove',{clientX:205,clientY:130});assert(controls.state.right&&controls.state.brake);
+  send(document,'pointermove',{clientX:250,clientY:140});assert(!controls.state.right&&!controls.state.left&&controls.state.brake&&!controls.state.throttle);
+  send(document,'pointermove',{clientX:50,clientY:50});assert(controls.state.left&&controls.state.brake);
+  send(document,'pointerup');assert(!controls.state.left&&controls.state.brake);
+  send(document,'pointermove',{clientX:150,clientY:50});assert(!controls.state.right);
+});
+
+test('large steering buttons release on interruption and reset without dropping independent keys',()=>{
+  const {document,controls,buttons,binding}=fixture({largeSteering:true});
+  controls.keyDown({code:'KeyW'});send(buttons[0],'pointerdown');send(document,'pointercancel');
+  assert(!controls.state.left&&controls.state.throttle);
+  send(buttons[1],'pointerdown');binding.reset();send(document,'pointermove',{clientX:150,clientY:50});
+  assert(!controls.state.right&&controls.state.throttle);
 });
