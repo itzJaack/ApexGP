@@ -7,15 +7,15 @@ import {MultiplayerClient} from './cloud-multiplayer.js';
 import {ONLINE_CONFIG} from './online-config.js';
 import {OverviewRenderer} from './overview.js';
 import {Career,normalizeProfile,UPGRADES,LIVERIES} from './progression.js';
-import {RaceNotices} from './race-notices.js';
+import {RaceNotices} from './race-notices.js?v=4.4.1';
 import {BIKES,TRACKS,Circuit,RaceModel,clamp,lerp,mod,formatTime,wrapAngle,gearSpeedStep} from './simulation.js';
 import {circuitRecordKey,validRecordKey} from './records.js';
 import {Renderer,buildWorld,buildBike,bikeParts,modelMatrix} from './engine.js';
 import {DrivingControls,bindTouchControls} from './controls.js';
 import {disposeBike,disposeWorld,AssetTransition} from './runtime.js';
 import {mountMobileUI} from './mobile.js';
-import {mountTiltUI} from './tilt-ui.js';
-import {tiltMode,validTiltCalibration,tiltDirectionInverted} from './tilt.js';
+import {mountTiltUI} from './tilt-ui.js?v=4.4.1';
+import {tiltMode,validTiltCalibration,tiltDirectionInverted} from './tilt.js?v=4.4.1';
 import {RacingLine} from './racing-line.js';
 
 let accountUI=null,applyingSnapshot=false;

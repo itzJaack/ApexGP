@@ -1,4 +1,4 @@
-import {TiltSteering,tiltMode,validTiltCalibration,calibratedSteering} from './tilt.js';
+import {TiltSteering,tiltMode,validTiltCalibration,calibratedSteering} from './tilt.js?v=4.4.1';
 
 export function mountTiltUI({controls,mode='buttons',calibration=null,inverted=false,isDriving,onPause,onSave,onChange=()=>{},sensorOptions={}}){
   const $=id=>document.getElementById(id),overlay=$('tilt-overlay'),selector=$('touch-steering-select');
