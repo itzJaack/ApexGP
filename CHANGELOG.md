@@ -1,5 +1,14 @@
 # Changelog ApexGP
 
+## 4.3.0 — 27 ottobre 2026
+
+Giroscopio e Cinema nativo.
+
+- Sterzo mobile tramite inclinazione selezionabile nelle Impostazioni. I pulsanti restano la scelta predefinita.
+- Calibrazione guidata del giroscopio: centro, sinistra, destra e prova finale, con impostazioni salvate sul dispositivo.
+- Richiesta dei permessi dei sensori quando necessaria, ricalibrazione dalla gara e ritorno ai pulsanti se il sensore non è disponibile.
+- Cinema usa la densità reale dei pixel dello schermo, anche sui display 2K e 4K, entro i limiti della GPU. La risoluzione attuale è visibile nelle Impostazioni.
+
 ## 4.2.0 — 27 ottobre 2026
 
 Comandi mobile e sfida IA.

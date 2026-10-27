@@ -5,13 +5,14 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#101215">
   <meta name="description" content="APEX GP. Entra in pista in un gioco di corse in moto 3D: gare contro avversari, cronometro, 14 circuiti reali, 15 moto, carriera e multiplayer Internet e LAN, con comandi da tastiera o touch.">
-  <title>APEX GP 4.2.0 — Ride the limit</title>
+  <title>APEX GP 4.3.0 — Ride the limit</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23121417'/%3E%3Cpath d='M12 47 30 14h12L28 47zm19 0 12-23h10L41 47z' fill='%23ff6033'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="accounts.css">
   <link rel="stylesheet" href="mobile.css">
   <link rel="stylesheet" href="social.css">
   <link rel="stylesheet" href="changelog.css">
+  <link rel="stylesheet" href="tilt.css">
 </head>
 <body>
   <canvas id="world" aria-label="Circuito di corse in moto 3D"></canvas>
@@ -20,7 +21,7 @@
 
   <main id="menu" class="menu hidden" data-page="race">
     <header class="topbar">
-      <a class="brand" href="#" aria-label="APEX GP, menu principale">APEX<span>GP</span><i></i><small class="build-version">v4.2.0</small></a>
+      <a class="brand" href="#" aria-label="APEX GP, menu principale">APEX<span>GP</span><i></i><small class="build-version">v4.3.0</small></a>
       <nav aria-label="Menu"><button class="nav-link active" data-page="race">CORRI</button><button class="nav-link" data-page="garage">GARAGE</button><button class="nav-link" data-page="workshop">OFFICINA</button><button class="nav-link" data-page="lan">MULTIPLAYER</button><button id="social-nav" class="nav-link" aria-haspopup="dialog" aria-controls="social-overlay">AMICI</button><button class="nav-link" data-page="settings">IMPOSTAZIONI</button></nav>
       <button id="account-nav" class="account-nav" aria-haspopup="dialog" aria-controls="account-overlay">ACCEDI</button><div class="profile"><span class="profile-icon">27</span><span><b id="profile-name">JACK</b><small id="wallet">12.000 CR</small></span></div>
     </header>
@@ -93,16 +94,29 @@
       <label class="toggle-row"><span>Controllo di trazione<small>Modula la potenza in piega.</small></span><input id="tcs-toggle" type="checkbox" checked><span class="toggle"></span></label><label class="toggle-row"><span>Audio di gara<small>Motori, marce, gomme, vento e avversari stereo.</small></span><input id="audio-toggle" type="checkbox" checked><span class="toggle"></span></label>
       <label class="range-row">VOLUME<input id="volume-range" type="range" min="0" max="100" value="45" aria-label="Volume audio"></label>
       <label class="range-row">COMANDI TOUCH<select id="touch-select"><option value="auto">Automatici · smartphone e tablet</option><option value="on">Sempre visibili</option><option value="off">Disattivati · tastiera</option></select></label>
+      <label class="range-row">STERZO MOBILE<select id="touch-steering-select"><option value="buttons" selected>Pulsanti · predefinito</option><option value="tilt">Inclinazione · tilt to steer</option></select></label>
+      <div class="tilt-settings-actions"><button id="tilt-calibrate" class="secondary-button">CALIBRA GIROSCOPIO</button><button id="tilt-enable" class="secondary-button hidden">ATTIVA SENSORI</button></div>
+      <p id="tilt-status" class="muted hidden" role="status" aria-live="polite"></p>
       <label class="toggle-row"><span>Gas automatico su touch<small>Accelera dal via. Tu devi solo sterzare e frenare.</small></span><input id="auto-gas-toggle" type="checkbox" checked><span class="toggle"></span></label>
       <p class="muted touch-only">Tieni premuti i pulsanti grandi ◀ e ▶ a sinistra per sterzare. Puoi scorrere il dito da un pulsante all’altro. A destra, tieni FRENO per rallentare e rilascialo per accelerare. Puoi disattivare GAS AUTO anche durante la corsa per usare il gas manuale. Le preferenze touch restano su questo dispositivo.</p>
       <button class="secondary-button" data-fullscreen>SCHERMO INTERO ↗</button>
-      <label class="range-row">GRAFICA<select id="quality-select"><option value="high">Cinema</option><option value="low">Prestazioni · GPU integrata</option></select></label>
-      <p id="performance-note" class="muted">Prestazioni: risoluzione adattiva fino a 720p, modelli leggeri e dettagli visibili a distanza ridotta. La qualità grafica resta una scelta di questo dispositivo.</p>
+      <label class="range-row">GRAFICA<select id="quality-select"><option value="high">Cinema · risoluzione nativa</option><option value="low">Prestazioni · GPU integrata</option></select></label>
+      <p id="performance-note" class="muted">Prestazioni: risoluzione adattiva fino a 720p, modelli leggeri e dettagli visibili a distanza ridotta. Cinema segue la risoluzione nativa del display, entro i limiti della GPU. La qualità grafica resta una scelta di questo dispositivo.</p>
+      <p id="render-resolution" class="muted"></p>
       <button id="show-controls" class="text-button">Tutti i comandi ↗</button>
       <section id="settings-changelog" class="settings-changelog" aria-labelledby="changelog-heading">
-        <div class="changelog-heading"><h3 id="changelog-heading">Changelog</h3><span class="changelog-current">VERSIONE ATTUALE · 4.2.0</span></div>
+        <div class="changelog-heading"><h3 id="changelog-heading">Changelog</h3><span class="changelog-current">VERSIONE ATTUALE · 4.3.0</span></div>
         <p class="changelog-intro">Tutte le novità, dalla più recente. Tocca una versione per leggere i dettagli.</p>
         <details class="release-note" open>
+          <summary><span class="release-version">v4.3.0</span><span class="release-title">Giroscopio e Cinema nativo</span><time datetime="2026-10-27">27 ott 2026</time></summary>
+          <ul>
+            <li>Sterzo mobile tramite inclinazione selezionabile nelle Impostazioni. I pulsanti restano la scelta predefinita.</li>
+            <li>Calibrazione guidata del giroscopio: centro, sinistra, destra e prova finale, con impostazioni salvate sul dispositivo.</li>
+            <li>Richiesta dei permessi dei sensori quando necessaria, ricalibrazione dalla gara e ritorno ai pulsanti se il sensore non è disponibile.</li>
+            <li>Cinema usa la densità reale dei pixel dello schermo, anche sui display 2K e 4K, entro i limiti della GPU. La risoluzione attuale è visibile nelle Impostazioni.</li>
+          </ul>
+        </details>
+        <details class="release-note">
           <summary><span class="release-version">v4.2.0</span><span class="release-title">Comandi mobile e sfida IA</span><time datetime="2026-10-27">27 ott 2026</time></summary>
           <ul>
             <li>Sterzo mobile a due pulsanti più grandi, con un’area di tocco più tollerante quando il dito scivola.</li>
@@ -153,6 +167,7 @@
       <div class="touch-steering-group">
         <button data-control="wheelie" class="wheelie-button" aria-label="Tieni premuto per impennare">↑ IMPENNA</button>
         <div class="touch-steer-buttons" data-steer-buttons><button data-control="left" aria-label="Sterza a sinistra"><span aria-hidden="true">◀</span><small>SINISTRA</small></button><button data-control="right" aria-label="Sterza a destra"><span aria-hidden="true">▶</span><small>DESTRA</small></button></div>
+        <div id="tilt-hud" class="touch-tilt-panel hidden"><span>INCLINA PER STERZARE</span><div id="tilt-hud-marker" class="tilt-meter" aria-hidden="true"><span>◀</span><i></i><span>▶</span></div><button id="tilt-recalibrate">RICALIBRA</button></div>
       </div>
       <div class="touch-pedal-group">
         <button id="auto-gas-button" class="auto-gas-button" aria-pressed="true"><span id="auto-gas-label">GAS AUTO · ON</span><small>TOCCA PER CAMBIARE</small></button>
@@ -161,9 +176,24 @@
     </div>
   </section>
 
-  <div id="pause-overlay" class="overlay hidden"><section class="modal pause-modal"><span class="eyebrow">APEX GP / PIT STOP</span><h2>Prendi fiato.</h2><p id="pause-description">Il cronometro si è fermato. La pista ti aspetta.</p><button id="resume-button" class="primary-button"><span>RIPRENDI LA CORSA</span><span>→</span></button><button id="restart-button" class="secondary-button">RICOMINCIA</button><button id="menu-button" class="text-button">Torna al paddock</button><p class="touch-only muted">Con GAS AUTO attivo, il gas riparte quando premi Riprendi. FRENO è a destra; GAS AUTO passa al gas manuale. ↗ RIENTRA ti rimette in pista (+2 s).</p><div class="controls-summary keyboard-only"><span><b>W / ↑</b> Gas</span><span><b>S / ↓ / SPAZIO</b> Freno</span><span><b>A D / ← →</b> Sterzo</span><span><b>C</b> Visuale</span><span><b>R</b> Rientra in pista</span><span><b>M</b> Audio</span><span><b>ESC / P</b> Pausa</span><span><b>F</b> Schermo intero</span></div></section></div>
+  <div id="tilt-overlay" class="overlay tilt-overlay hidden">
+    <section class="modal tilt-modal" role="dialog" aria-modal="true" aria-labelledby="tilt-title" aria-describedby="tilt-instructions">
+      <span class="eyebrow">STERZO MOBILE / CALIBRAZIONE</span><h2 id="tilt-title">Inclina e guida.</h2>
+      <p class="tilt-step" id="tilt-step">PASSAGGIO 1 DI 4</p><h3 id="tilt-step-title">Posizione neutra</h3>
+      <p id="tilt-instructions" aria-live="polite">Tieni il telefono nella posizione con cui giocherai.</p>
+      <div id="tilt-preview" class="tilt-meter tilt-preview" role="meter" aria-label="Sterzo rilevato" aria-valuemin="-100" aria-valuemax="100" aria-valuenow="0" aria-valuetext="Centro"><span>◀</span><i></i><span>▶</span></div>
+      <p id="tilt-error" class="shop-status" role="status" aria-live="polite"></p>
+      <div id="tilt-acquisition" class="tilt-acquisition hidden" aria-label="Acquisizione della posizione"><span id="tilt-acquisition-bar"></span></div>
+      <button id="tilt-capture" class="primary-button" disabled>MEMORIZZA CENTRO</button>
+      <button id="tilt-restart" class="secondary-button hidden">RICOMINCIA DAL CENTRO</button>
+      <button id="tilt-cancel" class="text-button">Annulla e usa i pulsanti</button>
+      <p class="muted">Le impostazioni del giroscopio restano su questo dispositivo. Se ruoti lo schermo, calibra di nuovo in quell’orientamento.</p>
+    </section>
+  </div>
+
+  <div id="pause-overlay" class="overlay hidden"><section class="modal pause-modal"><span class="eyebrow">APEX GP / PIT STOP</span><h2>Prendi fiato.</h2><p id="pause-description">Il cronometro si è fermato. La pista ti aspetta.</p><button id="resume-button" class="primary-button"><span>RIPRENDI LA CORSA</span><span>→</span></button><button id="restart-button" class="secondary-button">RICOMINCIA</button><button id="tilt-pause-calibrate" class="secondary-button hidden">RICALIBRA GIROSCOPIO</button><button id="menu-button" class="text-button">Torna al paddock</button><p class="touch-only muted">Con GAS AUTO attivo, il gas riparte quando premi Riprendi. FRENO è a destra; GAS AUTO passa al gas manuale. ↗ RIENTRA ti rimette in pista (+2 s).</p><div class="controls-summary keyboard-only"><span><b>W / ↑</b> Gas</span><span><b>S / ↓ / SPAZIO</b> Freno</span><span><b>A D / ← →</b> Sterzo</span><span><b>C</b> Visuale</span><span><b>R</b> Rientra in pista</span><span><b>M</b> Audio</span><span><b>ESC / P</b> Pausa</span><span><b>F</b> Schermo intero</span></div></section></div>
   <div id="result-overlay" class="overlay hidden"><section class="modal result-modal"><span class="eyebrow" id="result-eyebrow">BANDIERA A SCACCHI</span><h2 id="result-title">Gara conclusa.</h2><p id="result-subtitle"></p><div class="result-stats"><div><span>POSIZIONE</span><strong id="result-position">1°</strong></div><div><span>GIRO MIGLIORE</span><strong id="result-best">—</strong></div><div><span>TEMPO TOTALE</span><strong id="result-total">—</strong></div></div><p id="result-credits" class="result-credits"></p><div id="result-table"></div><button id="race-again" class="primary-button"><span>UN'ALTRA CORSA</span><span>→</span></button><button id="result-menu" class="text-button">Torna al paddock</button></section></div>
-  <div id="controls-overlay" class="overlay hidden"><section class="modal"><span class="eyebrow">IL PRIMO GIRO</span><h2>Entra in ritmo.</h2><p class="touch-only">Tieni premuto ◀ o ▶ a sinistra per sterzare. I pulsanti sono più grandi e continuano a leggere il dito anche se scivola un poco fuori dal bordo. Con GAS AUTO attivo la moto accelera dal via: a destra devi solo tenere FRENO prima della curva e rilasciarlo in uscita. Tocca GAS AUTO per passare ai pedali manuali.</p><p class="keyboard-only">Accelera sul rettilineo, frena prima della curva e accompagna la moto verso l'apice. A inclina a sinistra, D a destra. La piega cresce progressivamente. Rilascia il gas e frena per stringere il raggio: frenata e sterzo ora lavorano insieme. Rilasciando i tasti, la moto si raddrizza con inerzia. La scia di chi ti precede ti dà un piccolo vantaggio.</p><div class="controls-summary keyboard-only"><span><b>W / ↑</b> Gas</span><span><b>S / ↓ / SPAZIO</b> Freno</span><span><b>A / ←</b> Sterza a sinistra</span><span><b>D / →</b> Sterza a destra</span><span><b>SHIFT</b> Impenna · boost +7,5%</span><span><b>C</b> Visuale: chase / casco</span><span><b>R</b> Rientra in pista (+2 s)</span><span><b>M</b> Audio</span><span><b>ESC / P</b> Pausa</span><span><b>F</b> Schermo intero</span></div><p class="touch-only muted">↑ IMPENNA resta separato dallo sterzo. Il freno riabbassa la ruota. ↗ RIENTRA ti rimette in pista con 2 secondi di penalità. I pulsanti in alto cambiano visuale e audio, aprono gli amici o mettono in pausa. Cambiare app, ruotare lo schermo o interrompere il tocco mette in pausa la gara. Premi Riprendi per tornare ai comandi; anche il gas automatico riparte.</p><p class="muted keyboard-only">Shift alza progressivamente l’avantreno e dà un lieve boost. Forzare la curva in impennata o urtare forte un avversario provoca una caduta. Il freno abbassa l’avantreno. La pioggia riduce l'aderenza. Fuori pista perdi velocità. La stabilizzazione rende lo sterzo più morbido; la traiettoria resta manuale. Su touch, usa i pulsanti in basso.</p><button id="close-controls" class="primary-button">CI SONO</button></section></div>
+  <div id="controls-overlay" class="overlay hidden"><section class="modal"><span class="eyebrow">IL PRIMO GIRO</span><h2>Entra in ritmo.</h2><p class="touch-only">Tieni premuto ◀ o ▶ a sinistra per sterzare. I pulsanti sono più grandi e continuano a leggere il dito anche se scivola un poco fuori dal bordo. Con GAS AUTO attivo la moto accelera dal via: a destra devi solo tenere FRENO prima della curva e rilasciarlo in uscita. Tocca GAS AUTO per passare ai pedali manuali. Per sterzare inclinando il telefono, scegli Inclinazione in Impostazioni → Sterzo mobile e completa la calibrazione.</p><p class="keyboard-only">Accelera sul rettilineo, frena prima della curva e accompagna la moto verso l'apice. A inclina a sinistra, D a destra. La piega cresce progressivamente. Rilascia il gas e frena per stringere il raggio: frenata e sterzo ora lavorano insieme. Rilasciando i tasti, la moto si raddrizza con inerzia. La scia di chi ti precede ti dà un piccolo vantaggio.</p><div class="controls-summary keyboard-only"><span><b>W / ↑</b> Gas</span><span><b>S / ↓ / SPAZIO</b> Freno</span><span><b>A / ←</b> Sterza a sinistra</span><span><b>D / →</b> Sterza a destra</span><span><b>SHIFT</b> Impenna · boost +7,5%</span><span><b>C</b> Visuale: chase / casco</span><span><b>R</b> Rientra in pista (+2 s)</span><span><b>M</b> Audio</span><span><b>ESC / P</b> Pausa</span><span><b>F</b> Schermo intero</span></div><p class="touch-only muted">↑ IMPENNA resta separato dallo sterzo. Il freno riabbassa la ruota. ↗ RIENTRA ti rimette in pista con 2 secondi di penalità. I pulsanti in alto cambiano visuale e audio, aprono gli amici o mettono in pausa. Cambiare app, ruotare lo schermo o interrompere il tocco mette in pausa la gara. Premi Riprendi per tornare ai comandi; anche il gas automatico riparte.</p><p class="muted keyboard-only">Shift alza progressivamente l’avantreno e dà un lieve boost. Forzare la curva in impennata o urtare forte un avversario provoca una caduta. Il freno abbassa l’avantreno. La pioggia riduce l'aderenza. Fuori pista perdi velocità. La stabilizzazione rende lo sterzo più morbido; la traiettoria resta manuale. Su touch, usa i pulsanti in basso.</p><button id="close-controls" class="primary-button">CI SONO</button></section></div>
 
   <aside id="social-notice" class="social-notice hidden" aria-live="polite"><span id="social-notice-text"></span><button id="social-notice-open">APRI AMICI</button></aside>
   <div id="social-overlay" class="overlay social-overlay hidden">

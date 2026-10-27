@@ -1,7 +1,7 @@
 import {allocateScene} from './runtime.js';
 import {createImportedBike} from './models.js';
 import {clamp,lerp,mod} from './simulation.js';
-import {ResolutionGovernor} from './quality.js';
+import {ResolutionGovernor,renderResolution} from './quality.js';
 import {scenerySite} from './scenery.js';
 
 const V={sub:(a,b)=>a.map((v,i)=>v-b[i]),dot:(a,b)=>a.reduce((s,v,i)=>s+v*b[i],0),cross:(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]],norm:a=>{const l=Math.hypot(...a)||1;return a.map(v=>v/l);}};
@@ -134,7 +134,7 @@ void main(){
 
 function orthographic(size,near=.1,far=420){return new Float32Array([1/size,0,0,0,0,1/size,0,0,0,0,-2/(far-near),0,0,0,-(far+near)/(far-near),1]);}
 export class Renderer{
- constructor(canvas){
+ constructor(canvas,{quality='high'}={}){
   this.canvas=canvas;this.gl=canvas.getContext('webgl',{antialias:false,alpha:false,powerPreference:'high-performance'});if(!this.gl)throw new Error('WebGL non è disponibile. Attiva l’accelerazione hardware del browser per giocare.');
   const gl=this.gl;this.program=this.programFrom(VS,FS);this.skyProgram=this.programFrom(SKYVS,SKYFS);this.shadowProgram=this.programFrom(SHADOWVS,SHADOWFS);this.postProgram=this.programFrom(SKYVS,POSTFS);
   this.locations={};for(const name of ['uModel','uVP','uLightVP','uEye','uFog','uSun','uSunColor','uSunIntensity','uRain','uAlpha','uTextureOn','uTexture','uTime','uExposure','uShadows','uShadowTexel','uShadowMap','uHang','uRider'])this.locations[name]=gl.getUniformLocation(this.program,name);
@@ -148,12 +148,16 @@ export class Renderer{
   this.shadowAttributes=[gl.getAttribLocation(this.shadowProgram,'aPosition'),gl.getAttribLocation(this.shadowProgram,'aSurface')];
   this.postLocations={scene:gl.getUniformLocation(this.postProgram,'uScene'),texel:gl.getUniformLocation(this.postProgram,'uTexel'),bloom:gl.getUniformLocation(this.postProgram,'uBloom')};
   this.skyBuffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,this.skyBuffer);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,-1,1,1,-1,1,1]),gl.STATIC_DRAW);
-  this.quality='high';this.weather='sunset';this.meshes=[];this.eye=[0,4,0];this.vp=identity();this.lightVP=identity();this.time=0;this.shadowValid=false;this.shadowTarget=null;this.sceneTarget=null;
+  this.quality=quality==='low'?'low':'high';this.weather='sunset';this.meshes=[];this.eye=[0,4,0];this.vp=identity();this.lightVP=identity();this.time=0;this.shadowValid=false;this.shadowTarget=null;this.sceneTarget=null;
   this.whiteTexture=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,this.whiteTexture);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,1,1,0,gl.RGBA,gl.UNSIGNED_BYTE,new Uint8Array([255,255,255,255]));gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
   gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LEQUAL);gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);this.resize();
  }
  programFrom(v,f){const gl=this.gl,compile=(type,source)=>{const s=gl.createShader(type);gl.shaderSource(s,source);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))throw new Error(gl.getShaderInfoLog(s));return s;};const p=gl.createProgram(),vs=compile(gl.VERTEX_SHADER,v),fs=compile(gl.FRAGMENT_SHADER,f);gl.attachShader(p,vs);gl.attachShader(p,fs);gl.linkProgram(p);gl.deleteShader(vs);gl.deleteShader(fs);if(!gl.getProgramParameter(p,gl.LINK_STATUS))throw new Error(gl.getProgramInfoLog(p));return p;}
- resize(){const gl=this.gl,max=gl.getParameter(gl.MAX_TEXTURE_SIZE)||4096,dpr=this.quality==='low'?Math.min(1,1280/this.canvas.clientWidth,720/this.canvas.clientHeight)*this.governor.scale:Math.min(globalThis.devicePixelRatio||1,1.65,max/Math.max(this.canvas.clientWidth,this.canvas.clientHeight));const w=Math.max(1,Math.floor(this.canvas.clientWidth*dpr)),h=Math.max(1,Math.floor(this.canvas.clientHeight*dpr));if(this.canvas.width!==w||this.canvas.height!==h){this.canvas.width=w;this.canvas.height=h;}this.aspect=w/h;}
+ resize(){
+  if(!this.renderLimits){const gl=this.gl,texture=gl.getParameter(gl.MAX_TEXTURE_SIZE)||4096,buffer=gl.getParameter(gl.MAX_RENDERBUFFER_SIZE)||texture,viewport=gl.getParameter(gl.MAX_VIEWPORT_DIMS)||[texture,texture];this.renderLimits={maxWidth:Math.min(texture,buffer,viewport[0]),maxHeight:Math.min(texture,buffer,viewport[1])};}
+  const {width,height}=renderResolution(this.canvas.clientWidth,this.canvas.clientHeight,{quality:this.quality,pixelRatio:globalThis.devicePixelRatio||1,scale:this.governor.scale,...this.renderLimits});
+  if(this.canvas.width!==width||this.canvas.height!==height){this.canvas.width=width;this.canvas.height=height;}this.aspect=width/height;
+ }
  mesh(g){const gl=this.gl,buffer=gl.createBuffer();if(!buffer)throw Error('Memoria grafica insufficiente. Riprova con la grafica Prestazioni.');gl.bindBuffer(gl.ARRAY_BUFFER,buffer);try{const data=g.data instanceof Float32Array?g.data:new Float32Array(g.data);gl.bufferData(gl.ARRAY_BUFFER,data,gl.STATIC_DRAW);if(gl.getError()===gl.OUT_OF_MEMORY)throw Error('Memoria grafica insufficiente. Riprova con la grafica Prestazioni.');}catch(error){gl.deleteBuffer(buffer);throw error;}const m={buffer,count:g.data.length/12};this.meshes.push(m);return m;}
  destroy(mesh){if(!mesh)return;if(mesh.chunks){for(const chunk of mesh.chunks)this.destroy(chunk);return;}this.gl.deleteBuffer(mesh.buffer);const i=this.meshes.indexOf(mesh);if(i>=0)this.meshes.splice(i,1);}
  spatialMesh(g){

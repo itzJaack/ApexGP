@@ -1,8 +1,8 @@
-# ApexGP 4.2.0
+# ApexGP 4.3.0
 
 Gioco di corse in moto 3D per browser. **[Gioca su GitHub Pages](https://itzjaack.github.io/ApexGP/)** · [Sorgenti e aggiornamenti](https://github.com/itzJaack/ApexGP).
 
-La versione attuale è **4.2.0**. Lo storico delle novità si trova in fondo a **Impostazioni → Changelog**, con l’ultima release aperta e le precedenti espandibili. È disponibile anche in [CHANGELOG.md](CHANGELOG.md).
+La versione attuale è **4.3.0**. Lo storico delle novità si trova in fondo a **Impostazioni → Changelog**, con l’ultima release aperta e le precedenti espandibili. È disponibile anche in [CHANGELOG.md](CHANGELOG.md).
 
 ## Smartphone e tablet
 
@@ -13,6 +13,12 @@ I comandi touch appaiono automaticamente sui dispositivi tattili. A sinistra tro
 Il **gas automatico**, inizialmente attivo su touch, accelera dal via senza richiedere un tocco aggiuntivo: a destra basta tenere **FRENO** prima della curva e rilasciarlo per accelerare. **GAS AUTO · ON/OFF** lo attiva o disattiva immediatamente anche durante la gara; in manuale puoi scorrere il dito tra GAS e FRENO. In pausa il gas si ferma e riparte premendo **Riprendi**. Cambiare app, ruotare il dispositivo o interrompere il gesto mette in pausa la gara. Passare ai tasti di guida interrompe il gas automatico finché torni ai comandi touch o lo riattivi esplicitamente.
 
 In **Impostazioni** puoi scegliere visibilità dei comandi touch e gas automatico. Queste scelte restano su questo dispositivo. I controlli rispettano gli spazi del telefono. In alto trovi visuale, audio, amici, **↗ RIENTRA** (+2 secondi) e pausa. **Schermo intero** è disponibile nei browser che lo supportano; se consentito dal browser prova anche a orientare lo schermo in orizzontale. Puoi comunque giocare in verticale. La modalità grafica iniziale rimane **Prestazioni**, con risoluzione adattiva e modelli leggeri.
+
+### Sterzo inclinando il telefono
+
+Lo sterzo mobile predefinito resta **Pulsanti**. In **Impostazioni → Sterzo mobile** puoi scegliere **Inclinazione · tilt to steer**. La procedura **Calibra giroscopio** registra per un secondo ciascuna la posizione neutra, l’inclinazione massima desiderata a sinistra e quella a destra; una quarta schermata permette di provare il risultato prima di applicarlo. La calibrazione apprende il verso e l’escursione comoda, con una piccola zona neutra e risposta progressiva.
+
+Apri il gioco via HTTPS e, se richiesto dal browser, consenti l’accesso ai sensori. Se il sensore non è supportato, non fornisce dati o il permesso viene negato, puoi usare i pulsanti. Se il browser richiede una nuova attivazione al riavvio, premi **Attiva sensori** nelle Impostazioni. La scelta e la calibrazione restano locali al dispositivo. Calibra nello stesso orientamento con cui giocherai; dopo una rotazione ricalibra. Dalla guida in modalità inclinazione trovi **Ricalibra**. La gara va in pausa durante la procedura o se il segnale si interrompe; la tastiera continua a funzionare.
 
 ## Difficoltà degli avversari
 
@@ -48,7 +54,7 @@ Nella lista dei piloti della lobby usa **Vedi profilo** o **Aggiungi amico**. Se
 
 ## Grafica e circuiti
 
-**Prestazioni** è l'impostazione iniziale. Usa un massimo di 1280×720 pixel interni, risoluzione adattiva dal 60% al 100%, shader semplificato, nessuna mappa delle ombre o post-processing, modelli dedicati e sezioni del mondo escluse dal disegno quando non visibili. Moto e pilota principali passano a meno di 22 mila triangoli; gli avversari a meno di 10 mila. **Cinema** conserva i modelli dettagliati e l'illuminazione completa. La scelta grafica resta locale al dispositivo. L'obiettivo è facilitare l'uso su GPU integrate come Intel HD 530; non è stato eseguito un benchmark su un i7-6700 reale.
+**Prestazioni** è l'impostazione iniziale. Usa un massimo di 1280×720 pixel interni, risoluzione adattiva dal 60% al 100%, shader semplificato, nessuna mappa delle ombre o post-processing, modelli dedicati e sezioni del mondo escluse dal disegno quando non visibili. Moto e pilota principali passano a meno di 22 mila triangoli; gli avversari a meno di 10 mila. **Cinema** conserva i modelli dettagliati e l'illuminazione completa. Ora renderizza alla densità reale del display (dimensione visibile × pixel ratio), senza il precedente limite di 1,65×: sui telefoni 2K e sugli schermi 4K usa i pixel disponibili, entro i limiti effettivi di texture, renderbuffer e viewport della GPU. In Impostazioni viene indicata la risoluzione renderizzata. La modalità Prestazioni mantiene la risoluzione adattiva fino a 720p. La scelta grafica resta locale al dispositivo. L'obiettivo è facilitare l'uso su GPU integrate come Intel HD 530; non è stato eseguito un benchmark su un i7-6700 reale.
 
 Il catalogo contiene **14 circuiti e 15 moto**. Mugello, Misano, Lusail, Red Bull Ring, Motegi, Catalunya, Bugatti, Assen, Austin e Algarve hanno ora piante derivate dalle coordinate reali OpenStreetMap. Si aggiungono **Jerez, Sachsenring, Phillip Island e Silverstone**. La scala rispetta la lunghezza di riferimento: Mugello 5,245 km, Spielberg MotoGP con chicane 4,348 km, Algarve 4,592 km. Il Mugello include i cartelli delle 15 curve, da San Donato a Bucine. L'altimetria e gli edifici restano approssimati.
 

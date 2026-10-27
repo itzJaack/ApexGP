@@ -1,8 +1,9 @@
 // Playable compatibility view. It uses the same simulation and controls as 3D.
+import {renderResolution} from './quality.js';
 export class OverviewRenderer{
  constructor(canvas){this.canvas=canvas;this.c=canvas.getContext('2d');this.compat=true;this.quality='low';this.weather='day';this.history=[];this.gl={deleteTexture(){}};}
  mesh(){return{};}texture(){return null;}destroy(){}shadowPass(){}begin(){}draw(){}
- finish(){const c=this.c,w=this.canvas.clientWidth||1280,h=this.canvas.clientHeight||720;if(this.canvas.width!==w||this.canvas.height!==h){this.canvas.width=w;this.canvas.height=h;}
+ finish(){const c=this.c,w=this.canvas.clientWidth||1280,h=this.canvas.clientHeight||720,size=this.quality==='high'?renderResolution(w,h,{pixelRatio:globalThis.devicePixelRatio||1}):{width:w,height:h};if(this.canvas.width!==size.width||this.canvas.height!==size.height){this.canvas.width=size.width;this.canvas.height=size.height;}c.setTransform(size.width/w,0,0,size.height/h,0,0);
  const {track,race}=this.scene||{};if(!track)return;const p=race?.player,scale=p?Math.min(w,h)/180:Math.min(w/(track.bounds.maxX-track.bounds.minX+100),h/(track.bounds.maxZ-track.bounds.minZ+140)),cx=p?p.x:(track.bounds.minX+track.bounds.maxX)/2,cz=p?p.z:(track.bounds.minZ+track.bounds.maxZ)/2,yaw=p?p.heading:0;
  const point=(x,z)=>[w*.5-((x-cx)*Math.cos(yaw)-(z-cz)*Math.sin(yaw))*scale,h*(p?.61:.50)-((x-cx)*Math.sin(yaw)+(z-cz)*Math.cos(yaw))*scale];
  c.fillStyle=this.weather==='rain'?'#14262a':'#243d31';c.fillRect(0,0,w,h);

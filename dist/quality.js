@@ -1,3 +1,11 @@
+export function renderResolution(width,height,{quality='high',pixelRatio=1,scale=1,maxWidth=Infinity,maxHeight=Infinity}={}){
+  width=Number.isFinite(width)&&width>0?width:1;height=Number.isFinite(height)&&height>0?height:1;
+  pixelRatio=Number.isFinite(pixelRatio)&&pixelRatio>0?pixelRatio:1;
+  const requested=quality==='low'?Math.min(1,1280/width,720/height)*Math.max(.6,Math.min(1,Number(scale)||1)):pixelRatio;
+  const ratio=Math.max(0,Math.min(requested,maxWidth/width,maxHeight/height));
+  return{width:Math.max(1,Math.round(width*ratio)),height:Math.max(1,Math.round(height*ratio))};
+}
+
 export class ResolutionGovernor {
   constructor() { this.scale = 1; this.elapsed = 0; this.frames = 0; this.average = 1 / 60; }
   update(seconds) {

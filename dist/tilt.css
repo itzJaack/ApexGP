@@ -1,0 +1,24 @@
+.tilt-settings-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.tilt-settings-actions .secondary-button{flex:1;min-width:130px;font-size:10px;margin:0}
+#tilt-status{overflow-wrap:anywhere;color:#f3c19e}
+.tilt-overlay{z-index:15;background:#080d15de}
+.tilt-modal{width:min(100%,460px)}
+.tilt-modal h2{margin-bottom:18px}
+.tilt-modal h3{font-size:21px;line-height:1.3;margin:8px 0 12px}
+.tilt-modal #tilt-instructions{font-size:13px;line-height:1.7;min-height:66px;margin-bottom:18px;color:#c4d0d8}
+.tilt-step{color:#ffa478!important;font-size:10px!important;font-weight:700;letter-spacing:1px;margin:0!important}
+.tilt-modal .muted{font-size:11px;line-height:1.6}
+.tilt-modal button{min-height:44px}
+.tilt-acquisition{height:5px;border-radius:3px;background:#ffffff18;margin:0 0 16px;overflow:hidden}
+.tilt-acquisition span{display:block;height:100%;width:0;background:var(--orange)}
+.tilt-meter{--tilt:0;position:relative;display:flex;align-items:center;justify-content:space-between;height:28px;color:#c6d5df;isolation:isolate}
+.tilt-meter:before{content:'';position:absolute;left:23px;right:23px;top:50%;height:2px;background:#70849380;z-index:-1}
+.tilt-meter:after{content:'';position:absolute;left:50%;top:20%;height:60%;width:2px;background:#d5dce080;z-index:-1}
+.tilt-meter i{position:absolute;left:calc(50% - var(--tilt)*35%);top:50%;transform:translate(-50%,-50%);width:18px;height:18px;border:2px solid #ffe3d5;border-radius:50%;background:#ff8057}
+.tilt-preview{height:64px;border:1px solid #ffffff28;border-radius:12px;background:#14202c;padding:0 12px;font-size:22px;margin:4px 0 12px}
+.tilt-preview i{width:24px;height:24px}
+.touch-mode .touch-controls.tilt-steering .touch-steer-buttons{display:none}
+.touch-mode .touch-tilt-panel{height:104px;border:1px solid #ffad8770;border-radius:16px;background:#14202ce8;padding:8px 10px;display:flex;flex-direction:column;justify-content:space-between;gap:4px}
+.touch-tilt-panel>span{font-size:8px;font-weight:700;letter-spacing:.4px;text-align:center;color:#ffbf9f}
+.touch-mode .touch-controls .touch-tilt-panel button{height:44px;min-height:44px;font-size:10px;background:#ffffff09;border-color:#ffffff30;box-shadow:none}
+@media(max-height:540px) and (orientation:landscape){.touch-mode .touch-tilt-panel{height:80px;padding:4px 8px;gap:0}.touch-tilt-panel .tilt-meter{height:18px}.touch-tilt-panel .tilt-meter i{height:14px;width:14px}.tilt-modal h2{font-size:28px;margin:8px 0 12px}.tilt-modal #tilt-instructions{min-height:0}}

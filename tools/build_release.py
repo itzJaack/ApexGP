@@ -9,7 +9,7 @@ def main():
     parser.add_argument('destination', type=Path)
     output = parser.parse_args().destination.resolve()
     output.mkdir(parents=True, exist_ok=True)
-    archive = output / 'ApexGP-4.2.0.zip'
+    archive = output / 'ApexGP-4.3.0.zip'
     files = [p for p in (ROOT / 'dist').rglob('*') if p.is_file() and p.suffix != '.obj']
     files += [ROOT / name for name in ['README.md', 'server.py', 'data/race-data.json']]
     with ZipFile(archive, 'w', ZIP_DEFLATED, compresslevel=6) as bundle:
