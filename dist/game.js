@@ -1,3 +1,4 @@
+import {declaredPower,renderBikeSpecs} from './bike-specs.js?v=4.5.0';
 import {mountSocialUI} from './social-ui.js';
 import {lobbyPlayersHTML} from './social-view.js';
 import {mountAccounts} from './accounts.js';
@@ -6,9 +7,12 @@ import {prepareModelAssets,modelAssetInfo} from './models.js';
 import {MultiplayerClient} from './cloud-multiplayer.js';
 import {ONLINE_CONFIG} from './online-config.js';
 import {OverviewRenderer} from './overview.js';
-import {Career,normalizeProfile,UPGRADES,LIVERIES} from './progression.js';
+import {Career,normalizeProfile,UPGRADES,LIVERIES,DIFFICULTIES} from './progression.js?v=4.5.0';
+import {mountCareerUI} from './career-ui.js?v=4.5.0';
+import {mountWorldMap} from './world-map.js?v=4.5.0';
+import {seasonStandings} from './championship.js';
 import {RaceNotices} from './race-notices.js?v=4.4.1';
-import {BIKES,TRACKS,Circuit,RaceModel,clamp,lerp,mod,formatTime,wrapAngle,gearSpeedStep} from './simulation.js';
+import {BIKES,TRACKS,Circuit,RaceModel,clamp,lerp,mod,formatTime,wrapAngle,gearSpeedStep} from './simulation.js?v=4.5.0';
 import {circuitRecordKey,validRecordKey} from './records.js';
 import {Renderer,buildWorld,buildBike,bikeParts,modelMatrix} from './engine.js';
 import {DrivingControls,bindTouchControls} from './controls.js';
@@ -37,13 +41,14 @@ if(!['race','time'].includes(settings.mode))settings.mode='race';
 if(!['rookie','sport','pro'].includes(settings.difficulty))settings.difficulty='sport';
 if(![2,3,5].includes(Number(settings.laps)))settings.laps=3;
 const records=safeRead('apexgp.records.v4',{}),controls=new DrivingControls(),input=controls.state;
-let touchInput=null,mobileUI=null,tiltUI=null,keyboardDriving=false;
+let touchInput=null,mobileUI=null,tiltUI=null,keyboardDriving=false,careerUI=null,raceMap=null;
 let renderer,world,track,racingLine,playerBike,botBikes=[],ghostBike,race=null,page='race',cameraMode=0,lastFrame=0,accumulator=0,hudAt=0,menuTime=0,frameId=0,lastCountdown=-1,camera=null,ghostRecord=null,telemetryAt=0;
 const reducedMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
 const notices=new RaceNotices({flagPanel:$('flag-panel'),messagePanel:$('race-message')});
 
 const sound=new MotorAudio({enabled:settings.audio,volume:settings.volume/100});
 const career=new Career(safeRead('apexgp.career.v1',{}),p=>safeWrite('apexgp.career.v1',p));
+if(!career.owns(BIKES[settings.bike].id))settings.bike=Math.max(0,BIKES.findIndex(b=>b.id===(career.profile.owned[0]||'v2c')));
 let socialUI=null,lastSocialPresence='';
 let localPause=false,lanLatest=null,lastLanRender=0;const peerBikes=new Map();
 const lan=new MultiplayerClient({onNetworkStats:stats=>{const text=`DATI ↑ ${(stats.tx/1024).toFixed(1)} · ↓ ${(stats.rx/1024).toFixed(1)} KB/s`;$('lan-traffic').textContent=text;$('hud-network').textContent=text;},onState:receiveLanState,onStart:startLanRace,onResult:finishLanRace,onError:m=>{$('lan-status').textContent=m;},onDisconnect:()=>{if(race?.options.mode==='lan'){backToMenu();setPage('lan');}$('lan-status').textContent='Connessione chiusa. Ricollegati al server per rientrare.';show('lan-room',false);renderLobbyPlayers(null);},onReset:m=>{if(race?.options.mode==='lan'){Object.assign(race.player,{x:m.pose.x,z:m.pose.z,heading:m.pose.heading,progress:m.progress,speed:m.pose.speed,y:m.pose.y||0});}},onPenalty:m=>penaltyWarning(m.seconds,m.reason)});
@@ -74,7 +79,8 @@ function applySnapshot(value){
   for(const[id,key]of[['line-toggle','line'],['assist-toggle','assist'],['tcs-toggle','tcs']])$(id).checked=settings[key];
   $('laps-select').value=settings.laps;$('weather-select').value=settings.weather;$('difficulty-select').value=settings.difficulty;
   $('lan-name').value=career.profile.name;
-  renderGarage();selectTrack(settings.track);selectBike(settings.bike);setMode(settings.mode);
+  if(!career.owns(BIKES[settings.bike].id))settings.bike=Math.max(0,BIKES.findIndex(b=>b.id===(career.profile.owned[0]||'v2c')));
+  renderGarage();selectTrack(settings.track);selectBike(settings.bike);setMode(settings.mode);careerUI?.render();
  }finally{applyingSnapshot=false;}
 }
 
@@ -90,14 +96,14 @@ function selectTrack(index){
   const b=track.bounds,scale=Math.min(142/(b.maxX-b.minX),88/(b.maxZ-b.minZ)),map=p=>[9+(p.x-b.minX)*scale,8+(p.z-b.minZ)*scale];
   const points=track.nodes.filter((_,i)=>i%4===0).map(p=>map(p).join(',')).join(' '),start=map(track.sample(0));
   $('track-preview').innerHTML=`<polyline points="${points} ${map(track.nodes[0]).join(',')}" stroke-linejoin="round" stroke-linecap="round"/><circle cx="${start[0]}" cy="${start[1]}" r="3" fill="#f3f3ef" stroke="none"/>`;
-  $('track-source').href=track.config.source;$('hud-track').textContent=track.config.name.toUpperCase();$('track-select').value=String(settings.track);$('track-character').textContent=track.config.character;show('track-new',!!track.config.isNew);
+  $('track-source').href=track.config.source;$('hud-track').textContent=track.config.name.toUpperCase();$('track-select').value=String(settings.track);$('track-character').textContent=track.config.character;show('track-new',!!track.config.isNew);raceMap?.update(track.config.id);
 }
 function selectBike(index){
   settings.bike=mod(index,BIKES.length);index=settings.bike;saveSettings();freeBike(playerBike);freeBike(ghostBike);ghostBike=null;playerBike=buildBike(renderer,BIKES[index].rgb,27,1,BIKES[index].style,career.profile.liveries[BIKES[index].id]);
   $('hero-displacement').textContent=`${BIKES[index].cc} cc · ${BIKES[index].category.toUpperCase()} · ${BIKES[index].year}`;$('garage-character').textContent=BIKES[index].description;$('hero-power').textContent=effectiveBike().power;$('hero-top').textContent=effectiveBike().top;$('hero-bike').textContent=BIKES[index].caption;
   document.querySelectorAll('.bike-card').forEach((el,i)=>el.classList.toggle('active',i===index));refreshCareer();
 }
-function setPage(value){page=value;$('menu').dataset.page=value;for(const p of['race','garage','workshop','lan','settings'])show(`${p}-panel`,p===value);document.querySelectorAll('.nav-link').forEach(b=>b.classList.toggle('active',b.dataset.page===value));$('menu').scrollTop=0;}
+function setPage(value){page=value;$('menu').dataset.page=value;for(const p of['race','career','garage','workshop','lan','settings'])show(`${p}-panel`,p===value);document.querySelectorAll('.nav-link').forEach(b=>b.classList.toggle('active',b.dataset.page===value));$('menu').scrollTop=0;if(value==='career')careerUI?.render();}
 function setMode(value){settings.mode=value;saveSettings();document.querySelectorAll('.mode').forEach(b=>b.classList.toggle('active',b.dataset.mode===value));$('difficulty-select').disabled=value==='time';$('difficulty-select').style.opacity=value==='time'?.4:1;}
 function syncAutomaticGas(){return controls.setAutoThrottle(settings.autoThrottle&&!keyboardDriving&&mobileUI?.isTouch&&!!race&&!localPause&&race.state==='running');}
 function updateInputDisplay(){
@@ -116,12 +122,15 @@ function penaltyWarning(seconds,reason){const code=String(reason||'').toLowerCas
 function startRace(networkConfig=null){
   if(qualityTransition.busy)return;
   if(accountUI?.isSwitching()){message('CARICAMENTO DEL PROFILO…');return;}
+  if(!networkConfig?.roundId&&career.needsStarter){setPage('career');return;}
+  const careerTicket=networkConfig?.careerRound||(!networkConfig?.roundId&&race?.state!=='finished'?race?.careerRound:null);
   lastFrame=performance.now();
   if(!networkConfig?.roundId&&settings.mode==='lan'){returnLanLobby();return;}
   const lanRound=networkConfig?.roundId?networkConfig:null;if(!lanRound&&!career.owns(BIKES[settings.bike].id)){setPage('workshop');return;}localPause=false;
   clearInput();if(!lanRound){settings.laps=Number($('laps-select').value);settings.difficulty=$('difficulty-select').value;settings.weather=$('weather-select').value;saveSettings();}
   renderer.weather=settings.weather;renderer.quality=settings.quality;
   race=new RaceModel(track,{mode:settings.mode,laps:settings.laps,difficulty:settings.difficulty,weather:settings.weather,assist:settings.assist,tcs:settings.tcs,bike:effectiveBike()});
+  race.careerRound=careerTicket;
   race.player.name=career.profile.name;keyboardDriving=false;
   if(lanRound){const mine=lanRound.players.find(p=>p.id===lan.id);race.countdown=Math.max(.02,(lanRound.startAt-lan.now())/1000);race.player.progress=mine.progress;race.player.offset=mine.slot%2?1.85:-1.85;race.placePlayer();race.networkRound=lanRound.roundId;race.runId=lanRound.roundId+':'+lan.id;}
   ghostRecord=settings.mode==='time'?readRecord():null;if(ghostRecord)ghostBike=ghostBike||buildBike(renderer,[.37,.80,.93],0,.65,BIKES[settings.bike].style);else{freeBike(ghostBike);ghostBike=null;}
@@ -130,7 +139,7 @@ function startRace(networkConfig=null){
   $('surface-label').textContent=settings.weather==='rain'?'BAGNATO · GRIP RIDOTTO':'ASCIUTTO';$('position-total').textContent=settings.mode==='lan'?`/ ${lanRound.players.length+(lanRound.bots?.length||0)}`:settings.mode==='race'?'/ 8':'SOLO';$('position').textContent=settings.mode==='race'?'8':'1';
   sound.start();$('world').focus({preventScroll:true});lastFrame=performance.now();if(lanRound)race.countdown=Math.max(.02,(lanRound.startAt-lan.now())/1000);racingLine.update(race,{visible:settings.line});updateHUD();
 }
-function backToMenu(){notices.clear();const wasLan=race?.options.mode==='lan';if(wasLan)lan.leave();freeRaceAssets();lanLatest=null;localPause=false;race=null;clearInput();sound.tick(null);show('hud',false);show('pause-overlay',false);show('result-overlay',false);show('menu');camera=null;if(wasLan)setMode('race');setPage('race');refreshCareer();$('start-button').focus({preventScroll:true});lastSocialPresence='';socialUI?.presenceChanged();}
+function backToMenu(){notices.clear();const wasCareer=!!race?.careerRound;const wasLan=race?.options.mode==='lan';if(wasLan)lan.leave();freeRaceAssets();lanLatest=null;localPause=false;race=null;clearInput();sound.tick(null);show('hud',false);show('pause-overlay',false);show('result-overlay',false);show('menu');camera=null;if(wasLan)setMode('race');setPage(wasCareer?'career':'race');refreshCareer();$('start-button').focus({preventScroll:true});lastSocialPresence='';socialUI?.presenceChanged();}
 function pause(on=true){
   if(!race||race.state==='finished')return;
   const network=race.options.mode==='lan';$('pause-description').textContent=network?'La gara multiplayer continua: gli altri piloti restano in pista. Riprendi per tornare ai comandi.':'Il cronometro si è fermato. La pista ti aspetta.';$('restart-button').disabled=network;$('restart-button').classList.toggle('hidden',network);
@@ -156,7 +165,24 @@ function handleEvents(){
   }
 }
 function finishRace(){
-  const pos=race.networkResult?.position||race.position;const prize=career.reward({id:race.runId,position:pos,laps:settings.laps,mode:settings.mode,time:race.player.finishTime||race.time,clean:!race.crashes&&!race.contacts&&!race.offtrackEvents&&!race.penalties,finished:race.networkResult?.finished!==false});$('result-credits').textContent=prize?`+${prize.toLocaleString('it-IT')} CR · PREMIO GARA`:'SESSIONE COMPLETATA';refreshCareer();$('result-eyebrow').textContent=settings.mode==='race'?'BANDIERA A SCACCHI':'SESSIONE COMPLETATA';$('result-title').textContent=settings.mode==='time'?'Ogni millesimo conta.':pos===1?'Il gradino più alto.':pos<=3?'Un posto sul podio.':'La prossima è tua.';
+  const pos=race.networkResult?.position||race.position;
+  const finished=race.state==='finished'&&race.networkResult?.finished!==false;
+  const time=race.player.finishTime||race.time;
+  const prize=career.reward({id:race.runId,position:pos,laps:race.options.laps,mode:race.options.mode,difficulty:race.options.difficulty,time,clean:!race.crashes&&!race.contacts&&!race.offtrackEvents&&!race.penalties,finished});
+  let bonus=0;
+  if(race.careerRound){
+    const order=race.order.map(rider=>rider.isPlayer?'player':'bot'+race.bots.indexOf(rider));
+    bonus=career.completeRound(race.careerRound,{raceId:race.runId,order,trackId:track.config.id,finished,time}).bonus;
+    const standings=seasonStandings(career.profile.season,career.profile.name),rank=standings.findIndex(rider=>rider.id==='player');
+    $('result-career').textContent=`TAPPA ${race.careerRound.index+1} / 14 · ${rank+1}° IN CAMPIONATO · ${standings[rank].points} PUNTI${bonus?' · BONUS FINALE +'+bonus.toLocaleString('it-IT')+' CR':''}`;
+  }
+  show('result-career',!!race.careerRound);
+  $('race-again').textContent=race.careerRound?(career.roundTicket()?'PROSSIMA TAPPA →':'VEDI IL CAMPIONATO'):'CORRI ANCORA';
+  const difficulty=race.options.mode==='race'?DIFFICULTIES[race.options.difficulty]:null;
+  $('result-credits').textContent=prize?`+${(prize+bonus).toLocaleString('it-IT')} CR · ${difficulty?difficulty.name.toUpperCase()+' ×'+difficulty.multiplier.toLocaleString('it-IT'):'PREMIO GARA'}`:'SESSIONE COMPLETATA';
+  refreshCareer();
+  $('result-eyebrow').textContent=race.careerRound?'WORLD TOUR':settings.mode==='race'?'BANDIERA A SCACCHI':'SESSIONE COMPLETATA';
+  $('result-title').textContent=settings.mode==='time'?'Ogni millesimo conta.':pos===1?'Il gradino più alto.':pos<=3?'Un posto sul podio.':'La prossima è tua.';
   $('result-subtitle').textContent=`${track.config.name} · ${settings.laps} giri · ${BIKES[settings.bike].name}`;
   $('result-position').textContent=settings.mode==='time'?'TT':`${pos}°`;$('result-best').textContent=formatTime(race.bestLap);$('result-total').textContent=formatTime(race.player.finishTime);
   if(settings.mode==='race'||settings.mode==='lan')$('result-table').innerHTML=race.order.map((r,i)=>leaderRow(r,i,r.dnf?'RITIRATO':r.finishTime===null?'IN PISTA':formatTime(r.finishTime))).join('');
@@ -278,7 +304,7 @@ function setupUI(){
   for(const id of['laps','difficulty'])$(id+'-select').addEventListener('change',()=>{settings[id]=id==='laps'?Number($(id+'-select').value):$(id+'-select').value;saveSettings();});
   for(const [id,key] of[['line-toggle','line'],['assist-toggle','assist'],['tcs-toggle','tcs'],['audio-toggle','audio']])$(id).addEventListener('change',()=>{settings[key]=$(id).checked;sound.enabled=settings.audio;saveSettings();updateSoundButton();if(settings.audio)sound.start();});
   $('volume-range').addEventListener('input',()=>{settings.volume=Number($('volume-range').value);sound.volume=settings.volume/100;saveSettings();});$('quality-select').addEventListener('change',()=>{if(qualityTransition.busy)return;const value=$('quality-select').value,previous=settings.quality;if(accountUI?.isSwitching()){$('quality-select').value=previous;return;}$('quality-select').disabled=true;qualityTransition.run(async()=>{freeRaceAssets();if(!renderer.compat)await prepareModelAssets({quality:value});settings.quality=value;renderer.quality=value;document.body.classList.toggle('performance-mode',value==='low');selectTrack(settings.track);selectBike(settings.bike);saveSettings();}).catch(error=>{$('quality-select').value=settings.quality;$('performance-note').textContent=error.message;if(settings.quality!==previous)fatal(error);}).finally(()=>{$('quality-select').disabled=false;});});
-  $('start-button').addEventListener('click',startRace);$('restart-button').addEventListener('click',startRace);$('race-again').addEventListener('click',startRace);$('menu-button').addEventListener('click',backToMenu);$('result-menu').addEventListener('click',backToMenu);$('pause-button').addEventListener('click',()=>pause(true));$('resume-button').addEventListener('click',()=>pause(false));$('camera-button').addEventListener('click',changeCamera);$('sound-button').addEventListener('click',toggleSound);
+  $('start-button').addEventListener('click',startRace);$('restart-button').addEventListener('click',startRace);$('race-again').addEventListener('click',()=>{if(race?.careerRound){const ticket=career.roundTicket();if(ticket)startCareerRound(ticket);else backToMenu();}else startRace();});$('menu-button').addEventListener('click',backToMenu);$('result-menu').addEventListener('click',backToMenu);$('pause-button').addEventListener('click',()=>pause(true));$('resume-button').addEventListener('click',()=>pause(false));$('camera-button').addEventListener('click',changeCamera);$('sound-button').addEventListener('click',toggleSound);
   $('show-controls').addEventListener('click',()=>{show('controls-overlay');$('close-controls').focus();});$('close-controls').addEventListener('click',()=>{show('controls-overlay',false);$('show-controls').focus();});
   document.querySelector('.brand').addEventListener('click',e=>{e.preventDefault();setPage('race');});
   document.addEventListener('keydown',e=>{
@@ -297,7 +323,18 @@ function setupUI(){
   window.addEventListener('blur',()=>{clearInput();if(race&&race.state!=='finished')pause(true);});document.addEventListener('visibilitychange',()=>{if(document.hidden){clearInput();pause(true);}});
   $('world').addEventListener('webglcontextlost',e=>{e.preventDefault();fatal(new Error('Il browser ha sospeso la grafica 3D. Ricarica per tornare in pista; i tuoi record sono già salvati.'));});
   setupCareerAndLan();socialUI=mountSocialUI({config:ONLINE_CONFIG,lan,getName:()=>career.profile.name,getRace:()=>race,isPaused:()=>localPause||race?.state==='paused',pause,onJoin:joinFromFriend,onLobbyChange:()=>renderLobbyPlayers()});setMode(settings.mode);updateSoundButton();
+  raceMap=mountWorldMap($('race-world-map'),{tracks:TRACKS,onSelect:id=>selectTrack(TRACKS.findIndex(track=>track.id===id))});
+  careerUI=mountCareerUI({career,tracks:TRACKS,bikes:BIKES,onBike:index=>{renderGarage();selectBike(index);},onStart:startCareerRound,isBusy:()=>!!accountUI?.isSwitching()||qualityTransition.busy});
   accountUI=mountAccounts({getSnapshot:snapshot,applySnapshot,freshSnapshot:()=>({version:1,career:normalizeProfile(),records:{},settings:{}}),social:socialUI,canSwitch:()=>!race&&!lan.state&&!qualityTransition.busy,onOpen:()=>{clearInput();if(race)pause(true);}});
+}
+function startCareerRound(ticket){
+  if(accountUI?.isSwitching()||qualityTransition.busy||career.needsStarter)return;
+  if(!career.owns(BIKES[settings.bike].id))selectBike(BIKES.findIndex(bike=>career.owns(bike.id)));
+  setMode('race');
+  settings.laps=ticket.laps;settings.weather=ticket.weather;settings.difficulty=ticket.difficulty;
+  $('laps-select').value=String(ticket.laps);$('weather-select').value=ticket.weather;$('difficulty-select').value=ticket.difficulty;
+  selectTrack(TRACKS.findIndex(track=>track.id===ticket.trackId));
+  startRace({careerRound:ticket});
 }
 function changeCamera(){if(!race)return;cameraMode=1-cameraMode;camera=null;message(cameraMode?'VISUALE CASCO':'VISUALE CHASE',1.2);}
 function updateSoundButton(){$('sound-button').classList.toggle('sound-off',!settings.audio);$('sound-button').setAttribute('aria-pressed',String(settings.audio));}
@@ -306,17 +343,23 @@ function toggleSound(){settings.audio=!settings.audio;sound.enabled=settings.aud
 function returnLanLobby(){freeRaceAssets();localPause=false;sound.tick(null);clearInput();race=null;settings.mode='race';show('result-overlay',false);show('pause-overlay',false);show('hud',false);show('menu');setPage('lan');if(lan.state?.hostId===lan.id)lan.send({type:'lobby'});receiveLanState(lan.state);}
 function effectiveBike(){return career.bike(BIKES[settings.bike].id,{stock:settings.mode==='lan'});}
 function renderGarage(){
- $('bike-list').innerHTML=BIKES.map((b,i)=>`<button class="bike-card ${i===settings.bike?'active':''} ${career.owns(b.id)?'':'locked'}" data-bike="${i}"><i class="bike-color" style="background:${b.color}"></i><span><strong>${b.name}${b.isNew?'<em class="new-bike">NEW</em>':''}</strong><small>${b.description}</small><span class="bike-owned">${career.owns(b.id)?'NEL GARAGE':b.price.toLocaleString('it-IT')+' CR'}</span></span><span class="bike-metrics"><span><b>${career.bike(b.id).power}</b>CV</span><span><b>${career.bike(b.id).top}</b>KM/H</span></span></button>`).join('');
+ $('bike-list').innerHTML=BIKES.map((b,i)=>`<button class="bike-card ${i===settings.bike?'active':''} ${career.owns(b.id)?'':'locked'}" data-bike="${i}"><i class="bike-color" style="background:${b.color}"></i><span><strong>${b.name}${b.isNew?'<em class="new-bike">NEW</em>':''}</strong><small>${b.description}</small><span class="bike-owned">${career.owns(b.id)?'NEL GARAGE':b.price.toLocaleString('it-IT')+' CR'}</span></span><span class="bike-metrics"><span><b>${declaredPower(b.id)}</b>CV SERIE</span><span><b>${career.bike(b.id).top}</b>KM/H</span></span></button>`).join('');
  document.querySelectorAll('[data-bike]').forEach(el=>el.addEventListener('click',()=>selectBike(Number(el.dataset.bike))));
 }
 function refreshCareer(){
  const b=BIKES[settings.bike],owned=career.owns(b.id),profile=career.profile,credits=profile.credits.toLocaleString('it-IT')+' CR';
+ renderBikeSpecs($('bike-real-specs'),b);
  $('wallet').textContent=credits;$('workshop-wallet').textContent=credits;$('profile-name').textContent=profile.name;$('workshop-bike').value=String(settings.bike);$('livery-select').value=profile.liveries[b.id];$('livery-select').disabled=!owned;
+ for(const option of $('workshop-bike').options){const bike=BIKES[Number(option.value)];option.textContent=bike.name+(career.owns(bike.id)?'':' · DA ACQUISTARE');}
+ const lobbySelection=$('lobby-bike').value;
+ $('lobby-bike').innerHTML=BIKES.filter(bike=>career.owns(bike.id)).map(bike=>`<option value="${bike.id}">${bike.name}</option>`).join('');
+ if(career.owns(lobbySelection))$('lobby-bike').value=lobbySelection;
  const stats=career.bike(b.id);$('workshop-summary').textContent=`${b.name} · ${stats.power} CV · ${stats.top} km/h · ${owned?'NEL GARAGE':b.price.toLocaleString('it-IT')+' CR'}`;
  show('buy-bike',!owned);$('buy-bike').textContent=`ACQUISTA · ${(b.price||0).toLocaleString('it-IT')} CR`;$('buy-bike').disabled=owned||profile.credits<(b.price||0);
  $('upgrade-list').innerHTML=Object.entries(UPGRADES).map(([key,spec])=>{const level=profile.upgrades[b.id][key],price=spec.cost[level];return`<div class="upgrade-row"><span><b>${spec.name}</b><small>${spec.detail}</small><small class="upgrade-level">LIVELLO ${level} / 3</small></span><button data-upgrade="${key}" ${!owned||level===3||profile.credits<price?'disabled':''}>${level===3?'MAX':price.toLocaleString('it-IT')+' CR'}</button></div>`;}).join('');
  document.querySelectorAll('[data-upgrade]').forEach(el=>el.addEventListener('click',()=>{const result=career.upgrade(b.id,el.dataset.upgrade);$('shop-status').textContent=result.message;if(result.ok){renderGarage();selectBike(settings.bike);}}));
- $('start-button').disabled=!owned;$('start-button').firstElementChild.textContent=owned?'SCENDI IN PISTA':'ACQUISTA LA MOTO IN OFFICINA';
+ $('start-button').disabled=!owned&&!career.needsStarter;$('start-button').firstElementChild.textContent=career.needsStarter?'SCEGLI LA TUA PRIMA MOTO':owned?'SCENDI IN PISTA':'ACQUISTA LA MOTO IN OFFICINA';
+ careerUI?.render();
 }
 function setupCareerAndLan(){
  $('workshop-bike').innerHTML=BIKES.map((b,i)=>`<option value="${i}">${b.name}${career.owns(b.id)?'':' · DA ACQUISTARE'}</option>`).join('');
@@ -328,12 +371,18 @@ function setupCareerAndLan(){
  const cloud=safeRead('apexgp.online.v2',ONLINE_CONFIG);$('cloud-url').value=cloud.url||'';$('cloud-key').value=cloud.publishableKey||'';$('net-backend').value='supabase';updateNetworkFields();$('net-backend').addEventListener('change',updateNetworkFields);$('copy-invite').addEventListener('click',copyCloudInvite);
  $('lan-server').value=location.protocol==='http:'||location.protocol==='https:'?location.origin:'';$('lan-name').value=career.profile.name;
  $('lan-connect').addEventListener('click',connectLan);
- $('lan-create').addEventListener('click',async()=>{if(!lan.id&&!await connectLan())return;savePilot();lan.create(career.profile.name,BIKES[settings.bike].id,career.profile.liveries[BIKES[settings.bike].id],{trackId:TRACKS[settings.track].id,weather:settings.weather,laps:Number($('laps-select').value)});});
- $('lan-join').addEventListener('click',async()=>{let code=$('lan-code').value.trim();if(code.startsWith('APEX32.')){try{const invite=JSON.parse(atob(code.slice(7)));if(typeof invite.url!=='string'||typeof invite.publishableKey!=='string'||typeof invite.code!=='string')throw Error('invite');$('net-backend').value='supabase';updateNetworkFields();lan.cloud.disconnect(false);$('cloud-url').value=invite.url;$('cloud-key').value=invite.publishableKey;code=invite.code;}catch{$('lan-status').textContent='Invito non valido.';return;}}if(!lan.id&&!await connectLan())return;savePilot();lan.join(code,career.profile.name,BIKES[settings.bike].id,career.profile.liveries[BIKES[settings.bike].id]);});
- $('lobby-bike').innerHTML=BIKES.map(b=>`<option value="${b.id}">${b.name}</option>`).join('');$('lobby-track').innerHTML=TRACKS.map(t=>`<option value="${t.id}">${t.name}</option>`).join('');
- $('lobby-bike').addEventListener('change',()=>{const id=$('lobby-bike').value;lan.setBike(id,career.profile.liveries[id]||'factory');});$('lobby-track').addEventListener('change',()=>lan.setOptions({trackId:$('lobby-track').value}));$('lobby-bots').addEventListener('change',()=>lan.setOptions({bots:$('lobby-bots').checked}));
+ $('lan-create').addEventListener('click',async()=>{if(!prepareGarageForLobby())return;if(!lan.id&&!await connectLan())return;savePilot();lan.create(career.profile.name,BIKES[settings.bike].id,career.profile.liveries[BIKES[settings.bike].id],{trackId:TRACKS[settings.track].id,weather:settings.weather,laps:Number($('laps-select').value)});});
+ $('lan-join').addEventListener('click',async()=>{if(!prepareGarageForLobby())return;let code=$('lan-code').value.trim();if(code.startsWith('APEX32.')){try{const invite=JSON.parse(atob(code.slice(7)));if(typeof invite.url!=='string'||typeof invite.publishableKey!=='string'||typeof invite.code!=='string')throw Error('invite');$('net-backend').value='supabase';updateNetworkFields();lan.cloud.disconnect(false);$('cloud-url').value=invite.url;$('cloud-key').value=invite.publishableKey;code=invite.code;}catch{$('lan-status').textContent='Invito non valido.';return;}}if(!lan.id&&!await connectLan())return;savePilot();lan.join(code,career.profile.name,BIKES[settings.bike].id,career.profile.liveries[BIKES[settings.bike].id]);});
+ $('lobby-bike').innerHTML=BIKES.filter(b=>career.owns(b.id)).map(b=>`<option value="${b.id}">${b.name}</option>`).join('');$('lobby-track').innerHTML=TRACKS.map(t=>`<option value="${t.id}">${t.name}</option>`).join('');
+ $('lobby-bike').addEventListener('change',()=>{const id=$('lobby-bike').value;if(!career.owns(id))return;lan.setBike(id,career.profile.liveries[id]||'factory');});$('lobby-track').addEventListener('change',()=>lan.setOptions({trackId:$('lobby-track').value}));$('lobby-bots').addEventListener('change',()=>lan.setOptions({bots:$('lobby-bots').checked}));
  $('lan-players').addEventListener('click',event=>{const button=event.target.closest('[data-lobby-action]');if(button&&!button.disabled)socialUI?.handleLobbyAction(button.dataset.lobbyAction,button.dataset.peerId);});
  $('lan-ready').addEventListener('click',()=>lan.ready());$('lan-start').addEventListener('click',()=>lan.start());$('lan-leave').addEventListener('click',()=>{lan.leave();renderLobbyPlayers(null);show('lan-room',false);$('lan-status').textContent='Stanza lasciata.';lastSocialPresence='';socialUI?.presenceChanged();});refreshCareer();
+}
+function prepareGarageForLobby(){
+ if(accountUI?.isSwitching()||qualityTransition.busy)return false;
+ if(career.needsStarter){setPage('career');return false;}
+ if(!career.owns(BIKES[settings.bike].id))selectBike(BIKES.findIndex(bike=>career.owns(bike.id)));
+ return true;
 }
 function savePilot(){career.profile.name=String($('lan-name').value).trim().slice(0,16)||'JACK';career.commit();}
 function updateNetworkFields(){const cloud=$('net-backend').value==='supabase';lan.setBackend(cloud?'supabase':'lan');show('cloud-config',cloud);show('local-config',!cloud);$('network-help').textContent=cloud?'Server online ApexGP pronto. Crea una stanza e condividi il codice con il tuo amico: ciascuno apre il sito ApexGP.':'Apri il gioco dall’indirizzo del server LAN o del tunnel.';}
@@ -363,6 +412,7 @@ async function startLanRace(state){
  startRace(state);lanLatest=state;updateLanFrame(performance.now(),0);
 }
 async function joinFromFriend(code){
+ if(!prepareGarageForLobby())return false;
  if(race&&race.state!=='finished')throw Error('Completa la gara prima di entrare in un’altra lobby.');if(race)backToMenu();$('net-backend').value='supabase';updateNetworkFields();if(lan.cloud.config?.url!==ONLINE_CONFIG.url){lan.cloud.disconnect(false);$('cloud-url').value=ONLINE_CONFIG.url;$('cloud-key').value=ONLINE_CONFIG.publishableKey;}setPage('lan');show('menu');if(!lan.id&&!await connectLan())return false;savePilot();return await lan.join(code,career.profile.name,BIKES[settings.bike].id,career.profile.liveries[BIKES[settings.bike].id]||'factory');
 }
 function updateLanFrame(now,dt){
@@ -374,7 +424,7 @@ function updateLanFrame(now,dt){
 function finishLanRace(state){if(!race||race.networkRound!==state.roundId)return;const mine=state.players.find(p=>p.id===lan.id),position=state.order.indexOf(lan.id)+1;race.player.finishTime=mine.finishTime||state.elapsed+mine.penalties;race.networkResult={position,finished:!mine.dnf};race.player.dnf=mine.dnf;race.state='finished';race.control.set('chequered',1e9);updateLanFrame(performance.now(),0);finishRace();}
 
 async function boot(){try{
-  renderer=new (new URLSearchParams(location.search).get('view')==='top'?OverviewRenderer:Renderer)($('world'),{quality:settings.quality});renderer.quality=settings.quality;document.body.classList.toggle('performance-mode',settings.quality==='low');if(!renderer.compat)await prepareModelAssets({quality:settings.quality,onProgress:(n,total)=>{$('loading').lastElementChild.textContent=`IMPORTIAMO I MODELLI 3D · ${n} / ${total}`;}});if(renderer.compat)document.body.classList.add('compat-view');setupUI();selectTrack(settings.track);selectBike(settings.bike);show('loading',false);show('menu');requestAnimationFrame(frame);
+  renderer=new (new URLSearchParams(location.search).get('view')==='top'?OverviewRenderer:Renderer)($('world'),{quality:settings.quality});renderer.quality=settings.quality;document.body.classList.toggle('performance-mode',settings.quality==='low');if(!renderer.compat)await prepareModelAssets({quality:settings.quality,onProgress:(n,total)=>{$('loading').lastElementChild.textContent=`IMPORTIAMO I MODELLI 3D · ${n} / ${total}`;}});if(renderer.compat)document.body.classList.add('compat-view');setupUI();selectTrack(settings.track);selectBike(settings.bike);show('loading',false);show('menu');if(career.needsStarter)setPage('career');requestAnimationFrame(frame);
 }catch(error){fatal(error);}
 
 }

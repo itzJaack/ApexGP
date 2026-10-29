@@ -5,15 +5,16 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#101215">
   <meta name="description" content="APEX GP. Entra in pista in un gioco di corse in moto 3D: gare contro avversari, cronometro, 14 circuiti reali, 15 moto, carriera e multiplayer Internet e LAN, con comandi da tastiera o touch.">
-  <title>APEX GP 4.4.1 — Ride the limit</title>
+  <title>APEX GP 4.5.0 — Ride the limit</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23121417'/%3E%3Cpath d='M12 47 30 14h12L28 47zm19 0 12-23h10L41 47z' fill='%23ff6033'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="styles.css?v=4.4.1">
+  <link rel="stylesheet" href="styles.css?v=4.5.0">
   <link rel="stylesheet" href="accounts.css">
-  <link rel="stylesheet" href="mobile.css?v=4.4.1">
+  <link rel="stylesheet" href="career.css?v=4.5.0">
+  <link rel="stylesheet" href="mobile.css?v=4.5.0">
   <link rel="stylesheet" href="social.css">
   <link rel="stylesheet" href="changelog.css">
   <link rel="stylesheet" href="tilt.css">
-  <link rel="stylesheet" href="race-notices.css?v=4.4.1">
+  <link rel="stylesheet" href="race-notices.css?v=4.5.0">
 </head>
 <body>
   <canvas id="world" aria-label="Circuito di corse in moto 3D"></canvas>
@@ -22,15 +23,15 @@
 
   <main id="menu" class="menu hidden" data-page="race">
     <header class="topbar">
-      <a class="brand" href="#" aria-label="APEX GP, menu principale">APEX<span>GP</span><i></i><small class="build-version">v4.4.1</small></a>
-      <nav aria-label="Menu"><button class="nav-link active" data-page="race">CORRI</button><button class="nav-link" data-page="garage">GARAGE</button><button class="nav-link" data-page="workshop">OFFICINA</button><button class="nav-link" data-page="lan">MULTIPLAYER</button><button id="social-nav" class="nav-link" aria-haspopup="dialog" aria-controls="social-overlay">AMICI</button><button class="nav-link" data-page="settings">IMPOSTAZIONI</button></nav>
+      <a class="brand" href="#" aria-label="APEX GP, menu principale">APEX<span>GP</span><i></i><small class="build-version">v4.5.0</small></a>
+      <nav aria-label="Menu"><button class="nav-link active" data-page="race">CORRI</button><button class="nav-link" data-page="career">CARRIERA</button><button class="nav-link" data-page="garage">GARAGE</button><button class="nav-link" data-page="workshop">OFFICINA</button><button class="nav-link" data-page="lan">MULTIPLAYER</button><button id="social-nav" class="nav-link" aria-haspopup="dialog" aria-controls="social-overlay">AMICI</button><button class="nav-link" data-page="settings">IMPOSTAZIONI</button></nav>
       <button id="account-nav" class="account-nav" aria-haspopup="dialog" aria-controls="account-overlay">ACCEDI</button><div class="profile"><span class="profile-icon">27</span><span><b id="profile-name">JACK</b><small id="wallet">12.000 CR</small></span></div>
     </header>
     <section class="hero">
       <div class="eyebrow"><span class="orange-line"></span> MOTORCYCLE RACING EXPERIENCE <span class="v-tag">PADDOCK EDITION</span></div>
       <h1>RIDE THE<br><span>LIMIT.</span></h1>
       <p>La staccata. La piega. Il sorpasso.<br>Il prossimo giro è tutto tuo.</p>
-      <div class="hero-stats"><div><strong id="hero-power">270</strong><span>CV DI POTENZA</span></div><div><strong id="hero-top">320</strong><span>KM/H MAX</span></div><div><strong>01</strong><span>OBIETTIVO: VINCERE</span></div></div>
+      <div class="hero-stats"><div><strong id="hero-power">270</strong><span>CV NEL GIOCO</span></div><div><strong id="hero-top">320</strong><span>KM/H NEL GIOCO</span></div><div><strong>01</strong><span>OBIETTIVO: VINCERE</span></div></div>
     </section>
     <div class="bike-caption"><span class="live-dot"></span><span id="hero-bike">DUCATI / DESMOSEDICI GP</span><small id="hero-displacement">1000 cc · PROTOTYPE</small></div>
     <section id="race-panel" class="setup-panel page-panel">
@@ -41,26 +42,52 @@
       </div>
       <div class="selection-label"><label for="track-select">CIRCUITO <span id="track-new" class="new-track hidden">NEW</span></label><span id="track-index">01 / 14</span></div><select id="track-select" class="track-dropdown" aria-label="Scegli uno dei quattordici circuiti"></select>
       <div class="track-selector"><button id="prev-track" class="square-button" aria-label="Circuito precedente">‹</button><div class="track-info"><span id="track-country" class="eyebrow">ITALIA / COLLINE</span><strong id="track-name">Mugello</strong><span id="track-spec">5,245 km · 15 curve</span><small id="track-character" class="track-character"></small></div><div class="track-map"><svg id="track-preview" viewBox="0 0 160 105" aria-label="Mappa del circuito"></svg><a id="track-source" href="https://www.openstreetmap.org/relation/8487163" target="_blank" rel="noopener" aria-label="Apri la mappa reale del circuito su OpenStreetMap">© OpenStreetMap</a></div><button id="next-track" class="square-button" aria-label="Circuito successivo">›</button></div>
-      <div class="race-options"><label>GIRI<select id="laps-select"><option value="2">2 giri</option><option value="3" selected>3 giri</option><option value="5">5 giri</option></select></label><label>AVVERSARI<select id="difficulty-select"><option value="rookie">Rookie · facile</option><option value="sport" selected>Sport · impegnativo</option><option value="pro">Pro · esperto</option></select></label><label>METEO<select id="weather-select"><option value="sunset" selected>Tramonto</option><option value="day">Sereno</option><option value="rain">Pioggia</option></select></label></div>
+      <details class="race-map-picker"><summary class="text-button race-map-toggle">SCEGLI DALLA MAPPA MONDIALE ↗</summary><div id="race-world-map"></div></details>
+      <div class="race-options"><label>GIRI<select id="laps-select"><option value="2">2 giri</option><option value="3" selected>3 giri</option><option value="5">5 giri</option></select></label><label>AVVERSARI<select id="difficulty-select"><option value="rookie">Rookie · premi ×1</option><option value="sport" selected>Sport · premi ×2,5</option><option value="pro">Pro · premi ×5</option></select></label><label>METEO<select id="weather-select"><option value="sunset" selected>Tramonto</option><option value="day">Sereno</option><option value="rain">Pioggia</option></select></label></div>
+      <p class="reward-hint">Più sfida, più crediti: Rookie ×1 · Sport ×2,5 · Pro ×5.</p>
       <button id="start-button" class="primary-button"><span>SCENDI IN PISTA</span><svg viewBox="0 0 24 24"><path d="M4 12h15m-6-6 6 6-6 6"/></svg></button>
       <div class="panel-note"><span class="live-dot"></span> Cambio automatico · Accedi per sincronizzare i progressi</div>
+    </section>
+    <section id="career-panel" class="setup-panel page-panel hidden" aria-labelledby="career-heading">
+      <div class="panel-top"><span class="eyebrow">APEX WORLD TOUR</span><span id="career-season" class="small-tag">STAGIONE 1 · 0 / 14</span></div>
+      <h2 id="career-heading">Un mondo.<br>La tua carriera.</h2>
+      <div id="career-starter">
+        <p class="career-intro">Comincia con una sola moto: scegli gratis una delle tre meno potenti del catalogo. Hai 3.000 CR per i primi sviluppi; tutte le altre moto si comprano con i premi gara.</p>
+        <div id="starter-bikes" class="starter-list"></div>
+        <p class="muted">La scelta è unica per questa carriera. I salvataggi precedenti conservano il proprio garage.</p>
+      </div>
+      <div id="career-tour" class="hidden">
+        <p class="career-intro">14 tappe, 8 piloti e un titolo. Tocca i pin per esplorare il calendario e raggiungi la prossima partenza.</p>
+        <progress id="career-progress" class="season-progress" max="14" value="0" aria-label="Tappe completate"></progress>
+        <div id="career-world-map"></div>
+        <div class="map-legend"><span><i class="done"></i>Completata</span><span><i class="next"></i>Prossima</span><span><i></i>Futura</span></div>
+        <label class="field-label" for="career-track-select">CALENDARIO / CIRCUITO</label><select id="career-track-select" class="track-dropdown"></select>
+        <div class="career-track"><small id="career-track-place"></small><strong id="career-track-name"></strong><small id="career-track-detail"></small><span id="career-track-status" role="status"></span></div>
+        <label class="field-label" for="career-difficulty">DIFFICOLTÀ DELLA STAGIONE</label>
+        <select id="career-difficulty" class="track-dropdown"><option value="rookie">Rookie · premi ×1</option><option value="sport" selected>Sport · premi ×2,5</option><option value="pro">Pro · premi ×5</option></select>
+        <div class="career-actions"><button id="career-next" class="secondary-button hidden">TORNA ALLA PROSSIMA TAPPA</button><button id="career-go" class="primary-button">INIZIA LA STAGIONE →</button></div>
+        <p id="career-rules"></p>
+        <h3 class="season-heading" id="career-standing-label">CLASSIFICA</h3><div id="career-standings" aria-label="Classifica del campionato"></div>
+        <p id="career-titles"></p><button class="text-button" data-page="workshop">SVILUPPA O ACQUISTA UNA MOTO ↗</button>
+        <p class="muted">Accedi per ritrovare stagione, classifica e garage sugli altri dispositivi.</p>
+      </div>
     </section>
     <section id="garage-panel" class="setup-panel page-panel hidden">
       <div class="panel-top"><span class="eyebrow">SCEGLI LA TUA MOTO</span><span class="small-tag">15 MOTO REALI</span></div>
       <h2>Il tuo stile.<br>La tua macchina.</h2>
       <div id="bike-list" class="bike-list" role="group" aria-label="Quindici moto disponibili"></div><p id="garage-character" class="garage-character"></p>
-      <p class="muted">Carene e livree ricostruite per ciascun modello e anno. Prestazioni di gioco arcade. Guadagna crediti in gara e sviluppa la tua moto in officina.</p>
+      <p class="muted">Carene e livree ricostruite per ciascun modello e anno. Schede tecniche con fonti dei costruttori; velocità e guida di gioco arcade. Guadagna crediti in gara e sviluppa la tua moto in officina.</p>
       <button class="primary-button" data-page="race"><span>PRONTO A CORRERE</span><span>→</span></button>
     </section>
     <section id="workshop-panel" class="setup-panel page-panel hidden">
       <div class="panel-top"><span class="eyebrow">SVILUPPO & CARRIERA</span><span class="small-tag" id="workshop-wallet">12.000 CR</span></div>
       <h2>Ogni gara.<br>Un passo avanti.</h2>
       <label class="field-label" for="workshop-bike">MOTO SELEZIONATA</label><select id="workshop-bike" class="track-dropdown"></select>
-      <p id="workshop-summary" class="muted"></p><button id="buy-bike" class="primary-button hidden">ACQUISTA MOTO</button>
+      <p id="workshop-summary" class="muted"></p><div id="bike-real-specs" class="bike-real-specs"></div><button id="buy-bike" class="primary-button hidden">ACQUISTA MOTO</button>
       <div id="upgrade-list" class="upgrade-list"></div>
       <label class="field-label" for="livery-select">LIVREA</label><select id="livery-select" class="track-dropdown"><option value="factory">Factory · sponsor racing</option><option value="heritage">Heritage · fasce classiche</option><option value="stealth">Stealth · carbonio e dettagli</option></select>
       <p id="shop-status" class="shop-status" role="status"></p>
-      <p class="muted">Completa le gare per guadagnare crediti. Le moto già presenti nella 2.1 restano nel tuo garage. Accedi per salvare i progressi online. Puoi anche esportare una copia o importare la carriera dal vecchio HTML.</p>
+      <p class="muted">Nuovi piloti: scegli la tua prima moto in Carriera. Completa le gare per guadagnare crediti. Le moto già presenti nella 2.1 restano nel tuo garage. Accedi per salvare i progressi online. Puoi anche esportare una copia o importare la carriera dal vecchio HTML.</p>
       <div class="backup-actions"><button id="backup-export" class="text-button">Esporta salvataggio</button><button id="backup-import" class="text-button">Importa salvataggio</button><input id="backup-file" type="file" accept="application/json,.json" class="hidden"></div>
     </section>
     <section id="lan-panel" class="setup-panel page-panel hidden">
@@ -85,7 +112,7 @@
         <div class="input-row"><button id="lan-ready" class="secondary-button">PRONTO</button><button id="lan-start" class="primary-button">AVVIA GARA</button></div>
         <p id="lobby-start-help" class="muted" role="status"></p><button id="lobby-friends" class="secondary-button social-open-button">INVITA AMICI IN QUESTA LOBBY</button><p id="lan-traffic" class="muted">DATI ↑ — · ↓ — KB/s</p><button id="copy-invite" class="secondary-button hidden">COPIA INVITO</button><div id="invite-output" class="hidden"><input id="cloud-invite" readonly aria-label="Invito per gli amici"></div><button id="lan-leave" class="text-button">Esci dalla lobby</button>
       </div>
-      <p class="muted">Cambia moto direttamente qui. Il creatore può cambiare circuito e bot senza creare una nuova stanza. Giri e meteo iniziali si scelgono da Corri. In multiplayer si usano moto di serie.</p>
+      <p class="muted">Scegli fra le moto del tuo garage, in configurazione di serie. Il creatore può cambiare circuito e bot senza creare una nuova stanza. Giri e meteo iniziali si scelgono da Corri. In multiplayer si usano moto di serie.</p>
     </section>
     <section id="settings-panel" class="setup-panel page-panel hidden">
       <div class="panel-top"><span class="eyebrow">CONFIGURA LA CORSA</span><span class="small-tag">PREFERENZE LOCALI</span></div>
@@ -107,9 +134,17 @@
       <p id="render-resolution" class="muted"></p>
       <button id="show-controls" class="text-button">Tutti i comandi ↗</button>
       <section id="settings-changelog" class="settings-changelog" aria-labelledby="changelog-heading">
-        <div class="changelog-heading"><h3 id="changelog-heading">Changelog</h3><span class="changelog-current">VERSIONE ATTUALE · 4.4.1</span></div>
+        <div class="changelog-heading"><h3 id="changelog-heading">Changelog</h3><span class="changelog-current">VERSIONE ATTUALE · 4.5.0</span></div>
         <p class="changelog-intro">Tutte le novità, dalla più recente. Tocca una versione per leggere i dettagli.</p>
         <details class="release-note" open>
+          <summary><span class="release-version">v4.5.0</span><span class="release-title">Carriera World Tour</span><time datetime="2026-10-29">29 ott 2026</time></summary>
+          <ul><li>Campionato di 14 tappe con classifica, titoli e premio finale. Riprendi la stagione anche da un altro dispositivo con il tuo account.</li>
+          <li>Mappa mondiale con pin reali e zoom Europa, disponibile anche nei Gran Premi liberi.</li>
+          <li>Nuovi profili: scegli una sola moto fra le tre meno potenti e acquista le altre. I garage precedenti sono conservati.</li>
+          <li>Premi Rookie ×1, Sport ×2,5 e Pro ×5. La difficoltà resta fissa nella stagione.</li>
+          <li>Schede dei costruttori in Officina, con dati pubblicati e stime esplicitamente indicate.</li></ul>
+        </details>
+        <details class="release-note">
           <summary><span class="release-version">v4.4.1</span><span class="release-title">Avvisi di gara e giroscopio</span><time datetime="2026-10-27">27 ott 2026</time></summary>
           <ul>
             <li>Nuova UI compatta per bandiere e avvisi, con icone dedicate, colori distinti e testo più leggibile.</li>
@@ -224,7 +259,7 @@
   </div>
 
   <div id="pause-overlay" class="overlay hidden"><section class="modal pause-modal"><span class="eyebrow">APEX GP / PIT STOP</span><h2>Prendi fiato.</h2><p id="pause-description">Il cronometro si è fermato. La pista ti aspetta.</p><button id="resume-button" class="primary-button"><span>RIPRENDI LA CORSA</span><span>→</span></button><button id="restart-button" class="secondary-button">RICOMINCIA</button><button id="tilt-pause-calibrate" class="secondary-button hidden">RICALIBRA GIROSCOPIO</button><button id="menu-button" class="text-button">Torna al paddock</button><p class="touch-only muted">Con GAS AUTO attivo, il gas riparte quando premi Riprendi. FRENO è a destra; GAS AUTO passa al gas manuale. ↗ RIENTRA ti rimette in pista (+2 s).</p><div class="controls-summary keyboard-only"><span><b>W / ↑</b> Gas</span><span><b>S / ↓ / SPAZIO</b> Freno</span><span><b>A D / ← →</b> Sterzo</span><span><b>C</b> Visuale</span><span><b>R</b> Rientra in pista</span><span><b>M</b> Audio</span><span><b>ESC / P</b> Pausa</span><span><b>F</b> Schermo intero</span></div></section></div>
-  <div id="result-overlay" class="overlay hidden"><section class="modal result-modal"><span class="eyebrow" id="result-eyebrow">BANDIERA A SCACCHI</span><h2 id="result-title">Gara conclusa.</h2><p id="result-subtitle"></p><div class="result-stats"><div><span>POSIZIONE</span><strong id="result-position">1°</strong></div><div><span>GIRO MIGLIORE</span><strong id="result-best">—</strong></div><div><span>TEMPO TOTALE</span><strong id="result-total">—</strong></div></div><p id="result-credits" class="result-credits"></p><div id="result-table"></div><button id="race-again" class="primary-button"><span>UN'ALTRA CORSA</span><span>→</span></button><button id="result-menu" class="text-button">Torna al paddock</button></section></div>
+  <div id="result-overlay" class="overlay hidden"><section class="modal result-modal"><span class="eyebrow" id="result-eyebrow">BANDIERA A SCACCHI</span><h2 id="result-title">Gara conclusa.</h2><p id="result-subtitle"></p><div class="result-stats"><div><span>POSIZIONE</span><strong id="result-position">1°</strong></div><div><span>GIRO MIGLIORE</span><strong id="result-best">—</strong></div><div><span>TEMPO TOTALE</span><strong id="result-total">—</strong></div></div><p id="result-career" class="result-career hidden"></p><p id="result-credits" class="result-credits"></p><div id="result-table"></div><button id="race-again" class="primary-button"><span>UN'ALTRA CORSA</span><span>→</span></button><button id="result-menu" class="text-button">Torna al paddock</button></section></div>
   <div id="controls-overlay" class="overlay hidden"><section class="modal"><span class="eyebrow">IL PRIMO GIRO</span><h2>Entra in ritmo.</h2><p class="touch-only">Tieni premuto ◀ o ▶ a sinistra per sterzare. I pulsanti sono più grandi e continuano a leggere il dito anche se scivola un poco fuori dal bordo. Con GAS AUTO attivo la moto accelera dal via: a destra devi solo tenere FRENO prima della curva e rilasciarlo in uscita. Tocca GAS AUTO per passare ai pedali manuali. Per sterzare inclinando il telefono, scegli Inclinazione in Impostazioni → Sterzo mobile e completa la calibrazione.</p><p class="keyboard-only">Accelera sul rettilineo, frena prima della curva e accompagna la moto verso l'apice. A inclina a sinistra, D a destra. La piega cresce progressivamente. Rilascia il gas e frena per stringere il raggio: frenata e sterzo ora lavorano insieme. Rilasciando i tasti, la moto si raddrizza con inerzia. La scia di chi ti precede ti dà un piccolo vantaggio.</p><div class="controls-summary keyboard-only"><span><b>W / ↑</b> Gas</span><span><b>S / ↓ / SPAZIO</b> Freno</span><span><b>A / ←</b> Sterza a sinistra</span><span><b>D / →</b> Sterza a destra</span><span><b>SHIFT</b> Impenna · boost +7,5%</span><span><b>C</b> Visuale: chase / casco</span><span><b>R</b> Rientra in pista (+2 s)</span><span><b>M</b> Audio</span><span><b>ESC / P</b> Pausa</span><span><b>F</b> Schermo intero</span></div><p class="touch-only muted">↑ IMPENNA resta separato dallo sterzo. Il freno riabbassa la ruota. ↗ RIENTRA ti rimette in pista con 2 secondi di penalità. I pulsanti in alto cambiano visuale e audio, aprono gli amici o mettono in pausa. Cambiare app, ruotare lo schermo o interrompere il tocco mette in pausa la gara. Premi Riprendi per tornare ai comandi; anche il gas automatico riparte.</p><p class="muted keyboard-only">Shift alza progressivamente l’avantreno e dà un lieve boost. Forzare la curva in impennata o urtare forte un avversario provoca una caduta. Il freno abbassa l’avantreno. La pioggia riduce l'aderenza. Fuori pista perdi velocità. La stabilizzazione rende lo sterzo più morbido; la traiettoria resta manuale. Su touch, usa i pulsanti in basso.</p><button id="close-controls" class="primary-button">CI SONO</button></section></div>
 
   <aside id="social-notice" class="social-notice hidden" aria-live="polite"><span id="social-notice-text"></span><button id="social-notice-open">APRI AMICI</button></aside>
@@ -285,6 +320,6 @@
       <div id="account-recovery-box" class="account-conflict hidden"><p><b>Salva il tuo codice di recupero.</b> Consente di reimpostare la password: conservalo per te. Resta valido fino a quando ne crei uno nuovo dal profilo.</p><input id="account-recovery-value" readonly aria-label="Codice personale di recupero" spellcheck="false"><button id="account-download-code" class="secondary-button">SALVA CODICE DI RECUPERO</button></div>
     </section>
   </div>
-  <script type="module" src="game.js?v=4.4.1"></script>
+  <script type="module" src="game.js?v=4.5.0"></script>
 </body>
 </html>

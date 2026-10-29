@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {SaveSync} from '../dist/save-sync.js';
+import {Career} from '../dist/progression.js';
+import {CHAMPIONSHIP_RIDERS} from '../dist/championship.js';
 
 function setup() {
   const rows = new Map(), values = new Map();
@@ -29,6 +31,22 @@ function setup() {
   }};
   return {client, storage, rows, values, offline: value => offline = value, writes: () => writes};
 }
+
+test('starter choice and championship results survive cloud reload on a second client', async () => {
+  const env = setup(), first = new SaveSync(env), second = new SaveSync({...env, storage: {getItem: () => null, setItem: () => {}}});
+  const career = new Career(); career.chooseStarter('s3'); career.beginSeason('pro');
+  const ticket = career.roundTicket();
+  career.reward({id: 'qa-round', finished: true, time: 200, position: 1, difficulty: 'pro'});
+  career.completeRound(ticket, {raceId: 'qa-round', order: CHAMPIONSHIP_RIDERS, trackId: ticket.trackId, finished: true, time: 200});
+  await first.load('career-user', {});
+  first.change({version: 1, career: career.profile, records: {}, settings: {}});
+  assert(await first.flush());
+  const payload = await second.load('career-user', {}), restored = new Career(payload.career);
+  assert.deepEqual(restored.profile, career.profile);
+  assert.deepEqual(restored.profile.owned, ['s3']);
+  assert.equal(restored.roundTicket().trackId, 'canyon');
+  assert.equal(restored.profile.season.difficulty, 'pro');
+});
 test('cloud progress survives a second device and remains isolated from other accounts', async () => {
   const env = setup(), first = new SaveSync(env), second = new SaveSync(env);
   await first.load('alice', {credits: 12000}); first.change({credits: 9000, bike: 'r27'}); await first.flush();

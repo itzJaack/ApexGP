@@ -1,5 +1,6 @@
+import {BIKE_SPECS} from './bike-specs.js?v=4.5.0';
 import {RaceControl} from './race-control.js';
-import {BIKE_IDENTITIES,TRACK_IDENTITIES} from './catalog.js';
+import {BIKE_IDENTITIES,TRACK_IDENTITIES} from './catalog.js?v=4.5.0';
 import {CIRCUIT_LAYOUTS} from './circuit-layouts.js';
 import {botDriving} from './bot-driving.js';
 export const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
@@ -12,6 +13,9 @@ export const formatTime = t=>!Number.isFinite(t)||t<=0?'—':`${String(Math.floo
 // Preserve catalog order: saved garage selections use these stable IDs/indexes.
 export const BIKES = Object.entries(BIKE_IDENTITIES).map(([id, spec]) => ({
   id, grip: 1.1, accel: 1, handling: 1, mass: 230, aeroDrag:spec.category==='MotoGP'?.00078:.00090, ...spec,
+  ...(BIKE_SPECS[id]?.powerCv ? {power:BIKE_SPECS[id].powerCv} : {}),
+  ...(BIKE_SPECS[id]?.weightKg ? {mass:BIKE_SPECS[id].weightKg+75+(BIKE_SPECS[id].noFuel?10:0)} : {}),
+  ...(BIKE_SPECS[id]?.topKmh ? {top:BIKE_SPECS[id].topKmh} : {}),
 }));
 export const TRACKS = Object.entries(TRACK_IDENTITIES).map(([id, spec]) => ({
   id, ...spec, ...CIRCUIT_LAYOUTS[id],

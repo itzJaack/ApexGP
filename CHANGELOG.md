@@ -1,5 +1,14 @@
 # Changelog ApexGP
 
+## 4.5.0 — 29 ottobre 2026
+
+- Carriera World Tour: 14 tappe con progressione, classifica cumulativa, titoli, premio finale e nuova stagione.
+- Mappa mondiale offline con pin nelle posizioni reali dei circuiti, zoom Europa e selezione accessibile da elenco; disponibile anche nei Gran Premi liberi.
+- Nuovi profili: una sola moto iniziale fra le tre meno potenti e 3.000 CR; acquisto delle altre moto. Migrazione conservativa dei garage esistenti.
+- Premi Rookie ×1, Sport ×2,5 e Pro ×5; difficoltà fissa per la stagione, senza moltiplicatore IA in cronometro e multiplayer.
+- Schede delle moto con fonti dei costruttori e distinzione fra valori dichiarati, soglie MotoGP e stime di gioco; potenza e massa alimentano la fisica.
+- Stagione e risultati inclusi nei backup e nei salvataggi cloud. Verificati ripristino su due client autenticati e protezione contro aggiornamenti obsoleti.
+
 ## 4.4.1 — 27 ottobre 2026
 
 Avvisi di gara e giroscopio.

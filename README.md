@@ -1,8 +1,8 @@
-# ApexGP 4.4.1
+# ApexGP 4.5.0
 
 Gioco di corse in moto 3D per browser. **[Gioca su GitHub Pages](https://itzjaack.github.io/ApexGP/)** · [Sorgenti e aggiornamenti](https://github.com/itzJaack/ApexGP).
 
-La versione attuale è **4.4.1**. Lo storico delle novità si trova in fondo a **Impostazioni → Changelog**, con l’ultima release aperta e le precedenti espandibili. È disponibile anche in [CHANGELOG.md](CHANGELOG.md).
+La versione attuale è **4.5.0**. Lo storico delle novità si trova in fondo a **Impostazioni → Changelog**, con l’ultima release aperta e le precedenti espandibili. È disponibile anche in [CHANGELOG.md](CHANGELOG.md).
 
 ## Bandiere e avvisi di gara
 
@@ -39,6 +39,18 @@ Apri il gioco via HTTPS e, se richiesto dal browser, consenti l’accesso ai sen
 **Rookie** conserva il passo accessibile. **Sport** aumenta velocità in curva, accelerazione e ritmo sul giro. **Pro** frena più tardi, riparte più forte e mantiene una griglia più compatta, con meno oscillazioni nella traiettoria e velocità superiori sui rettilinei. Il passo non cambia in base al distacco dal giocatore. Pioggia, bandiere gialle, VSC e bandiera rossa continuano a limitare gli avversari.
 
 Anche i bot multiplayer usano il nuovo assetto Sport e pianificano la frenata sull’intera distanza di gara; il limite di 300 km/h conserva i limiti di velocità delle fasi VSC e gialla. I livelli di difficoltà si scelgono nel Gran Premio singolo.
+
+## Carriera World Tour
+
+Apri **Carriera**. Un nuovo pilota sceglie una sola moto gratuita tra **Ducati Panigale V2 2025, Triumph Daytona Moto2 765 e Yamaha YZF-R1 2024**, le tre meno potenti del catalogo, e parte con **3.000 CR**. Tutte le altre moto hanno un prezzo in crediti. Anche la selezione della lobby usa le moto possedute, in configurazione di serie. I profili precedenti conservano moto, crediti, potenziamenti e premi già ricevuti: non devono ripetere la scelta iniziale.
+
+Il World Tour è un campionato originale con **14 tappe**, due giri per gara, meteo prestabilito, otto piloti e classifica cumulativa. Le tappe si sbloccano in ordine. La mappa mondiale colloca ogni pin sulle coordinate reali della linea di arrivo; **Europa +** ingrandisce i circuiti vicini. Il calendario a tendina offre la stessa selezione da tastiera e su schermi piccoli. La mappa è disponibile anche in **Corri → Scegli dalla mappa mondiale** per i Gran Premi liberi.
+
+I punti sono **25, 20, 16, 13, 11, 10, 9, 8**. A parità si confronta il numero dei migliori piazzamenti. La difficoltà della stagione resta fissa: i premi gara e il premio finale sono moltiplicati per **Rookie ×1, Sport ×2,5, Pro ×5**. Il bonus di fine stagione va da 2.000 a 18.000 CR prima del moltiplicatore. Cronometro e multiplayer mantengono premi senza il moltiplicatore IA. Una gara abbandonata non avanza il calendario; si può ripartire dalla stessa tappa. Dopo la finale è disponibile una nuova stagione, conservando garage e crediti.
+
+Stagione, risultati e titoli sono inclusi nello stesso salvataggio locale/cloud e nel backup. Per usare il nuovo formato, aggiornare tutti i dispositivi alla 4.5. Le schede tecniche in **Officina** riportano fonti dei costruttori, potenza, cilindrata, coppia e massa quando pubblicate. Le soglie MotoGP, i dati non divulgati, le differenze di mercato e le stime sono indicati esplicitamente. La fisica usa la potenza dichiarata o la soglia pubblica disponibile, e la massa dichiarata più 75 kg di pilota; alle masse senza carburante aggiunge 10 kg stimati. Aderenza, agilità, potenziamenti e velocità senza un dato ufficiale restano arcade. Fonti e criteri: **[dati delle moto](dist/bike-specs.js)**.
+
+La cartografia usa **Natural Earth, pubblico dominio**; i pin derivano dai dati OpenStreetMap già inclusi. `python tools/build-world-map.py` rigenera mappa e coordinate; il normale build resta offline e usa gli asset versionati.
 
 ## Account e progressi
 
@@ -82,7 +94,7 @@ Dati delle piste: **© OpenStreetMap contributors, ODbL 1.0**. Coordinate e prov
 
 Al ritorno al menu vengono liberati moto degli avversari e ghost; il ghost si crea soltanto quando c’è un record da mostrare. Le allocazioni grafiche parziali vengono ripulite se la costruzione di una scena fallisce. Durante il cambio di qualità il gioco attende il caricamento dei modelli; un download interrotto conserva i modelli della qualità precedente e si può ritentare. I download hanno un timeout.
 
-I pacchetti multiplayer e le risposte social incomplete vengono scartati senza sostituire i dati validi già caricati. La schermata di errore permette anche di **riprovare con grafica leggera**. Queste correzioni coprono i casi verificati nei test; il browser di verifica non dispone di WebGL, quindi non sostituiscono una prova 3D sui dispositivi reali.
+I pacchetti multiplayer e le risposte social incomplete vengono scartati senza sostituire i dati validi già caricati. La schermata di errore permette anche di **riprovare con grafica leggera**. Queste correzioni coprono i casi verificati nei test. La 4.5 è stata controllata anche nel browser con WebGL e con viewport da telefono; questa verifica non sostituisce una prova sui telefoni fisici e sull’hardware meno potente.
 
 ## Sviluppo e pubblicazione
 
