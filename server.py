@@ -41,8 +41,9 @@ class Hub:
   return [{'id':'bot-'+str(i),'name':names[i],'number':numbers[i],'bikeId':bikes[(humans+i+2)%len(bikes)],'livery':'factory','slot':humans+i,'isBot':True,'ready':True,'finishTime':None,'penalties':0,'progress':0,'dnf':False} for i in range(8-humans)] if enabled else []
  def bot_phase(self,r):
   phases=r.setdefault('botPhases',[{'at':0,'rate':1}]);at=self.elapsed(r);rate={'red':0,'vsc':.3,'yellow':.6}.get(r['flag'],1)
-  if abs(phases[-1]['at']-at)<1e-7:phases[-1]={'at':at,'rate':rate}
-  elif phases[-1]['rate']!=rate:phases.append({'at':at,'rate':rate})
+  restart=phases[-1]['rate']==0 and rate>0
+  if abs(phases[-1]['at']-at)<1e-7 and not restart:phases[-1]={'at':at,'rate':rate}
+  elif phases[-1]['rate']!=rate:phases.append({'at':at,'rate':rate,**({'restart':True} if restart else {})})
  def room_state(self,r):
   now=self.clock();elapsed=self.elapsed(r)
   players=[]

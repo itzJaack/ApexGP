@@ -3,9 +3,29 @@ import {botDriving} from './bot-driving.js';
 export const BOT_DRIVERS=[{name:'L. ROSSI',number:46},{name:'M. SERRA',number:63},{name:'A. TORRES',number:89},{name:'D. COSTA',number:23},{name:'N. MARTIN',number:12},{name:'E. MORETTI',number:21},{name:'S. HAYES',number:41}];
 export function makeBotRoster(humans,enabled){return enabled?Array.from({length:Math.max(0,8-humans)},(_,i)=>({id:'bot-'+i,...BOT_DRIVERS[i],bikeId:BIKES[(humans+i+2)%BIKES.length].id,livery:'factory',slot:humans+i,isBot:true,ready:true,finishTime:null,penalties:0,dnf:false})):[];}
 export const botRate=flag=>flag==='red'?0:flag==='vsc'?.30:flag==='yellow'?.60:1;
-export function appendBotPhase(phases,elapsed,flag){const rate=botRate(flag),last=phases.at(-1),at=Math.max(last?.at||0,Number(elapsed)||0);if(last&&Math.abs(last.at-at)<1e-7){last.rate=rate;return;}if(!last||last.rate!==rate)phases.push({at,rate});}
-export function botClock(elapsed,phases=[{at:0,rate:1}]){let time=0,rate=1,at=0;for(const p of phases){if(p.at>elapsed)break;time+=Math.max(0,p.at-at)*rate;at=p.at;rate=p.rate;}time+=Math.max(0,elapsed-at)*rate;return{time,rate};}
-function clockInverse(target,phases){let time=0,at=0,rate=1;for(const p of phases){const next=time+Math.max(0,p.at-at)*rate;if(rate>0&&target<=next)return at+(target-time)/rate;time=next;at=p.at;rate=p.rate;}return rate>0?at+(target-time)/rate:Infinity;}
+export function appendBotPhase(phases,elapsed,flag){
+ const rate=botRate(flag),last=phases.at(-1),at=Math.max(last?.at||0,Number(elapsed)||0),restart=last?.rate===0&&rate>0;
+ // Race time is frozen under red: retain both phases even at the same time.
+ if(last&&Math.abs(last.at-at)<1e-7&&!restart){last.rate=rate;return;}
+ if(!last||last.rate!==rate)phases.push({at,rate,...(restart?{restart:true}:{})});
+}
+const restartArea=t=>t<=0?0:t<8?t*t/16:t-4;
+const clockGain=(from,to,rate,restart)=>rate*(restart===null?Math.max(0,to-from):restartArea(to-restart)-restartArea(from-restart));
+function advanceInverse(amount,at,rate,restart){
+ if(!rate)return Infinity;if(restart===null)return at+amount/rate;
+ const area=restartArea(at-restart)+amount/rate;return restart+(area<4?Math.sqrt(area*16):area+4);
+}
+export function botClock(elapsed,phases=[{at:0,rate:1}]){
+ let time=0,rate=1,at=0,restart=null;
+ for(const p of phases){if(p.at>elapsed)break;time+=clockGain(at,p.at,rate,restart);if(p.restart||rate===0&&p.rate>0)restart=p.at;at=p.at;rate=p.rate;}
+ time+=clockGain(at,elapsed,rate,restart);
+ return{time,rate:rate*(restart===null?1:clamp((elapsed-restart)/8,0,1))};
+}
+function clockInverse(target,phases){
+ let time=0,at=0,rate=1,restart=null;
+ for(const p of phases){const next=time+clockGain(at,p.at,rate,restart);if(rate>0&&target<=next)return advanceInverse(target-time,at,rate,restart);time=next;if(p.restart||rate===0&&p.rate>0)restart=p.at;at=p.at;rate=p.rate;}
+ return advanceInverse(target-time,at,rate,restart);
+}
 export class BotGrid{
  constructor(track,options,humans){this.track=track;this.options=options;this.roster=makeBotRoster(humans,options.bots);this.profiles=this.roster.map((b,i)=>this.profile(b,i));}
  profile(bot,index){const tr=this.track,bike=BIKES.find(b=>b.id===bot.bikeId),driving=botDriving(this.options.difficulty),start=-10-bot.slot*7,finish=tr.length*this.options.laps,n=Math.ceil((finish-start)/5),step=(finish-start)/n,positions=new Float64Array(n+1),speeds=new Float64Array(n+1),times=new Float64Array(n+1),wet=this.options.weather==='rain'?.74:1,pace=driving.pace*(1-index*driving.spread),top=Math.min(bike.top,300,driving.top-index*driving.topSpread)/3.6;

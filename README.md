@@ -1,6 +1,24 @@
-# ApexGP 4.5.0
+# ApexGP 4.6.0
 
 Gioco di corse in moto 3D per browser. **[Gioca su GitHub Pages](https://itzjaack.github.io/ApexGP/)** · [Sorgenti e aggiornamenti](https://github.com/itzJaack/ApexGP).
+
+## Avversari, contatti e cadute
+
+Nelle gare singole e nel World Tour i sette avversari hanno caratteri diversi:
+attaccante, prudente, opportunista, difensore, regolare, irruento e calcolatore.
+Scelgono quando attaccare, difendere o rinunciare in base al traffico; reagiscono
+alle moto ferme e a terra. Punti di frenata, reazioni, fiducia e pressione cambiano
+le decisioni. Gli errori diminuiscono aumentando il livello.
+
+I contatti locali considerano la sagoma allungata della moto, gli spostamenti
+fra due passi della simulazione, la massa, la velocità relativa e il punto colpito.
+Gli urti possono far cadere entrambi i piloti e coinvolgere chi segue. Moto e
+pilota hanno movimenti separati con gravità e attrito; il pilota è articolato.
+È una simulazione semplificata per il gioco, con recupero automatico dopo la caduta.
+
+La bandiera rossa ferma tutti prima del conto alla rovescia. Anche i bot LAN e
+online ripartono da zero: la ripartenza non riutilizza la velocità precedente.
+Il client completo versionato viene generato da `npm run build`.
 
 La versione attuale è **4.5.0**. Lo storico delle novità si trova in fondo a **Impostazioni → Changelog**, con l’ultima release aperta e le precedenti espandibili. È disponibile anche in [CHANGELOG.md](CHANGELOG.md).
 

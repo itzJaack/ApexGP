@@ -1,5 +1,14 @@
 # Changelog ApexGP
 
+## 4.6.0 — 7 novembre 2026
+
+- IA delle gare singole e del World Tour con sette caratteri, tempi di reazione, punti di frenata, decisioni di sorpasso, difesa e rinuncia. Fiducia e pressione cambiano durante la gara; il comportamento varia a ogni partenza.
+- Errori in frenata e in trazione, cadute e recupero anche per gli avversari. La precisione aumenta con il livello; i piloti reagiscono alle moto ferme e a terra.
+- Contatti fra tutte le moto locali con sagome allungate, controllo continuo fra i passi di simulazione, impulsi legati alla massa e rotazione dipendente dal punto dell'urto. I tocchi lievi e gli impatti violenti hanno effetti diversi.
+- Moto con gravità, rotazione, attrito e contatti a terra; pilota separato con articolazioni vincolate. La mesh del pilota segue le articolazioni e torna alla posa di guida al recupero. Le cadute usano la stessa dinamica per giocatore e bot.
+- Bandiera rossa: tutte le velocità vengono azzerate prima del conto alla rovescia. In multiplayer il passaggio rosso/verde resta registrato anche allo stesso tempo gara e i bot accelerano da zero.
+- Il client viene pubblicato come modulo completo versionato per evitare dipendenze di versioni diverse nella cache.
+
 ## 4.5.0 — 29 ottobre 2026
 
 - Carriera World Tour: 14 tappe con progressione, classifica cumulativa, titoli, premio finale e nuova stagione.

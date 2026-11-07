@@ -8,4 +8,5 @@ artifacts/
 test-results/
 dist/assets/models/*.obj
 SHA256SUMS.txt
+/dist/app.bundle.js
 

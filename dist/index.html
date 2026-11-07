@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#101215">
   <meta name="description" content="APEX GP. Entra in pista in un gioco di corse in moto 3D: gare contro avversari, cronometro, 14 circuiti reali, 15 moto, carriera e multiplayer Internet e LAN, con comandi da tastiera o touch.">
-  <title>APEX GP 4.5.0 — Ride the limit</title>
+  <title>APEX GP 4.6.0 — Ride the limit</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23121417'/%3E%3Cpath d='M12 47 30 14h12L28 47zm19 0 12-23h10L41 47z' fill='%23ff6033'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="styles.css?v=4.5.0">
   <link rel="stylesheet" href="accounts.css">
@@ -23,7 +23,7 @@
 
   <main id="menu" class="menu hidden" data-page="race">
     <header class="topbar">
-      <a class="brand" href="#" aria-label="APEX GP, menu principale">APEX<span>GP</span><i></i><small class="build-version">v4.5.0</small></a>
+      <a class="brand" href="#" aria-label="APEX GP, menu principale">APEX<span>GP</span><i></i><small class="build-version">v4.6.0</small></a>
       <nav aria-label="Menu"><button class="nav-link active" data-page="race">CORRI</button><button class="nav-link" data-page="career">CARRIERA</button><button class="nav-link" data-page="garage">GARAGE</button><button class="nav-link" data-page="workshop">OFFICINA</button><button class="nav-link" data-page="lan">MULTIPLAYER</button><button id="social-nav" class="nav-link" aria-haspopup="dialog" aria-controls="social-overlay">AMICI</button><button class="nav-link" data-page="settings">IMPOSTAZIONI</button></nav>
       <button id="account-nav" class="account-nav" aria-haspopup="dialog" aria-controls="account-overlay">ACCEDI</button><div class="profile"><span class="profile-icon">27</span><span><b id="profile-name">JACK</b><small id="wallet">12.000 CR</small></span></div>
     </header>
@@ -134,9 +134,17 @@
       <p id="render-resolution" class="muted"></p>
       <button id="show-controls" class="text-button">Tutti i comandi ↗</button>
       <section id="settings-changelog" class="settings-changelog" aria-labelledby="changelog-heading">
-        <div class="changelog-heading"><h3 id="changelog-heading">Changelog</h3><span class="changelog-current">VERSIONE ATTUALE · 4.5.0</span></div>
+        <div class="changelog-heading"><h3 id="changelog-heading">Changelog</h3><span class="changelog-current">VERSIONE ATTUALE · 4.6.0</span></div>
         <p class="changelog-intro">Tutte le novità, dalla più recente. Tocca una versione per leggere i dettagli.</p>
         <details class="release-note" open>
+          <summary><span class="release-version">v4.6.0</span><span class="release-title">Piloti vivi e cadute fisiche</span><time datetime="2026-11-07">7 nov 2026</time></summary>
+          <ul><li>Avversari con caratteri diversi: staccate anticipate o ritardate, attacchi, difesa, rinunce e reazioni al traffico.</li>
+          <li>Errori e cadute anche per i bot, con maggiore precisione ai livelli alti. Le moto a terra possono causare altri incidenti.</li>
+          <li>Contatti basati su sagoma della moto, velocità relativa, massa e punto dell'urto.</li>
+          <li>Moto e pilota si separano: scivolate, rotazioni e distacco dal suolo dipendono dall'impatto, con pilota articolato.</li>
+          <li>Dopo la bandiera rossa tutti ripartono da fermi; corretta anche la ripartenza dei bot in LAN e online.</li></ul>
+        </details>
+        <details class="release-note">
           <summary><span class="release-version">v4.5.0</span><span class="release-title">Carriera World Tour</span><time datetime="2026-10-29">29 ott 2026</time></summary>
           <ul><li>Campionato di 14 tappe con classifica, titoli e premio finale. Riprendi la stagione anche da un altro dispositivo con il tuo account.</li>
           <li>Mappa mondiale con pin reali e zoom Europa, disponibile anche nei Gran Premi liberi.</li>
@@ -320,6 +328,6 @@
       <div id="account-recovery-box" class="account-conflict hidden"><p><b>Salva il tuo codice di recupero.</b> Consente di reimpostare la password: conservalo per te. Resta valido fino a quando ne crei uno nuovo dal profilo.</p><input id="account-recovery-value" readonly aria-label="Codice personale di recupero" spellcheck="false"><button id="account-download-code" class="secondary-button">SALVA CODICE DI RECUPERO</button></div>
     </section>
   </div>
-  <script type="module" src="game.js?v=4.5.0"></script>
+  <script type="module" src="app.bundle.js?v=4.6.0"></script>
 </body>
 </html>

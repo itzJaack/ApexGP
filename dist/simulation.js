@@ -2,7 +2,8 @@ import {BIKE_SPECS} from './bike-specs.js?v=4.5.0';
 import {RaceControl} from './race-control.js';
 import {BIKE_IDENTITIES,TRACK_IDENTITIES} from './catalog.js?v=4.5.0';
 import {CIRCUIT_LAYOUTS} from './circuit-layouts.js';
-import {botDriving} from './bot-driving.js';
+import {RiderAI} from './rider-ai.js';
+import {RiderContacts,RiderFall} from './rider-physics.js';
 export const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
 export const lerp = (a,b,t)=>a+(b-a)*t;
 export const mod = (a,b)=>(a%b+b)%b;
@@ -94,6 +95,9 @@ export class RaceModel{
     this.placePlayer();
     this.bots=this.options.mode==='race'?botNames.map((name,i)=>({name,color:botColors[i],progress:-i*6.6,offset:(i%2===0?-1.65:1.65),speed:0,lean:0,phase:i*2.37,pace:1-i*.014,finishTime:null,number:[46,63,89,23,12,21,41][i],isPlayer:false})):[];
     this.runId=`${Date.now()}-${Math.random().toString(36).slice(2)}`;this.riders=[this.player,...this.bots];this.collisionCooldown=0;this.ghost=null;
+    this.botAI=new RiderAI(circuit,this.options,this.options.botSeed??this.runId);
+    this.bots.forEach((b,i)=>{b.id='bot-'+i;b.mass=BIKES[i%BIKES.length].mass;this.botAI.attach(b,i);});
+    this.player.mass=this.options.bike.mass;this.player.id='player';this.contactPhysics=new RiderContacts();this.botCrashes=0;this.totalContacts=0;this.redStopped=false;
   }
   get lap(){return clamp(Math.floor(Math.max(0,this.player.progress)/this.track.length)+1,1,this.options.laps);}
   get currentLapTime(){return this.time-this.lapStart;}
@@ -101,17 +105,73 @@ export class RaceModel{
   get position(){return this.order.indexOf(this.player)+1;}
   emit(type,data={}){this.events.push({type,...data});}
   placePlayer(){const p=this.player,q=this.track.sample(p.progress,p.offset);p.x=q.x;p.z=q.z;p.heading=wrapAngle(q.yaw+p.angle);p.y=q.y||0;}
-  resetPlayer(){const p=this.player;p.offset=0;p.angle=0;p.speed=Math.min(p.speed,18);p.crash=0;p.risk=0;p.lean=0;p.rollRate=0;p.turnRate=0;p.steer=0;p.acceleration=0;p.pitch=0;p.wheelie=0;p.wheelieRate=0;this.placePlayer();this.time+=2;this.penalties+=2;this.emit('reset');}
-  crashPlayer(kind='wheelie',severity=1){const p=this.player;if(p.crash>0)return false;p.crash=2.5;p.fallSign=Math.sign(p.lean)||1;p.speed*=.80;p.wheelie=0;p.wheelieRate=0;this.crashes++;this.control.incident(p.progress,severity);this.emit('crash',{kind,severity});return true;}
+  resetPlayer(){const p=this.player;p.offset=0;p.angle=0;p.speed=Math.min(p.speed,18);p.crash=0;p.fall=null;p.risk=0;p.lean=0;p.rollRate=0;p.turnRate=0;p.steer=0;p.acceleration=0;p.pitch=0;p.wheelie=0;p.wheelieRate=0;p.impactVX=p.impactVZ=p.impactYaw=0;p.invulnerable=1.5;this.placePlayer();this.time+=2;this.penalties+=2;this.emit('reset');}
+  crashPlayer(kind='wheelie',severity=1,impact={}){return this.crashRider(this.player,{...impact,kind},severity);}
+  crashRider(rider,impact={},severity=1){
+    if(rider.crash>0||rider.finishTime!==null)return false;
+    rider.fall=new RiderFall(rider,this.track,{...impact,wet:this.options.weather==='rain'});rider.crash=rider.fall.duration;rider.fallSign=rider.fall.sign;rider.wheelie=0;rider.wheelieRate=0;
+    if(rider.isPlayer){this.crashes++;this.emit('crash',{kind:impact.kind,severity});}
+    else{this.botCrashes++;rider.ai.confidence=.60;this.emit('botCrash',{id:rider.id,name:rider.name,progress:rider.progress,kind:impact.kind,severity});}
+    if(this.control.flag!=='red')this.control.incident(rider.progress,severity);
+    return true;
+  }
+  updateFall(rider,dt){
+    const fall=rider.fall,done=fall.update(dt,this.track),b=fall.bike;
+    Object.assign(rider,{x:b.x,z:b.z,y:this.track.sample(fall.progress).y||0,progress:fall.progress,offset:fall.offset,speed:Math.hypot(b.vx,b.vz),heading:b.yaw,lean:-b.roll,pitch:b.pitch,crash:Math.max(.01,fall.duration-fall.age)});
+    if(!done)return;
+    if(rider.isPlayer){this.resetPlayer();this.emit('recovered');}
+    else{
+      rider.fall=null;rider.crash=0;rider.speed=0;rider.lean=0;rider.pitch=0;rider.offset=clamp(rider.offset,-this.track.halfWidth+1.2,this.track.halfWidth-1.2);rider.invulnerable=1.8;
+      this.botAI.restart(rider,this.time);rider.ai.intent='rejoin';rider.ai.intentUntil=this.time+2;
+      const q=this.track.sample(rider.progress,rider.offset);Object.assign(rider,{x:q.x,z:q.z,heading:q.yaw,angle:0});
+    }
+  }
+  stopForRed(){
+    this.redStopped=true;
+    for(const r of this.riders){r.speed=0;r.wheelie=0;r.wheelieRate=0;r.turnRate=0;r.lateralSpeed=0;r.acceleration=0;r.impactVX=r.impactVZ=r.impactYaw=0;r.fall?.stop();}
+  }
+  prepareRestart(){
+    this.stopForRed();this.redStopped=false;
+    const placed=[];
+    for(const r of [...this.riders].sort((a,b)=>b.progress-a.progress)){
+      if(r.finishTime!==null)continue;
+      r.crash=0;r.fall=null;r.lean=0;r.pitch=0;r.angle=0;r.rollRate=0;r.steer=0;r.brake=0;r.throttle=0;r.invulnerable=1.2;
+      r.offset=clamp(r.offset,-this.track.halfWidth+1.0,this.track.halfWidth-1.0);
+      for(const ahead of placed)if(ahead.progress-r.progress<5.0&&Math.abs(ahead.offset-r.offset)<1.0)r.progress=Math.min(r.progress,ahead.progress-5.5);
+      placed.push(r);
+      const q=this.track.sample(r.progress,r.offset);Object.assign(r,{x:q.x,z:q.z,y:q.y||0,heading:q.yaw});
+      this.botAI.restart(r,this.time);
+    }
+    this.contactPhysics.cooldowns.clear();
+  }
+  handleContact(a,b,impactA,impactB){
+    this.totalContacts++;
+    if(a.isPlayer||b.isPlayer){this.contacts++;this.collisionCooldown=.65;this.emit('contact');}
+    for(const [r,impact]of[[a,impactA],[b,impactB]]){
+      if(r.ai){r.ai.confidence=Math.max(.5,r.ai.confidence-.12);r.ai.decisionAt=this.time;}
+      const side=Math.abs(impact.normalX*Math.cos(r.heading)-impact.normalZ*Math.sin(r.heading));
+      const threshold=3.9-Math.min(.8,Math.abs(r.lean||0))*1.3-side*.65;
+      if(impact.deltaV>threshold||r.wheelie>.12&&impact.deltaV>2.1)this.crashRider(r,impact,impact.closingSpeed>24?2:1);
+    }
+  }
   update(dt,input={}){
     dt=clamp(dt,0,.05);if(dt<=0||this.state==='paused'||this.state==='finished')return;
     if(this.state==='countdown'){this.countdown-=dt;if(this.countdown<=0){this.state='running';this.emit('start');}return;}
-    const flagEvent=this.options.mode==='lan'?null:this.control.tick(dt,this);if(flagEvent?.restart){this.state='countdown';this.countdown=3.6;this.emit('restart');return;}if(this.control.flag==='red'){this.player.speed=0;this.player.wheelie=0;return;}
+    if(this.control.flag==='red')this.stopForRed();
+    const flagEvent=this.options.mode==='lan'?null:this.control.tick(dt,this);
+    if(flagEvent?.restart){this.prepareRestart();this.state='countdown';this.countdown=3.6;this.emit('restart');return;}
+    if(this.control.flag==='red')return;
+    if(this.redStopped)this.prepareRestart();
     const previousPosition=['yellow','vsc'].includes(this.control.flag)?this.position:0,prevTime=this.time;this.time+=dt;this.messageCooldown-=dt;this.collisionCooldown-=dt;
     const p=this.player,tr=this.track,bike=this.options.bike;
     const weatherGrip=this.options.weather==='rain'?.74:1,grip=weatherGrip*bike.grip;
     const oldProgress=p.progress;
-    if(p.crash>0){p.crash-=dt;p.speed=Math.max(0,p.speed-18*dt);p.x+=Math.sin(p.heading)*p.speed*dt;p.z+=Math.cos(p.heading)*p.speed*dt;const projected=tr.project(p.x,p.z,p.progress);p.progress=projected.progress;p.offset=projected.offset;p.angle=wrapAngle(p.heading-tr.sample(p.progress).yaw);p.lean=lerp(p.lean,1.2,dt*8);if(p.crash<=0){this.resetPlayer();this.emit('recovered');}}
+    for(const r of this.riders){
+      if(!r.isPlayer&&!r.fall){const q=tr.sample(r.progress,r.offset);r.x=q.x;r.z=q.z;}
+      r.previousPose={x:r.x,z:r.z,heading:r.heading,lean:r.lean};
+    }
+    p.invulnerable=Math.max(0,(p.invulnerable||0)-dt);
+    if(p.crash>0&&p.fall)this.updateFall(p,dt);
     else{
       // A/D control roll; world heading comes only from tyre force, never the track tangent.
       const throttle=input.throttle?1:0,brake=input.brake?1:0,steer=Number.isFinite(input.steering)?clamp(input.steering,-1,1):(input.left?1:0)-(input.right?1:0);
@@ -157,8 +217,9 @@ export class RaceModel{
       const turn=lerp(parkingTurn,Math.sign(p.lean)*lateralForce/Math.max(p.speed,3),blend)*frontContact;p.turnRate=turn;
       const excess=Math.max(0,lateralDemand/Math.max(1,availableLateral)-1);
       const drift=-Math.sign(turn)*Math.min(1,excess*excess)*p.speed*.018,mid=p.heading+turn*dt*.5;
-      p.x+=(Math.sin(mid)*p.speed+Math.cos(mid)*drift)*dt;p.z+=(Math.cos(mid)*p.speed-Math.sin(mid)*drift)*dt;
-      p.heading=wrapAngle(p.heading+turn*dt);p.wheelTravel+=p.speed*dt;
+      p.x+=(Math.sin(mid)*p.speed+Math.cos(mid)*drift+(p.impactVX||0))*dt;p.z+=(Math.cos(mid)*p.speed-Math.sin(mid)*drift+(p.impactVZ||0))*dt;
+      p.heading=wrapAngle(p.heading+(turn+(p.impactYaw||0))*dt);p.wheelTravel+=p.speed*dt;
+      p.impactVX=(p.impactVX||0)*Math.exp(-dt*3.5);p.impactVZ=(p.impactVZ||0)*Math.exp(-dt*3.5);p.impactYaw=(p.impactYaw||0)*Math.exp(-dt*5);
       const projected=tr.project(p.x,p.z,p.progress);p.progress=projected.progress;p.offset=projected.offset;
       const ground=tr.sample(p.progress);p.y=ground.y||0;p.angle=wrapAngle(p.heading-ground.yaw);
       p.risk=lerp(p.risk,clamp(excess*.45+off*.045,0,1),dt*2);p.grip=clamp(surface*(1-p.risk*.25),.25,1);
@@ -167,26 +228,12 @@ export class RaceModel{
       const kph=p.speed*3.6,gearStep=gearSpeedStep(bike);if(p.gear<6&&kph>p.gear*gearStep+2){p.gear++;p.shiftTimer=.10;}else if(p.gear>1&&kph<(p.gear-1)*gearStep-7)p.gear--;
     }
 
-    const driving=botDriving(this.options.difficulty),rookie=this.options.difficulty==='rookie';
-    for(const [index,b] of this.bots.entries()){
-      if(b.finishTime!==null)continue;
-      const previous=b.progress,underFlag=this.control.flag==='vsc'||this.control.flag==='yellow'&&this.control.applies(b,tr),top=(driving.top-index*driving.topSpread)/3.6;
-      const pace=driving.pace*(1-index*driving.spread),braking=driving.braking*(rookie?1:weatherGrip);
-      const target=Math.min(underFlag?25:top,tr.targetSpeed(b.progress,weatherGrip*1.03,pace,driving.planningBrake*(rookie?1:weatherGrip),rookie?180:Math.max(240,top*top/(2*braking))));
-      if(b.speed<target)b.speed=Math.min(target,b.speed+(driving.acceleration-3.8*b.speed/top)*dt);
-      else b.speed=Math.max(target,b.speed-braking*dt);
-      b.progress+=b.speed*dt;
-      const near=p.progress-b.progress;
-      const avoid=near>-4&&near<15?Math.sign(b.offset-p.offset||1)*1.3:0;
-      const wanted=clamp(Math.sin(b.progress*.005+b.phase)*driving.wander+Math.sign(tr.sample(b.progress+25).k)*1.5+avoid,-6,6);
-      b.offset=lerp(b.offset,wanted,dt*driving.response);b.lean=lerp(b.lean,clamp(Math.atan(b.speed*b.speed*tr.sample(b.progress).k/9.81),-1.04,1.04),dt*5);
-      if(Math.abs(b.progress-p.progress)<2.2&&Math.abs(b.offset-p.offset)<.8&&this.collisionCooldown<=0&&p.crash<=0){
-        const relative=Math.abs(p.speed-b.speed)+Math.abs(wrapAngle(p.heading-tr.sample(b.progress).yaw))*p.speed*.25;this.contacts++;if(relative>10||p.wheelie>.12&&relative>5)this.crashPlayer('contact',relative>22?2:1);
-        p.speed*=.87;b.speed*=.93;const bump=Math.sign(p.offset-b.offset||1)*.8,q=tr.sample(p.progress);p.offset+=bump;p.x+=q.tz*bump;p.z-=q.tx*bump;this.collisionCooldown=1.1;this.emit('contact');
-      }
-      const finish=tr.length*this.options.laps;
-      if(b.progress>=finish){b.finishTime=prevTime+(finish-previous)/Math.max(.001,b.progress-previous)*dt;b.progress=finish;}
+    for(const b of this.bots){
+      if(b.fall)this.updateFall(b,dt);
+      else this.botAI.update(b,this.riders,dt,this.time,this.control,(r,impact)=>this.crashRider(r,impact));
     }
+    if(this.options.mode!=='lan')this.contactPhysics.update(this.riders,dt,this.time,tr,(...impact)=>this.handleContact(...impact));
+    if(this.control.flag==='red')this.stopForRed();
     let penalty=this.options.mode==='lan'?0:this.control.speedPenalty(this,dt);if(previousPosition&&this.options.mode!=='lan'&&this.position<previousPosition&&this.control.applies(p,tr)&&['yellow','vsc'].includes(this.control.flag)&&this.control.cooldown<=0){penalty+=3;this.control.cooldown=5;}if(penalty){this.time+=penalty;this.penalties+=penalty;this.emit('penalty',{seconds:penalty,reason:this.control.flag==='vsc'?'VSC':'yellow'});}
     if(this.time-this.lastRecord>=.08&&p.progress<this.nextLap){this.recording.push({t:this.currentLapTime,s:clamp(p.progress-(this.nextLap-tr.length),0,tr.length),x:p.offset,v:p.speed,a:p.angle,l:p.lean,wx:p.x,wz:p.z,h:p.heading});this.lastRecord=this.time;}
     if(p.progress>=this.nextLap){

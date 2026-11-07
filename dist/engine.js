@@ -464,9 +464,9 @@ function tube(g,points,radii,color,surface=7,sides=12){
 
 
 export function buildBike(renderer,color=[1,.235,.085],number=27,detail=1,style='factory',livery='factory'){return allocateScene(renderer,scope=>createImportedBike(scope,color,number,detail,style,livery));}
-export function bikeParts(bike,matrix,travel=0,turn=0,speed=0,lean=0,crash=0,fallSign=1){
+export function bikeParts(bike,matrix,travel=0,turn=0,speed=0,lean=0,crash=0,fallSign=1,riderMatrix=null){
   if(!bike)return [];
-  const fall=crash>0?multiply(matrix,modelMatrix([fallSign*Math.min(1.5,(2.5-crash)*.8),-.02,-.3],0,fallSign*.7,0)):matrix;
+  const fall=riderMatrix||(crash>0?multiply(matrix,modelMatrix([fallSign*Math.min(1.5,(2.5-crash)*.8),-.02,-.3],0,fallSign*.7,0)):matrix);
   const steeringAngle=clamp(Math.atan(turn*(bike.wheelbase??1.49)/Math.max(1,speed)),-.38,.38),pivot=bike.steeringPivot||[0,.326,.745],steeringMatrix=multiply(matrix,multiply(modelMatrix(pivot,steeringAngle),modelMatrix(pivot.map(v=>-v))));
   return[{mesh:bike.mesh,matrix},...(bike.steering?[{mesh:bike.steering,matrix:steeringMatrix}]:[]),...(bike.rider?[{mesh:bike.rider,matrix:fall,rider:true,lean}]:[]),...bike.wheels.map(w=>({mesh:w.mesh,matrix:multiply(matrix,modelMatrix([0,w.radius,w.z],w.front?clamp(Math.atan(turn*(bike.wheelbase??1.49)/Math.max(1,speed)),-.38,.38):0,0,travel/w.radius))})),...(bike.decals||[]).map(d=>({...d,matrix})),...(bike.riderDecals||[]).map(d=>({...d,matrix:fall,rider:true,lean})),{mesh:bike.glass,matrix,alpha:.34}];
 }

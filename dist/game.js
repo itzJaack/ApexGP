@@ -3,6 +3,7 @@ import {mountSocialUI} from './social-ui.js';
 import {lobbyPlayersHTML} from './social-view.js';
 import {mountAccounts} from './accounts.js';
 import {MotorAudio} from './audio.js';
+import {animateFallenRider} from './rider-skin.js';
 import {prepareModelAssets,modelAssetInfo} from './models.js';
 import {MultiplayerClient} from './cloud-multiplayer.js';
 import {ONLINE_CONFIG} from './online-config.js';
@@ -14,7 +15,7 @@ import {seasonStandings} from './championship.js';
 import {RaceNotices} from './race-notices.js?v=4.4.1';
 import {BIKES,TRACKS,Circuit,RaceModel,clamp,lerp,mod,formatTime,wrapAngle,gearSpeedStep} from './simulation.js?v=4.5.0';
 import {circuitRecordKey,validRecordKey} from './records.js';
-import {Renderer,buildWorld,buildBike,bikeParts,modelMatrix} from './engine.js';
+import {Renderer,buildWorld,buildBike,bikeParts,modelMatrix,multiply,identity} from './engine.js';
 import {DrivingControls,bindTouchControls} from './controls.js';
 import {disposeBike,disposeWorld,AssetTransition} from './runtime.js';
 import {mountMobileUI} from './mobile.js';
@@ -154,6 +155,7 @@ function handleEvents(){
     if(event.type==='offtrack')warning('offtrack','FUORI PISTA','Rallenta e rientra in sicurezza');
     if(event.type==='contact')warning('contact','CONTATTO','Lascia spazio agli altri piloti');
     if(event.type==='crash'){warning('crash','CADUTA',event.kind==='wheelie'?'Troppo sterzo in impennata':'Impatto ad alta velocità','danger');if(settings.mode==='lan')lan.send({type:'incident',severity:event.severity||1});}
+    if(event.type==='botCrash'&&Math.abs(mod(event.progress-race.player.progress+track.length/2,track.length)-track.length/2)<90)warning('bot-crash','PILOTA A TERRA',event.name+' · attenzione al passaggio','warning');
     if(event.type==='reset'){warning('reset','RIENTRO IN PISTA · +2 s','Penalità aggiunta al tempo di gara','penalty','penalty');if(settings.mode==='lan')lan.send({type:'reset'});}
     if(event.type==='penalty')penaltyWarning(event.seconds,event.reason);
     if(event.type==='restart')warning('restart','RIPARTENZA','Pista libera','success','info');
@@ -202,7 +204,7 @@ function updateHUD(){
   const rpm=mod(p.speed*3.6,gearSpeedStep(race.options.bike))/gearSpeedStep(race.options.bike);document.querySelectorAll('#rpm-bars i').forEach((b,i)=>b.classList.toggle('on',i/18<.25+rpm*.75));
   $('steering-value').textContent=input.steering>.01?'←':input.steering<-.01?'→':'—';$('steering-value').style.color=Math.abs(input.steering)>.01?'#ff6033':'#f3f3ef';
   if(settings.mode==='race'||settings.mode==='lan'){
-    const order=race.order,leader=order[0];$('leaderboard').innerHTML=order.map((r,i)=>leaderRow(r,i,i===0?'LEADER':r.finishTime!==null?'FINISH':`+${Math.max(0,(leader.progress-r.progress)/Math.max(20,r.speed)).toFixed(1)}`)).join('');
+    const order=race.order,leader=order[0];$('leaderboard').innerHTML=order.map((r,i)=>leaderRow(r,i,r.crash>0?'A TERRA':i===0?'LEADER':r.finishTime!==null?'FINISH':`+${Math.max(0,(leader.progress-r.progress)/Math.max(20,r.speed)).toFixed(1)}`)).join('');
   }else $('leaderboard').innerHTML=`<div class="leader-row me"><span class="rank">TT</span><span class="rider-name">${escapeText(career.profile.name)}</span><span class="gap">TIME ATTACK</span></div><div class="leader-row"><span class="rider-name">${ghostRecord?'GHOST PERSONALE':'IL TUO PRIMO RECORD'}</span><span class="gap">${ghostRecord?formatTime(ghostRecord.time):'—'}</span></div>`;
   const guide=racingLine.hint,corner=track.sample(p.progress+30).k,hint=$('corner-hint');
   const action=guide?.action||'accelerate',target=Math.round((guide?.target||0)*3.6);
@@ -226,11 +228,19 @@ function drawRain(time){
   const count=settings.quality==='low'?55:120;for(let i=0;i<count;i++){const x=mod(i*137.17-time*.14,w+200)-100,y=mod(i*87.71+time*.75,h+60)-30;rainContext.moveTo(x,y);rainContext.lineTo(x-6,y+19);}rainContext.stroke();
 }
 function localPosition(point,x,y,z){return[point.x+Math.cos(point.yaw)*x+Math.sin(point.yaw)*z,y+(point.y||0),point.z-Math.sin(point.yaw)*x+Math.cos(point.yaw)*z];}
-function riderPoint(r){const q=track.sample(r.progress,r.offset);if(r.isPlayer||r.isRemote){q.x=r.x;q.z=r.z;}return q;}
+function riderPoint(r){const q=track.sample(r.progress,r.offset);if(Number.isFinite(r.x)&&Number.isFinite(r.z)){q.x=r.x;q.z=r.z;}return q;}
 function drawRaceFlags(){if(!world.flagMeshes)return;for(const post of world.flagPosts){let flag=race?.control.flag||'green';if(flag==='green'&&race?.control.info(race).flag==='blue')flag='blue';if(flag==='yellow'&&!race.control.applies({progress:post.progress},track))flag='green';renderer.draw(world.flagMeshes[flag]||world.flagMeshes.green,post.matrix);}}
 function drawParts(parts,alpha=1){for(const p of parts)renderer.draw(p.mesh,p.matrix,(p.alpha??1)*alpha,p.texture||null,p.lean||0,!!p.rider);}
 function bikeFor(r){return r.isPlayer?playerBike:r.isRemote?peerBikes.get(r.id):botBikes[race.bots.indexOf(r)];}
-function riderParts(r,bike){const q=riderPoint(r),pitch=(r.isPlayer||r.isRemote?r.pitch||0:0)-Math.atan((q.grade||0)*Math.cos(r.angle||0)),height=(q.y||0)+.025+Math.abs(Math.sin(pitch))*.745;return bikeParts(bike,modelMatrix([q.x,height,q.z],r.isPlayer||r.isRemote?r.heading:q.yaw,r.crash>0?-(r.fallSign||1)*1.28:-r.lean,pitch),r.isPlayer?r.wheelTravel:r.travel??r.progress,r.turnRate||q.k*r.speed,r.speed,r.lean,r.crash||0,r.fallSign||1);}
+function riderParts(r,bike){
+  animateFallenRider(renderer,bike,r.fall||null);
+  if(r.fall){
+    const b=r.fall.bike,matrix=multiply(modelMatrix([b.x,b.y,b.z],b.yaw,b.roll,b.pitch),modelMatrix([0,-.55,0]));
+    return bikeParts(bike,matrix,r.wheelTravel||r.travel||0,0,r.speed,0,r.crash,r.fallSign,identity());
+  }
+  const q=riderPoint(r),pitch=(r.pitch||0)-Math.atan((q.grade||0)*Math.cos(r.angle||0)),height=(q.y||0)+.025+Math.abs(Math.sin(pitch))*.745;
+  return bikeParts(bike,modelMatrix([q.x,height,q.z],r.heading??q.yaw,r.crash>0?-(r.fallSign||1)*1.28:-r.lean,pitch),r.isPlayer?r.wheelTravel:r.travel??r.progress,r.turnRate||q.k*r.speed,r.speed,r.lean,r.crash||0,r.fallSign||1);
+}
 function renderMenu(dt){
   menuTime+=dt;const p=track.sample(-14),mobile=innerWidth<650,orbit=reducedMotion?0:Math.sin(menuTime*.12)*.16;
   const eye=localPosition(p,mobile?-4.9:-4.7,mobile?2.0:1.85,mobile?6.8:5.65),target=localPosition(p,mobile?-.8:-2.2,mobile?1.1:1.0,0);eye[0]+=orbit;
@@ -242,9 +252,10 @@ function renderMenu(dt){
 function renderRace(dt){
   racingLine.update(race,{dt:localPause||race.state==='paused'?0:dt,visible:settings.line});
   if(settings.line&&!renderer.compat)renderer.updateMesh(world.line,racingLine.geometry);
-  const p=race.player,point=riderPoint(p),yaw=p.heading;
+  const p=race.player,point=riderPoint(p),yaw=p.fall&&Math.hypot(p.fall.bike.vx,p.fall.bike.vz)>2?Math.atan2(p.fall.bike.vx,p.fall.bike.vz):p.heading;
+  if(p.fall){point.x=(point.x+p.fall.points[0].p[0])*.5;point.z=(point.z+p.fall.points[0].p[2])*.5;}
   const front={...point,yaw},speedRatio=clamp(p.speed/88,0,1);let eye,target,fov,roll=0;
-  if(cameraMode===0){
+  if(cameraMode===0||p.fall){
     const desired=localPosition(front,0,2.3+speedRatio*.65,-5.5-speedRatio*1.3),look=localPosition(front,0,1.00,7+speedRatio*5);
     if(!camera)camera={eye:desired,target:look,heading:yaw};camera.heading+=wrapAngle(yaw-camera.heading)*(1-Math.exp(-dt*4.8));const follow={...point,yaw:camera.heading};const followEye=localPosition(follow,0,2.3+speedRatio*.65,-5.5-speedRatio*1.3);desired.splice(0,3,...followEye);const t=race.state==='paused'?0:Math.min(1,dt*9);camera.eye=camera.eye.map((v,i)=>lerp(v,desired[i],t));camera.target=camera.target.map((v,i)=>lerp(v,look[i],t));eye=camera.eye;target=camera.target;fov=.97+speedRatio*.13;roll=reducedMotion?0:-p.lean*.07;
   }else{eye=localPosition(front,.10*Math.sin(p.lean),1.28,.25);target=localPosition(front,0,1.24,25);fov=1.18;roll=reducedMotion?0:-p.lean*.28;}

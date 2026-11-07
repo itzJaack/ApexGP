@@ -141,15 +141,17 @@ test('a stopped bike can accelerate and steer out of gravel without using reset'
 
 test('complete races on every circuit: laps, AI order, finish times and reusable ghost',()=>{
   for(const config of TRACKS){
-    const track=new Circuit(config),race=new RaceModel(track,{laps:2});race.countdown=0;
+    const track=new Circuit(config),race=new RaceModel(track,{laps:2,botSeed:27});race.countdown=0;
     const lapEvents=[];
-    for(let frame=0;frame<40000&&race.state!=='finished';frame++){
+    // Physical incidents can suspend the clock and require a recovery. Keep
+    // those enabled, with a reproducible field and enough wall time for flags.
+    for(let frame=0;frame<60000&&race.state!=='finished';frame++){
       const p=race.player;
       race.update(1/120,drive(race));
       for(const event of race.events.splice(0))if(event.type==='lap')lapEvents.push(event);
       assert(Object.entries(p).filter(([,v])=>typeof v==='number').every(([,v])=>Number.isFinite(v)));
     }
-    assert.equal(race.state,'finished');assert.equal(race.lapTimes.length,2);assert.equal(lapEvents.length,2);
+    assert.equal(race.state,'finished',config.name);assert.equal(race.lapTimes.length,2);assert.equal(lapEvents.length,2);
     assert(Math.abs(race.lapTimes.reduce((a,b)=>a+b)-race.player.finishTime)<.001);
     assert(race.position>=1&&race.position<=8);assert.equal(race.order.length,8);
     for(const event of lapEvents){assert(event.recording.length>500);assert.equal(event.recording.at(-1).s,track.length);for(let i=1;i<event.recording.length;i++){assert(event.recording[i].s>=0&&event.recording[i].s<=track.length);assert(event.recording[i].t>=event.recording[i-1].t);}}
