@@ -7,9 +7,19 @@ import {Geometry,lookAt,perspective,multiply,modelMatrix} from '../dist/engine.j
 // circuit-following correction to the human rider.
 function drive(race,pace=.88){
   const p=race.player,t=race.track,grip=(race.options.weather==='rain'?.74:1)*race.options.bike.grip;
-  const ahead=t.sample(p.progress+Math.max(14,p.speed*.85));
+  let offset=0,target=t.targetSpeed(p.progress,grip,pace);
+  // The test driver now shares the road with a full field: observe cautions
+  // and slower traffic rather than driving through opponents on the centre.
+  for(const bot of race.bots){
+    if(bot.finishTime!==null||bot.dnf)continue;
+    const gap=bot.progress-p.progress;
+    if(gap<=0||gap>Math.max(15,p.speed*1.2)||Math.abs(bot.offset-p.offset)>1.3)continue;
+    if(bot.crash>0){offset=bot.offset+(bot.offset>0?-2.2:2.2);target=Math.min(target,20);}
+    else target=Math.min(target,Math.sqrt(bot.speed**2+20*Math.max(0,gap-5)));
+  }
+  if(race.control.flag==='vsc'||race.control.flag==='yellow'&&race.control.applies(p,t))target=Math.min(target,24);
+  const ahead=t.sample(p.progress+Math.max(14,p.speed*.85),offset);
   const wanted=Math.atan2(ahead.x-p.x,ahead.z-p.z),error=wrapAngle(wanted-p.heading);
-  const target=t.targetSpeed(p.progress,grip,pace);
   return {throttle:p.speed<target,brake:p.speed>target+1.5,left:error>.025,right:error<-.025};
 }
 
@@ -153,7 +163,7 @@ test('complete races on every circuit: laps, AI order, finish times and reusable
     }
     assert.equal(race.state,'finished',config.name);assert.equal(race.lapTimes.length,2);assert.equal(lapEvents.length,2);
     assert(Math.abs(race.lapTimes.reduce((a,b)=>a+b)-race.player.finishTime)<.001);
-    assert(race.position>=1&&race.position<=8);assert.equal(race.order.length,8);
+    assert(race.position>=1&&race.position<=20);assert.equal(race.order.length,20);
     for(const event of lapEvents){assert(event.recording.length>500);assert.equal(event.recording.at(-1).s,track.length);for(let i=1;i<event.recording.length;i++){assert(event.recording[i].s>=0&&event.recording[i].s<=track.length);assert(event.recording[i].t>=event.recording[i-1].t);}}
   }
 });

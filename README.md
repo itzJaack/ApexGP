@@ -1,14 +1,34 @@
-# ApexGP 4.6.0
+# ApexGP 4.7.0
 
 Gioco di corse in moto 3D per browser. **[Gioca su GitHub Pages](https://itzjaack.github.io/ApexGP/)** · [Sorgenti e aggiornamenti](https://github.com/itzJaack/ApexGP).
 
 ## Avversari, contatti e cadute
 
-Nelle gare singole e nel World Tour i sette avversari hanno caratteri diversi:
+Nelle gare singole e nel World Tour i 19 avversari hanno caratteri diversi:
 attaccante, prudente, opportunista, difensore, regolare, irruento e calcolatore.
 Scelgono quando attaccare, difendere o rinunciare in base al traffico; reagiscono
 alle moto ferme e a terra. Punti di frenata, reazioni, fiducia e pressione cambiano
 le decisioni. Gli errori diminuiscono aumentando il livello.
+
+La griglia comprende 20 piloti. Frenata, percorrenza, accelerazione, settori
+preferiti e sfruttamento della scia fanno cambiare i rapporti di forza durante
+il giro. I piloti valutano lo spazio futuro per attaccare o rinunciare. Anche
+le griglie multiplayer con bot arrivano a 20; restano disponibili otto posti umani.
+
+Gli scenari dei 14 circuiti includono dati OpenStreetMap memorizzati offline:
+impronte di edifici e tribune, boschi, alberi, strade di servizio, parcheggi,
+recinzioni e illuminazione. Gli alberi dei boschi sono distribuiti nei poligoni
+mappati; le altezze non disponibili, le facciate e l'arredo sono approssimati.
+Estratti e provenienza sono in `art/references/scenery/`; `npm run build`
+li converte con la stessa proiezione della pista. Attribuzione e ODbL sono
+indicati nella pagina Fonti del gioco. Terreno e quote della pista usano una
+griglia offline Copernicus DEM GLO-90 via Open-Meteo, campionata a 120–240 m.
+La stessa superficie guida edifici, alberi e altimetria del circuito.
+
+I retrovisori mostrano la scena e gli avversari dietro alla moto: entrambi,
+solo sinistro, solo destro, centrale panoramico oppure spenti. Si scelgono in
+Impostazioni o si cambiano durante la gara con ↔ / V. In Prestazioni usano
+immagini più piccole e un aggiornamento a 10 Hz; la vista principale rimane indipendente.
 
 I contatti locali considerano la sagoma allungata della moto, gli spostamenti
 fra due passi della simulazione, la massa, la velocità relativa e il punto colpito.
@@ -20,7 +40,7 @@ La bandiera rossa ferma tutti prima del conto alla rovescia. Anche i bot LAN e
 online ripartono da zero: la ripartenza non riutilizza la velocità precedente.
 Il client completo versionato viene generato da `npm run build`.
 
-La versione attuale è **4.5.0**. Lo storico delle novità si trova in fondo a **Impostazioni → Changelog**, con l’ultima release aperta e le precedenti espandibili. È disponibile anche in [CHANGELOG.md](CHANGELOG.md).
+La versione attuale è **4.7.0**. Lo storico delle novità si trova in fondo a **Impostazioni → Changelog**, con l’ultima release aperta e le precedenti espandibili. È disponibile anche in [CHANGELOG.md](CHANGELOG.md).
 
 ## Bandiere e avvisi di gara
 

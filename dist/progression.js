@@ -35,8 +35,8 @@ export function normalizeProfile(raw = {}) {
 }
 
 export function racePrize({position = 8, laps = 2, mode = 'race', difficulty = 'rookie', clean = false} = {}) {
-  if (!Number.isInteger(position) || position < 1 || position > 8 || !Number.isFinite(laps)) return 0;
-  const base = mode === 'time' ? 1000 : [4600, 3600, 2900, 2400, 2100, 1800, 1500, 1300][position - 1];
+  if (!Number.isInteger(position) || position < 1 || position > 20 || !Number.isFinite(laps)) return 0;
+  const base = mode === 'time' ? 1000 : ([4600,3600,2900,2400,2100,1800,1500,1300][position-1]??Math.max(350,1250-(position-8)*70));
   const multiplier = mode === 'race' && Object.hasOwn(DIFFICULTIES, difficulty) ? DIFFICULTIES[difficulty].multiplier : 1;
   return Math.round((base + clamp(Math.floor(laps), 1, 5) * 450 + (clean ? 650 : 0)) * multiplier);
 }

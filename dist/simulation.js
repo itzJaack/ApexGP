@@ -4,6 +4,8 @@ import {BIKE_IDENTITIES,TRACK_IDENTITIES} from './catalog.js?v=4.5.0';
 import {CIRCUIT_LAYOUTS} from './circuit-layouts.js';
 import {RiderAI} from './rider-ai.js';
 import {RiderContacts,RiderFall} from './rider-physics.js';
+import {BOT_DRIVERS,BOT_COLORS,GRID_SIZE,gridPlace} from './rider-roster.js';
+import {fitRoadElevations} from './elevation.js';
 export const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
 export const lerp = (a,b,t)=>a+(b-a)*t;
 export const mod = (a,b)=>(a%b+b)%b;
@@ -50,13 +52,17 @@ export class Circuit{
     const span=config.layoutVersion?Math.max(1,Math.round(10/this.step)):1;
     for(let i=0;i<this.count;i++)this.nodes[i].k=wrapAngle(this.nodes[mod(i+span,this.count)].yaw-this.nodes[mod(i-span,this.count)].yaw)/(this.step*span*2);
     this.bounds={minX:Math.min(...this.nodes.map(p=>p.x)),maxX:Math.max(...this.nodes.map(p=>p.x)),minZ:Math.min(...this.nodes.map(p=>p.z)),maxZ:Math.max(...this.nodes.map(p=>p.z))};
+    if(config.terrainGrid){const fitted=fitRoadElevations(config,this.nodes,this.step);this.roadHeights=fitted.heights;this.elevationOffset=fitted.offset;}
   }
   sample(s,offset=0){
     const f=mod(s,this.length)/this.step,i=Math.floor(f),t=f-i,a=this.nodes[i],b=this.nodes[(i+1)%this.count];
     const yaw=a.yaw+wrapAngle(b.yaw-a.yaw)*t,tx=Math.sin(yaw),tz=Math.cos(yaw);
     const fraction=mod(s,this.length)/this.length,profile=this.config.elevationProfile;
     let y=0,grade=0;
-    if(profile){
+    if(this.config.terrainGrid){
+      y=lerp(this.roadHeights[i],this.roadHeights[(i+1)%this.count],t);
+      grade=(this.roadHeights[(i+1)%this.count]-this.roadHeights[i])/this.step;
+    }else if(profile){
       const end=profile.findIndex(p=>p[0]>fraction),a=profile[Math.max(0,end-1)],b=profile[end<0?profile.length-1:end];
       const span=b[0]-a[0],u=span?(fraction-a[0])/span:0;
       y=lerp(a[1],b[1],u*u*(3-2*u));grade=span?(b[1]-a[1])*6*u*(1-u)/(span*this.length):0;
@@ -85,15 +91,14 @@ export class Circuit{
   }
   nearestDistance(x,z){let best=Infinity;for(let i=0;i<this.count;i+=4)best=Math.min(best,Math.hypot(this.nodes[i].x-x,this.nodes[i].z-z));return best;}
 }
-const botNames=['L. ROSSI','M. SERRA','A. TORRES','D. COSTA','N. MARTIN','E. MORETTI','S. HAYES'];
-const botColors=[[.12,.48,.96],[.82,.06,.12],[.85,.82,.18],[.15,.72,.52],[.73,.2,.65],[.88,.88,.84],[.1,.63,.8]];
 export class RaceModel{
   constructor(circuit,options={}){
     this.control=new RaceControl();this.crashes=0;this.contacts=0;this.offtrackEvents=0;this.track=circuit;this.options={mode:'race',laps:3,difficulty:'sport',weather:'sunset',assist:true,tcs:true,bike:BIKES[0],...options};
     this.state='countdown';this.countdown=3.6;this.time=0;this.penalties=0;this.events=[];this.lapTimes=[];this.lapStart=0;this.nextLap=circuit.length;this.recording=[];this.lastRecord=-1;this.bestLap=Infinity;this.bestRecording=null;this.messageCooldown=0;
     this.player={name:'JACK',color:this.options.bike.rgb,progress:this.options.mode==='race'?-48:-10,offset:this.options.mode==='race'?1.65:0,speed:0,angle:0,lean:0,rollRate:0,turnRate:0,wheelie:0,wheelieRate:0,brakeHeat:0,tcs:false,wheelTravel:0,steer:0,throttle:0,brake:0,acceleration:0,pitch:0,shiftTimer:0,grip:1,risk:0,crash:0,finishTime:null,isPlayer:true,gear:1,slipstream:false};
+    if(this.options.mode==='race')Object.assign(this.player,gridPlace(GRID_SIZE-1));
     this.placePlayer();
-    this.bots=this.options.mode==='race'?botNames.map((name,i)=>({name,color:botColors[i],progress:-i*6.6,offset:(i%2===0?-1.65:1.65),speed:0,lean:0,phase:i*2.37,pace:1-i*.014,finishTime:null,number:[46,63,89,23,12,21,41][i],isPlayer:false})):[];
+    this.bots=this.options.mode==='race'?BOT_DRIVERS.map((driver,i)=>({...driver,color:BOT_COLORS[i%BOT_COLORS.length],...gridPlace(i),speed:0,lean:0,phase:i*2.37,finishTime:null,isPlayer:false})):[];
     this.runId=`${Date.now()}-${Math.random().toString(36).slice(2)}`;this.riders=[this.player,...this.bots];this.collisionCooldown=0;this.ghost=null;
     this.botAI=new RiderAI(circuit,this.options,this.options.botSeed??this.runId);
     this.bots.forEach((b,i)=>{b.id='bot-'+i;b.mass=BIKES[i%BIKES.length].mass;this.botAI.attach(b,i);});
@@ -107,12 +112,12 @@ export class RaceModel{
   placePlayer(){const p=this.player,q=this.track.sample(p.progress,p.offset);p.x=q.x;p.z=q.z;p.heading=wrapAngle(q.yaw+p.angle);p.y=q.y||0;}
   resetPlayer(){const p=this.player;p.offset=0;p.angle=0;p.speed=Math.min(p.speed,18);p.crash=0;p.fall=null;p.risk=0;p.lean=0;p.rollRate=0;p.turnRate=0;p.steer=0;p.acceleration=0;p.pitch=0;p.wheelie=0;p.wheelieRate=0;p.impactVX=p.impactVZ=p.impactYaw=0;p.invulnerable=1.5;this.placePlayer();this.time+=2;this.penalties+=2;this.emit('reset');}
   crashPlayer(kind='wheelie',severity=1,impact={}){return this.crashRider(this.player,{...impact,kind},severity);}
-  crashRider(rider,impact={},severity=1){
+  crashRider(rider,impact={},severity=1,reportIncident=true){
     if(rider.crash>0||rider.finishTime!==null)return false;
     rider.fall=new RiderFall(rider,this.track,{...impact,wet:this.options.weather==='rain'});rider.crash=rider.fall.duration;rider.fallSign=rider.fall.sign;rider.wheelie=0;rider.wheelieRate=0;
     if(rider.isPlayer){this.crashes++;this.emit('crash',{kind:impact.kind,severity});}
     else{this.botCrashes++;rider.ai.confidence=.60;this.emit('botCrash',{id:rider.id,name:rider.name,progress:rider.progress,kind:impact.kind,severity});}
-    if(this.control.flag!=='red')this.control.incident(rider.progress,severity);
+    if(reportIncident&&this.control.flag!=='red')this.control.incident(rider.progress,severity);
     return true;
   }
   updateFall(rider,dt){
@@ -147,12 +152,15 @@ export class RaceModel{
   handleContact(a,b,impactA,impactB){
     this.totalContacts++;
     if(a.isPlayer||b.isPlayer){this.contacts++;this.collisionCooldown=.65;this.emit('contact');}
+    let fallen=false;const severity=impactA.closingSpeed>24?2:1;
     for(const [r,impact]of[[a,impactA],[b,impactB]]){
       if(r.ai){r.ai.confidence=Math.max(.5,r.ai.confidence-.12);r.ai.decisionAt=this.time;}
       const side=Math.abs(impact.normalX*Math.cos(r.heading)-impact.normalZ*Math.sin(r.heading));
       const threshold=3.9-Math.min(.8,Math.abs(r.lean||0))*1.3-side*.65;
-      if(impact.deltaV>threshold||r.wheelie>.12&&impact.deltaV>2.1)this.crashRider(r,impact,impact.closingSpeed>24?2:1);
+      if(impact.deltaV>threshold||r.wheelie>.12&&impact.deltaV>2.1)fallen=this.crashRider(r,impact,severity,false)||fallen;
     }
+    // Two riders in the same collision are one incident for race control.
+    if(fallen&&this.control.flag!=='red')this.control.incident((a.progress+b.progress)/2,severity);
   }
   update(dt,input={}){
     dt=clamp(dt,0,.05);if(dt<=0||this.state==='paused'||this.state==='finished')return;

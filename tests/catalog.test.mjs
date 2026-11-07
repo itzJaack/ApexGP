@@ -31,7 +31,8 @@ test('Mugello has a straight run to San Donato and its actual ordered 15-corner 
   assert(Math.abs(wrapAngle(a.yaw-b.yaw))<.15, 'The main straight must not become an invented chicane');
   assert(Math.hypot(a.x-b.x,a.z-b.z)>416, 'Keep almost the full 420 m straight-line separation');
   const high=config.corners[2],low=config.corners[7];
-  assert(circuit.sample(high.s).y-circuit.sample(low.s).y>45);
+  // The sampled DEM replaces the previous hand-drawn 50 m difference.
+  assert(circuit.sample(high.s).y-circuit.sample(low.s).y>25);
   const refs=JSON.parse(fs.readFileSync(new URL('../art/references/circuits.json',import.meta.url)));
   assert(refs.find(t=>t.id==='alpine').source.ways.includes('1077423714'),'Use the MotoGP chicane, not the F1 layout');
 });

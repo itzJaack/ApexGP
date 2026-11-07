@@ -4,6 +4,7 @@ import {lobbyPlayersHTML} from './social-view.js';
 import {mountAccounts} from './accounts.js';
 import {MotorAudio} from './audio.js';
 import {animateFallenRider} from './rider-skin.js';
+import {RearViews,MIRROR_MODES,MIRROR_LABELS} from './mirrors.js';
 import {prepareModelAssets,modelAssetInfo} from './models.js';
 import {MultiplayerClient} from './cloud-multiplayer.js';
 import {ONLINE_CONFIG} from './online-config.js';
@@ -30,6 +31,7 @@ const safeWrite=(key,value)=>{if(applyingSnapshot)return;if(accountUI?.active&&[
 const clock=t=>t<=0?'00:00.000':formatTime(t);
 const stored=safeRead('apexgp.settings.v1',{});
 const settings={line:true,assist:true,tcs:true,audio:true,volume:45,quality:'low',touch:'auto',touchSteering:'buttons',tiltCalibration:null,autoThrottle:true,track:0,bike:0,mode:'race',weather:'sunset',laps:3,difficulty:'sport',...stored};
+if(!MIRROR_MODES.includes(settings.mirrors))settings.mirrors='both';
 if(!['high','low'].includes(settings.quality)||new URLSearchParams(location.search).get('quality')==='low')settings.quality='low';
 if(!['auto','on','off'].includes(settings.touch))settings.touch='auto';
 settings.touchSteering=tiltMode(settings.touchSteering);
@@ -43,7 +45,7 @@ if(!['rookie','sport','pro'].includes(settings.difficulty))settings.difficulty='
 if(![2,3,5].includes(Number(settings.laps)))settings.laps=3;
 const records=safeRead('apexgp.records.v4',{}),controls=new DrivingControls(),input=controls.state;
 let touchInput=null,mobileUI=null,tiltUI=null,keyboardDriving=false,careerUI=null,raceMap=null;
-let renderer,world,track,racingLine,playerBike,botBikes=[],ghostBike,race=null,page='race',cameraMode=0,lastFrame=0,accumulator=0,hudAt=0,menuTime=0,frameId=0,lastCountdown=-1,camera=null,ghostRecord=null,telemetryAt=0;
+let renderer,mirrors,world,track,racingLine,playerBike,botBikes=[],ghostBike,race=null,page='race',cameraMode=0,lastFrame=0,accumulator=0,hudAt=0,menuTime=0,frameId=0,lastCountdown=-1,camera=null,ghostRecord=null,telemetryAt=0;
 const reducedMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
 const notices=new RaceNotices({flagPanel:$('flag-panel'),messagePanel:$('race-message')});
 
@@ -137,7 +139,7 @@ function startRace(networkConfig=null){
   ghostRecord=settings.mode==='time'?readRecord():null;if(ghostRecord)ghostBike=ghostBike||buildBike(renderer,[.37,.80,.93],0,.65,BIKES[settings.bike].style);else{freeBike(ghostBike);ghostBike=null;}
   for(const b of botBikes)freeBike(b);botBikes=race.bots.map((b,i)=>buildBike(renderer,b.color,b.number,.45,BIKES[i%BIKES.length].style));
   show('menu',false);show('pause-overlay',false);show('result-overlay',false);show('hud');show('countdown');lastCountdown=-1;camera=null;cameraMode=0;accumulator=0;notices.clear();
-  $('surface-label').textContent=settings.weather==='rain'?'BAGNATO · GRIP RIDOTTO':'ASCIUTTO';$('position-total').textContent=settings.mode==='lan'?`/ ${lanRound.players.length+(lanRound.bots?.length||0)}`:settings.mode==='race'?'/ 8':'SOLO';$('position').textContent=settings.mode==='race'?'8':'1';
+  $('surface-label').textContent=settings.weather==='rain'?'BAGNATO · GRIP RIDOTTO':'ASCIUTTO';$('position-total').textContent=settings.mode==='lan'?`/ ${lanRound.players.length+(lanRound.bots?.length||0)}`:settings.mode==='race'?`/ ${race.riders.length}`:'SOLO';$('position').textContent=settings.mode==='race'?String(race.riders.length):'1';
   sound.start();$('world').focus({preventScroll:true});lastFrame=performance.now();if(lanRound)race.countdown=Math.max(.02,(lanRound.startAt-lan.now())/1000);racingLine.update(race,{visible:settings.line});updateHUD();
 }
 function backToMenu(){notices.clear();const wasCareer=!!race?.careerRound;const wasLan=race?.options.mode==='lan';if(wasLan)lan.leave();freeRaceAssets();lanLatest=null;localPause=false;race=null;clearInput();sound.tick(null);show('hud',false);show('pause-overlay',false);show('result-overlay',false);show('menu');camera=null;if(wasLan)setMode('race');setPage(wasCareer?'career':'race');refreshCareer();$('start-button').focus({preventScroll:true});lastSocialPresence='';socialUI?.presenceChanged();}
@@ -204,7 +206,12 @@ function updateHUD(){
   const rpm=mod(p.speed*3.6,gearSpeedStep(race.options.bike))/gearSpeedStep(race.options.bike);document.querySelectorAll('#rpm-bars i').forEach((b,i)=>b.classList.toggle('on',i/18<.25+rpm*.75));
   $('steering-value').textContent=input.steering>.01?'←':input.steering<-.01?'→':'—';$('steering-value').style.color=Math.abs(input.steering)>.01?'#ff6033':'#f3f3ef';
   if(settings.mode==='race'||settings.mode==='lan'){
-    const order=race.order,leader=order[0];$('leaderboard').innerHTML=order.map((r,i)=>leaderRow(r,i,r.crash>0?'A TERRA':i===0?'LEADER':r.finishTime!==null?'FINISH':`+${Math.max(0,(leader.progress-r.progress)/Math.max(20,r.speed)).toFixed(1)}`)).join('');
+    const order=race.order,leader=order[0],mine=order.indexOf(p);let previous=-1;
+    $('leaderboard').innerHTML=order.map((r,i)=>{
+      if(order.length>10&&i>1&&i!==order.length-1&&Math.abs(i-mine)>2)return '';
+      const gap=i>previous+1?'<div class="leader-skip" aria-hidden="true">···</div>':'';previous=i;
+      return gap+leaderRow(r,i,r.crash>0?'A TERRA':i===0?'LEADER':r.finishTime!==null?'FINISH':`+${Math.max(0,(leader.progress-r.progress)/Math.max(20,r.speed)).toFixed(1)}`);
+    }).join('');
   }else $('leaderboard').innerHTML=`<div class="leader-row me"><span class="rank">TT</span><span class="rider-name">${escapeText(career.profile.name)}</span><span class="gap">TIME ATTACK</span></div><div class="leader-row"><span class="rider-name">${ghostRecord?'GHOST PERSONALE':'IL TUO PRIMO RECORD'}</span><span class="gap">${ghostRecord?formatTime(ghostRecord.time):'—'}</span></div>`;
   const guide=racingLine.hint,corner=track.sample(p.progress+30).k,hint=$('corner-hint');
   const action=guide?.action||'accelerate',target=Math.round((guide?.target||0)*3.6);
@@ -242,6 +249,7 @@ function riderParts(r,bike){
   return bikeParts(bike,modelMatrix([q.x,height,q.z],r.heading??q.yaw,r.crash>0?-(r.fallSign||1)*1.28:-r.lean,pitch),r.isPlayer?r.wheelTravel:r.travel??r.progress,r.turnRate||q.k*r.speed,r.speed,r.lean,r.crash||0,r.fallSign||1);
 }
 function renderMenu(dt){
+  mirrors?.hide();
   menuTime+=dt;const p=track.sample(-14),mobile=innerWidth<650,orbit=reducedMotion?0:Math.sin(menuTime*.12)*.16;
   const eye=localPosition(p,mobile?-4.9:-4.7,mobile?2.0:1.85,mobile?6.8:5.65),target=localPosition(p,mobile?-.8:-2.2,mobile?1.1:1.0,0);eye[0]+=orbit;
   const parts=bikeParts(playerBike,modelMatrix([p.x,p.y||0,p.z],p.yaw,0,0,1.50));
@@ -263,11 +271,16 @@ function renderRace(dt){
   const parts=nearby.map(r=>({r,parts:riderParts(r,bikeFor(r))}));
   const casters=parts.flatMap(o=>o.parts.filter(p=>!p.alpha&&p.shadow!==false));
   renderer.shadowPass(world.mesh,casters,[point.x,point.y||0,point.z],80);
+  mirrors?.render(p,()=>{
+    renderer.draw(world.mesh);
+    for(const b of world.boards)renderer.draw(b.mesh,b.matrix,1,b.texture);
+    for(const o of parts)if(!o.r.isPlayer)drawParts(o.parts);
+  },!p.fall);
   renderer.begin(eye,target,fov,roll);renderer.draw(world.mesh);if(settings.line)renderer.draw(world.line,undefined,.94);for(const b of world.boards)renderer.draw(b.mesh,b.matrix,1,b.texture);
   for(const r of nearby){if(r.isPlayer&&cameraMode===1)continue;const q=riderPoint(r),bike=bikeFor(r);renderer.draw(bike.shadow,modelMatrix([q.x,q.y||0,q.z],q.yaw+(r.angle||0)),.17);}
   for(const o of parts){drawParts(o.r.isPlayer&&cameraMode===1?o.parts.filter(p=>!p.rider):o.parts);}
   const ghost=ghostAt(race.currentLapTime);if(ghost&&ghostBike){const q=track.sample(ghost.s,ghost.x);drawParts(bikeParts(ghostBike,modelMatrix([ghost.wx??q.x,q.y+.035,ghost.wz??q.z],ghost.h??q.yaw+ghost.a,-ghost.l),ghost.s),.28);}
-  drawRaceFlags();renderer.finish();
+  drawRaceFlags();renderer.finish();mirrors?.composite();
 }
 function frame(now){
   const dt=Math.min(.5,lastFrame?Math.max(0,(now-lastFrame)/1000):1/60);lastFrame=now;
@@ -291,6 +304,11 @@ function frame(now){
 function fatal(error){cancelAnimationFrame(frameId);clearInput();if(race&&race.state!=='finished')pause(true);show('loading',false);show('error-overlay');$('error-text').textContent=error?.message||'Il renderer non è riuscito a inizializzarsi. Prova a ricaricare il gioco.';console.error(error);sound.tick(null);}
 
 function setupUI(){
+  mirrors=new RearViews(renderer,$('rearviews'),settings.mirrors);
+  const setMirrors=mode=>{settings.mirrors=mode;mirrors.setMode(mode);$('mirrors-select').value=mode;$('mirror-button').title='Retrovisori: '+MIRROR_LABELS[mode]+' (V)';saveSettings();};
+  $('mirrors-select').value=settings.mirrors;$('mirrors-select').addEventListener('change',()=>setMirrors($('mirrors-select').value));
+  const cycleMirrors=()=>setMirrors(MIRROR_MODES[(MIRROR_MODES.indexOf(settings.mirrors)+1)%MIRROR_MODES.length]);
+  $('mirror-button').addEventListener('click',cycleMirrors);
   renderGarage();
   $('track-select').innerHTML=TRACKS.map((t,i)=>`<option value="${i}">${t.isNew?'NEW · ':''}${t.name}</option>`).join('');
   $('track-select').addEventListener('change',()=>selectTrack(Number($('track-select').value)));
@@ -328,7 +346,7 @@ function setupUI(){
     if(!race)return;if(localPause){if(command==='Escape'||command==='KeyP'){e.preventDefault();pause(false);}return;}if(controls.actionFor(e)){e.preventDefault();if(race.state==='running'||race.state==='countdown'){keyboardDriving=true;controls.keyDown(e);updateInputDisplay();}return;}
     if(e.repeat)return;
     if(command==='Escape'||command==='KeyP'){e.preventDefault();pause(race.options.mode==='lan'?!localPause:race.state!=='paused');}
-    if(command==='KeyC')changeCamera();if(command==='KeyM')toggleSound();if(command==='KeyR'&&race.state==='running')race.resetPlayer();if(command==='KeyF')mobileUI.toggleFullscreen().catch(()=>{});
+    if(command==='KeyC')changeCamera();if(command==='KeyV')cycleMirrors();if(command==='KeyM')toggleSound();if(command==='KeyR'&&race.state==='running')race.resetPlayer();if(command==='KeyF')mobileUI.toggleFullscreen().catch(()=>{});
   });
   document.addEventListener('keyup',e=>{if(controls.keyUp(e))updateInputDisplay();});
   window.addEventListener('blur',()=>{clearInput();if(race&&race.state!=='finished')pause(true);});document.addEventListener('visibilitychange',()=>{if(document.hidden){clearInput();pause(true);}});
@@ -411,7 +429,7 @@ function receiveLanState(state){
   show('lan-room',true);$('lan-room-code').textContent=state.code;show('copy-invite',lan.backend==='supabase');$('lan-latency').textContent=`${Math.round(lan.latency)} ms`;
   const config=TRACKS.find(t=>t.id===state.options.trackId);$('lan-options').textContent=`${config?.name||''} · ${state.options.laps} giri · ${state.options.weather==='rain'?'Pioggia':state.options.weather==='day'?'Sereno':'Tramonto'} · Moto di serie`;
   const bots=state.bots||lan.botRiders();renderLobbyPlayers(state);
-  const mine=state.players.find(p=>p.id===lan.id),editable=state.status==='lobby',host=state.hostId===lan.id;$('lobby-bike').value=mine?.bikeId||BIKES[settings.bike].id;$('lobby-bike').disabled=!editable;$('lobby-track').value=state.options.trackId;$('lobby-track').disabled=!editable||!host;$('lobby-bots').checked=!!state.options.bots;$('lobby-bots').disabled=!editable||!host;$('lobby-bot-count').textContent=state.options.bots?`${bots.length} bot · ${state.players.length} giocatori · griglia da ${state.players.length+bots.length}`:'Riempi la griglia fino a 8 piloti.';$('lobby-edit-note').textContent=editable?(host?'Cambia le scelte senza uscire. Dopo ogni modifica tutti riconfermano Pronto.':'Scegli la tua moto. Circuito e bot vengono gestiti dal creatore. Dopo ogni modifica riconferma Pronto.'):'Le scelte si riaprono nella lobby dopo la gara.';if(editable&&mine){const i=BIKES.findIndex(b=>b.id===mine.bikeId);if(i>=0&&i!==settings.bike)selectBike(i);}$('lan-ready').textContent=mine?.ready?'NON SONO PIÙ PRONTO':'SONO PRONTO';$('lan-ready').setAttribute('aria-pressed',String(!!mine?.ready));$('lan-start').textContent=host?'AVVIA GARA':'ATTENDI IL CREATORE';$('lobby-start-help').textContent=!editable?'La gara è in corso.':!host?'Quando tutti sono pronti, il creatore avvia la gara.':state.players.length<2&&!state.options.bots?'Invita un altro pilota oppure attiva gli avversari IA.':!state.players.every(p=>p.ready)?'Ogni giocatore deve premere “Sono pronto” prima del via.':'Tutti pronti: puoi avviare la gara.';$('lan-ready').disabled=state.status!=='lobby';$('lan-start').disabled=state.status!=='lobby'||state.hostId!==lan.id||state.players.length<2&&!state.options.bots||!state.players.every(p=>p.ready);$('lan-status').textContent=state.status==='lobby'?'Condividi questo codice, oppure copia l’invito per i tuoi amici.':'Gara in corso.';
+  const mine=state.players.find(p=>p.id===lan.id),editable=state.status==='lobby',host=state.hostId===lan.id;$('lobby-bike').value=mine?.bikeId||BIKES[settings.bike].id;$('lobby-bike').disabled=!editable;$('lobby-track').value=state.options.trackId;$('lobby-track').disabled=!editable||!host;$('lobby-bots').checked=!!state.options.bots;$('lobby-bots').disabled=!editable||!host;$('lobby-bot-count').textContent=state.options.bots?`${bots.length} bot · ${state.players.length} giocatori · griglia da ${state.players.length+bots.length}`:'Riempi la griglia fino a 20 piloti.';$('lobby-edit-note').textContent=editable?(host?'Cambia le scelte senza uscire. Dopo ogni modifica tutti riconfermano Pronto.':'Scegli la tua moto. Circuito e bot vengono gestiti dal creatore. Dopo ogni modifica riconferma Pronto.'):'Le scelte si riaprono nella lobby dopo la gara.';if(editable&&mine){const i=BIKES.findIndex(b=>b.id===mine.bikeId);if(i>=0&&i!==settings.bike)selectBike(i);}$('lan-ready').textContent=mine?.ready?'NON SONO PIÙ PRONTO':'SONO PRONTO';$('lan-ready').setAttribute('aria-pressed',String(!!mine?.ready));$('lan-start').textContent=host?'AVVIA GARA':'ATTENDI IL CREATORE';$('lobby-start-help').textContent=!editable?'La gara è in corso.':!host?'Quando tutti sono pronti, il creatore avvia la gara.':state.players.length<2&&!state.options.bots?'Invita un altro pilota oppure attiva gli avversari IA.':!state.players.every(p=>p.ready)?'Ogni giocatore deve premere “Sono pronto” prima del via.':'Tutti pronti: puoi avviare la gara.';$('lan-ready').disabled=state.status!=='lobby';$('lan-start').disabled=state.status!=='lobby'||state.hostId!==lan.id||state.players.length<2&&!state.options.bots||!state.players.every(p=>p.ready);$('lan-status').textContent=state.status==='lobby'?'Condividi questo codice, oppure copia l’invito per i tuoi amici.':'Gara in corso.';
  }
  if(race?.options.mode==='lan'&&state.roundId===race.networkRound){if(race.state!=='finished')race.control.set(state.flag,state.flagRemaining,state.flagZone);const mine=state.players.find(p=>p.id===lan.id);if(mine?.finishTime!==null&&mine?.finishTime!==undefined)race.player.finishTime=mine.finishTime;if(mine&&race.state!=='countdown'&&state.elapsed>0){race.time=state.elapsed+mine.penalties;race.penalties=mine.penalties;}}
 }

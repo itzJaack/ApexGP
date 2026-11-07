@@ -5,14 +5,14 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#101215">
   <meta name="description" content="APEX GP. Entra in pista in un gioco di corse in moto 3D: gare contro avversari, cronometro, 14 circuiti reali, 15 moto, carriera e multiplayer Internet e LAN, con comandi da tastiera o touch.">
-  <title>APEX GP 4.6.0 — Ride the limit</title>
+  <title>APEX GP 4.7.0 — Ride the limit</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23121417'/%3E%3Cpath d='M12 47 30 14h12L28 47zm19 0 12-23h10L41 47z' fill='%23ff6033'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="styles.css?v=4.5.0">
   <link rel="stylesheet" href="accounts.css">
   <link rel="stylesheet" href="career.css?v=4.5.0">
   <link rel="stylesheet" href="mobile.css?v=4.5.0">
   <link rel="stylesheet" href="social.css">
-  <link rel="stylesheet" href="changelog.css">
+  <link rel="stylesheet" href="changelog.css"><link rel="stylesheet" href="mirrors.css?v=4.7.0">
   <link rel="stylesheet" href="tilt.css">
   <link rel="stylesheet" href="race-notices.css?v=4.5.0">
 </head>
@@ -23,7 +23,7 @@
 
   <main id="menu" class="menu hidden" data-page="race">
     <header class="topbar">
-      <a class="brand" href="#" aria-label="APEX GP, menu principale">APEX<span>GP</span><i></i><small class="build-version">v4.6.0</small></a>
+      <a class="brand" href="#" aria-label="APEX GP, menu principale">APEX<span>GP</span><i></i><small class="build-version">v4.7.0</small></a>
       <nav aria-label="Menu"><button class="nav-link active" data-page="race">CORRI</button><button class="nav-link" data-page="career">CARRIERA</button><button class="nav-link" data-page="garage">GARAGE</button><button class="nav-link" data-page="workshop">OFFICINA</button><button class="nav-link" data-page="lan">MULTIPLAYER</button><button id="social-nav" class="nav-link" aria-haspopup="dialog" aria-controls="social-overlay">AMICI</button><button class="nav-link" data-page="settings">IMPOSTAZIONI</button></nav>
       <button id="account-nav" class="account-nav" aria-haspopup="dialog" aria-controls="account-overlay">ACCEDI</button><div class="profile"><span class="profile-icon">27</span><span><b id="profile-name">JACK</b><small id="wallet">12.000 CR</small></span></div>
     </header>
@@ -37,7 +37,7 @@
     <section id="race-panel" class="setup-panel page-panel">
       <div class="panel-top"><span class="eyebrow">IL TUO PROSSIMO START</span><span class="small-tag">14 CIRCUITI · 15 MOTO</span></div>
       <div class="modes" role="group" aria-label="Modalità di gioco">
-        <button class="mode active" data-mode="race"><svg viewBox="0 0 24 24"><path d="M5 21V3m0 1h6l2 3h7v10h-7l-2-3H5"/></svg><span>Gran Premio<small>8 piloti. Una sola vittoria.</small></span><span class="radio"></span></button>
+        <button class="mode active" data-mode="race"><svg viewBox="0 0 24 24"><path d="M5 21V3m0 1h6l2 3h7v10h-7l-2-3H5"/></svg><span>Gran Premio<small>20 piloti. Una sola vittoria.</small></span><span class="radio"></span></button>
         <button class="mode" data-mode="time"><svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v5l3 2M9 2h6m-3 0v3m6 1 2-2"/></svg><span>Cronometro<small>Insegui il tuo giro perfetto.</small></span><span class="radio"></span></button>
       </div>
       <div class="selection-label"><label for="track-select">CIRCUITO <span id="track-new" class="new-track hidden">NEW</span></label><span id="track-index">01 / 14</span></div><select id="track-select" class="track-dropdown" aria-label="Scegli uno dei quattordici circuiti"></select>
@@ -57,7 +57,7 @@
         <p class="muted">La scelta è unica per questa carriera. I salvataggi precedenti conservano il proprio garage.</p>
       </div>
       <div id="career-tour" class="hidden">
-        <p class="career-intro">14 tappe, 8 piloti e un titolo. Tocca i pin per esplorare il calendario e raggiungi la prossima partenza.</p>
+        <p class="career-intro">14 tappe, 20 piloti e un titolo. Tocca i pin per esplorare il calendario e raggiungi la prossima partenza.</p>
         <progress id="career-progress" class="season-progress" max="14" value="0" aria-label="Tappe completate"></progress>
         <div id="career-world-map"></div>
         <div class="map-legend"><span><i class="done"></i>Completata</span><span><i class="next"></i>Prossima</span><span><i></i>Futura</span></div>
@@ -105,7 +105,7 @@
         <div class="lobby-settings">
           <label class="field-label" for="lobby-bike">LA TUA MOTO</label><select id="lobby-bike" class="track-dropdown"></select>
           <label class="field-label" for="lobby-track">CIRCUITO <small>SOLO HOST</small></label><select id="lobby-track" class="track-dropdown"></select>
-          <label class="toggle-row lobby-bots"><span>Avversari IA <small id="lobby-bot-count">Riempi la griglia fino a 8 piloti.</small></span><input id="lobby-bots" type="checkbox"><span class="toggle"></span></label>
+          <label class="toggle-row lobby-bots"><span>Avversari IA <small id="lobby-bot-count">Riempi la griglia fino a 20 piloti.</small></span><input id="lobby-bots" type="checkbox"><span class="toggle"></span></label>
           <p id="lobby-edit-note" class="muted" role="status">Le modifiche richiedono una nuova conferma Pronto.</p>
         </div>
         <h3 class="lobby-roster-title">PILOTI NELLA LOBBY</h3><div id="lan-players"></div><p id="lan-social-status" class="shop-status" role="status" aria-live="polite"></p>
@@ -129,14 +129,19 @@
       <label class="toggle-row"><span>Gas automatico su touch<small>Accelera dal via. Tu devi solo sterzare e frenare.</small></span><input id="auto-gas-toggle" type="checkbox" checked><span class="toggle"></span></label>
       <p class="muted touch-only">Tieni premuti i pulsanti grandi ◀ e ▶ a sinistra per sterzare. Puoi scorrere il dito da un pulsante all’altro. A destra, tieni FRENO per rallentare e rilascialo per accelerare. Puoi disattivare GAS AUTO anche durante la corsa per usare il gas manuale. Le preferenze touch restano su questo dispositivo.</p>
       <button class="secondary-button" data-fullscreen>SCHERMO INTERO ↗</button>
+      <label class="range-row">RETROVISORI<select id="mirrors-select"><option value="both">Sinistro e destro</option><option value="left">Solo sinistro</option><option value="right">Solo destro</option><option value="center">Centrale panoramico</option><option value="off">Spenti</option></select></label>
       <label class="range-row">GRAFICA<select id="quality-select"><option value="high">Cinema · risoluzione nativa</option><option value="low">Prestazioni · GPU integrata</option></select></label>
       <p id="performance-note" class="muted">Prestazioni: risoluzione adattiva fino a 720p, modelli leggeri e dettagli visibili a distanza ridotta. Cinema segue la risoluzione nativa del display, entro i limiti della GPU. La qualità grafica resta una scelta di questo dispositivo.</p>
       <p id="render-resolution" class="muted"></p>
       <button id="show-controls" class="text-button">Tutti i comandi ↗</button>
       <section id="settings-changelog" class="settings-changelog" aria-labelledby="changelog-heading">
-        <div class="changelog-heading"><h3 id="changelog-heading">Changelog</h3><span class="changelog-current">VERSIONE ATTUALE · 4.6.0</span></div>
+        <div class="changelog-heading"><h3 id="changelog-heading">Changelog</h3><span class="changelog-current">VERSIONE ATTUALE · 4.7.0</span></div>
         <p class="changelog-intro">Tutte le novità, dalla più recente. Tocca una versione per leggere i dettagli.</p>
         <details class="release-note" open>
+          <summary><span class="release-version">v4.7.0</span><span class="release-title">Griglie da 20, scenari e retrovisori</span><time datetime="2026-11-07">7 nov 2026</time></summary>
+          <ul><li>20 piloti in pista, con 19 bot nelle gare singole e nel World Tour. Risultati delle vecchie stagioni conservati.</li><li>Punti di forza per frenata, curva, accelerazione e settori. Scia anche per i bot, più attacchi e spazio valutato durante i sorpassi.</li><li>Scenari offline su dati OpenStreetMap in tutti i 14 circuiti: edifici, tribune, boschi, alberi, strade, parcheggi, recinzioni e lampioni. Altimetria ricavata da Copernicus DEM.</li><li>Retrovisori sinistro e destro, un solo lato, centrale panoramico o spenti. Pulsante ↔ / V durante la corsa.</li></ul>
+        </details>
+        <details class="release-note">
           <summary><span class="release-version">v4.6.0</span><span class="release-title">Piloti vivi e cadute fisiche</span><time datetime="2026-11-07">7 nov 2026</time></summary>
           <ul><li>Avversari con caratteri diversi: staccate anticipate o ritardate, attacchi, difesa, rinunce e reazioni al traffico.</li>
           <li>Errori e cadute anche per i bot, con maggiore precisione ai livelli alti. Le moto a terra possono causare altri incidenti.</li>
@@ -209,15 +214,16 @@
         </details>
       </section>
     </section>
-    <footer class="menu-footer"><span class="touch-only">STERZO A SINISTRA · FRENO A DESTRA · GAS AUTO OPZIONALE</span><span class="keyboard-only"><b class="key">W</b><b class="key">A</b><b class="key">S</b><b class="key">D</b> O FRECCE <i></i> GUIDA <span class="footer-extra"><b class="key">C</b> VISUALE <b class="key">ESC</b> PAUSA</span></span><span class="footer-brand">APEX GP <span>/</span> <a href="references.html" target="_blank" rel="noopener">CIRCUITI © OPENSTREETMAP</a></span></footer>
+    <footer class="menu-footer"><span class="touch-only">STERZO A SINISTRA · FRENO A DESTRA · GAS AUTO OPZIONALE</span><span class="keyboard-only"><b class="key">W</b><b class="key">A</b><b class="key">S</b><b class="key">D</b> O FRECCE <i></i> GUIDA <span class="footer-extra"><b class="key">C</b> VISUALE <b class="key">ESC</b> PAUSA</span></span><span class="footer-brand">APEX GP <span>/</span> <a href="references.html" target="_blank" rel="noopener">CIRCUITI E SCENARI © OPENSTREETMAP</a></span></footer>
   </main>
 
   <section id="hud" class="hud hidden" aria-label="Telemetria di gara">
+    <div id="rearviews" class="rearviews" hidden aria-label="Retrovisori"></div>
     <div class="hud-top">
-      <div class="position-block"><span id="position">8</span><div>POSIZIONE<small id="position-total">/ 8</small></div></div>
+      <div class="position-block"><span id="position">20</span><div>POSIZIONE<small id="position-total">/ 20</small></div></div>
       <div class="lap-block"><span>GIRO</span><strong id="lap">1 <small>/ 3</small></strong></div>
       <div class="lap-time"><span>TEMPO GIRO</span><strong id="lap-time">00:00.000</strong><small id="best-time">BEST —</small></div>
-      <div class="hud-actions"><button id="camera-button" class="hud-button" aria-label="Cambia visuale" title="Cambia visuale (C)"><svg viewBox="0 0 24 24"><path d="M3 7h5l2-3h4l2 3h5v13H3z"/><circle cx="12" cy="13" r="4"/></svg></button><button id="sound-button" class="hud-button" aria-label="Attiva o disattiva audio"><svg viewBox="0 0 24 24"><path d="m11 4-6 5H2v6h3l6 5zm4 4a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14"/></svg></button><button id="social-hud" class="hud-button" aria-label="Apri amici" title="Amici e inviti"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 21v-2a6 6 0 0 1 12 0v2M17 5a3 3 0 0 1 0 6m1 4a5 5 0 0 1 3 6"/></svg><small id="social-badge" class="social-badge hidden"></small></button><button id="reset-button" class="hud-button reset-button" aria-label="Rientra in pista, penalità di due secondi" title="Rientra in pista (+2 s)">↗<small>RIENTRA</small></button><button id="fullscreen-button" class="hud-button" data-fullscreen aria-label="Schermo intero" title="Schermo intero"><svg viewBox="0 0 24 24"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/></svg></button><button id="pause-button" class="hud-button" aria-label="Metti in pausa"><svg viewBox="0 0 24 24"><path d="M8 5v14M16 5v14"/></svg></button></div>
+      <div class="hud-actions"><button id="camera-button" class="hud-button" aria-label="Cambia visuale" title="Cambia visuale (C)"><svg viewBox="0 0 24 24"><path d="M3 7h5l2-3h4l2 3h5v13H3z"/><circle cx="12" cy="13" r="4"/></svg></button><button id="mirror-button" class="hud-button" aria-label="Cambia retrovisori" title="Retrovisori (V)">↔</button><button id="sound-button" class="hud-button" aria-label="Attiva o disattiva audio"><svg viewBox="0 0 24 24"><path d="m11 4-6 5H2v6h3l6 5zm4 4a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14"/></svg></button><button id="social-hud" class="hud-button" aria-label="Apri amici" title="Amici e inviti"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 21v-2a6 6 0 0 1 12 0v2M17 5a3 3 0 0 1 0 6m1 4a5 5 0 0 1 3 6"/></svg><small id="social-badge" class="social-badge hidden"></small></button><button id="reset-button" class="hud-button reset-button" aria-label="Rientra in pista, penalità di due secondi" title="Rientra in pista (+2 s)">↗<small>RIENTRA</small></button><button id="fullscreen-button" class="hud-button" data-fullscreen aria-label="Schermo intero" title="Schermo intero"><svg viewBox="0 0 24 24"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/></svg></button><button id="pause-button" class="hud-button" aria-label="Metti in pausa"><svg viewBox="0 0 24 24"><path d="M8 5v14M16 5v14"/></svg></button></div>
     </div>
     <small id="hud-network" class="hud-network"></small>
     <div class="race-notices" aria-label="Bandiere e avvisi di gara">
@@ -328,6 +334,6 @@
       <div id="account-recovery-box" class="account-conflict hidden"><p><b>Salva il tuo codice di recupero.</b> Consente di reimpostare la password: conservalo per te. Resta valido fino a quando ne crei uno nuovo dal profilo.</p><input id="account-recovery-value" readonly aria-label="Codice personale di recupero" spellcheck="false"><button id="account-download-code" class="secondary-button">SALVA CODICE DI RECUPERO</button></div>
     </section>
   </div>
-  <script type="module" src="app.bundle.js?v=4.6.0"></script>
+  <script type="module" src="app.bundle.js?v=4.7.0"></script>
 </body>
 </html>

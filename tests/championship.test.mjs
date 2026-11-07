@@ -8,6 +8,14 @@ import {TRACK_LOCATIONS} from '../dist/track-locations.js';
 import {projectLocation, pickMapTrack} from '../dist/world-map.js';
 import fs from 'node:fs';
 
+test('eight-rider season results keep their actual points when the field expands to twenty',()=>{
+ const legacy=CHAMPIONSHIP_RIDERS.slice(0,8),season=normalizeSeason({id:'old-season',difficulty:'sport',number:1,results:[{trackId:CALENDAR[0].trackId,raceId:'old-round',order:legacy}]});
+ assert.equal(season.results.length,1);assert.deepEqual(season.results[0].order,legacy);
+ const standings=seasonStandings(season);assert.equal(standings.length,20);assert.equal(standings.find(r=>r.id==='player').points,25);assert.equal(standings.find(r=>r.id==='bot6').points,8);
+ assert(standings.filter(r=>!legacy.includes(r.id)).every(r=>r.points===0&&r.finishes.every(n=>n===0)));
+ for(let position=1;position<=20;position++)assert(racePrize({position,difficulty:'sport',laps:2})>0);
+});
+
 function finishRound(career, {order = CHAMPIONSHIP_RIDERS, id = 'race-' + career.profile.season.results.length} = {}) {
   const ticket = career.roundTicket(), position = order.indexOf('player') + 1;
   career.reward({id, position, difficulty: ticket.difficulty, laps: ticket.laps, finished: true, time: 180});

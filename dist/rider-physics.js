@@ -1,5 +1,6 @@
 // Local motorcycle impacts and an articulated, constrained rider. Metres,
 // seconds and kilograms; world Y is up. The same rules apply to humans and AI.
+import {terrainElevation} from './elevation.js';
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const length=v=>Math.hypot(...v);
 const sub=(a,b)=>a.map((v,i)=>v-b[i]);
@@ -32,9 +33,16 @@ export function rotateVector(p,yaw=0,roll=0,pitch=0){
 
 function surface(track,x,z,progress){
   const projected=track.project(x,z,progress),q=track.sample(projected.progress);
-  return{...q,progress:projected.progress,offset:projected.offset};
+  return{...q,progress:projected.progress,offset:projected.offset,terrainGrid:track.config?.terrainGrid,halfWidth:track.halfWidth,elevationOffset:track.elevationOffset||0};
 }
-function groundHeight(road,x,z){return(road.y||0)+((x-road.x)*road.tx+(z-road.z)*road.tz)*(road.grade||0);}
+function groundHeight(road,x,z){
+ const plane=(road.y||0)+((x-road.x)*road.tx+(z-road.z)*road.tz)*(road.grade||0);
+ if(!road.terrainGrid)return plane;
+ const offset=Math.abs((x-road.x)*road.tz-(z-road.z)*road.tx);
+ if(offset<road.halfWidth+15)return plane;
+ const raw=terrainElevation(road,x,z)-road.elevationOffset,blend=clamp(1-Math.max(0,offset-road.halfWidth-20)/18,0,1);
+ return raw+(Math.min(raw,plane-.35)-raw)*blend;
+}
 
 export class RiderFall{
   constructor(rider,track,{kind='lowside',closingSpeed=0,normalX=0,normalZ=0,deltaV=0,spin=0,wet=false,velocity=null}={}){

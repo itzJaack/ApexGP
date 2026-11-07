@@ -3,6 +3,9 @@ import {createImportedBike} from './models.js';
 import {clamp,lerp,mod} from './simulation.js';
 import {ResolutionGovernor,renderResolution} from './quality.js';
 import {scenerySite} from './scenery.js';
+import {buildMappedScenery,hasMappedScenery} from './mapped-scenery.js';
+import {GRID_SIZE,gridPlace} from './rider-roster.js';
+import {terrainElevation} from './elevation.js';
 
 const V={sub:(a,b)=>a.map((v,i)=>v-b[i]),dot:(a,b)=>a.reduce((s,v,i)=>s+v*b[i],0),cross:(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]],norm:a=>{const l=Math.hypot(...a)||1;return a.map(v=>v/l);}};
 export const identity=()=>new Float32Array([1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1]);
@@ -185,7 +188,7 @@ export class Renderer{
  }
  visible(mesh){
   const c=mesh.center,r=mesh.radius,m=this.vp;
-  if(Math.hypot(c[0]-this.eye[0],c[2]-this.eye[2])>r+(this.quality==='low'?480:1400))return false;
+  if(Math.hypot(c[0]-this.eye[0],c[2]-this.eye[2])>r+(this.viewDistance??(this.quality==='low'?480:1400)))return false;
   for(const axis of[0,1,2])for(const sign of[-1,1]){const a=m[3]+sign*m[axis],b=m[7]+sign*m[4+axis],d=m[11]+sign*m[8+axis],e=m[15]+sign*m[12+axis];if(a*c[0]+b*c[1]+d*c[2]+e < -r*Math.hypot(a,b,d))return false;}
   return true;
  }
@@ -204,10 +207,21 @@ export class Renderer{
   const draw=(mesh,matrix,hang=0,rider=false)=>{gl.uniform1f(this.shadowLocations.uHang,hang);gl.uniform1f(this.shadowLocations.uRider,rider?1:0);gl.bindBuffer(gl.ARRAY_BUFFER,mesh.buffer);gl.enableVertexAttribArray(this.shadowAttributes[0]);gl.vertexAttribPointer(this.shadowAttributes[0],3,gl.FLOAT,false,48,0);gl.enableVertexAttribArray(this.shadowAttributes[1]);gl.vertexAttribPointer(this.shadowAttributes[1],1,gl.FLOAT,false,48,36);gl.uniformMatrix4fv(this.shadowLocations.uModel,false,matrix);gl.drawArrays(gl.TRIANGLES,0,mesh.count);};
   for(const mesh of world.chunks||[world])if(!mesh.center||Math.hypot(mesh.center[0]-center[0],mesh.center[2]-center[2])<mesh.radius+radius*1.5)draw(mesh,identity());for(const o of objects)if(!o.texture)draw(o.mesh,o.matrix,o.lean||0,!!o.rider);gl.bindFramebuffer(gl.FRAMEBUFFER,null);gl.enable(gl.BLEND);gl.enable(gl.DITHER);this.shadowValid=true;
  }
- begin(eye,target,fov=1.04,roll=0,shiftY=0){
+ drawRearview(target,rect){
+  const gl=this.gl;
+  if(!this.mirrorProgram){
+   this.mirrorProgram=this.programFrom(SKYVS,`precision mediump float;varying vec2 vUV;uniform sampler2D uMirror;void main(){vec3 c=texture2D(uMirror,vec2(1.0-vUV.x,vUV.y)).rgb;float edge=smoothstep(0.0,.018,min(min(vUV.x,1.0-vUV.x),min(vUV.y,1.0-vUV.y)));gl_FragColor=vec4(mix(vec3(.035,.045,.05),c,edge),1.0);}`);
+   this.mirrorLocation=gl.getUniformLocation(this.mirrorProgram,'uMirror');
+  }
+  gl.bindFramebuffer(gl.FRAMEBUFFER,null);gl.viewport(rect.x,rect.y,rect.width,rect.height);
+  gl.disable(gl.DEPTH_TEST);gl.disable(gl.BLEND);gl.useProgram(this.mirrorProgram);this.quad(this.mirrorProgram);
+  gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,target.texture);gl.uniform1i(this.mirrorLocation,0);gl.drawArrays(gl.TRIANGLES,0,6);
+  gl.viewport(0,0,this.canvas.width,this.canvas.height);gl.enable(gl.DEPTH_TEST);gl.enable(gl.BLEND);
+ }
+ begin(eye,target,fov=1.04,roll=0,shiftY=0,output=null){
   const variant=this.quality==='low'?this.lite:this.cinema;this.program=variant.program;this.locations=variant.locations;this.attributes=variant.attributes;this.stats={triangles:0,draws:0};
-  this.resize();const gl=this.gl;this.eye=eye;const projection=perspective(fov,this.aspect);projection[9]=-shiftY;const up=[Math.sin(roll),Math.cos(roll),0];this.vp=multiply(projection,lookAt(eye,target,up));
-  if(this.quality==='low'){if(this.sceneTarget){this.freeTarget(this.sceneTarget);this.sceneTarget=null;}gl.bindFramebuffer(gl.FRAMEBUFFER,null);}else{if(!this.sceneTarget||this.sceneTarget.width!==this.canvas.width||this.sceneTarget.height!==this.canvas.height){this.freeTarget(this.sceneTarget);this.sceneTarget=this.target(this.canvas.width,this.canvas.height);}gl.bindFramebuffer(gl.FRAMEBUFFER,this.sceneTarget.complete?this.sceneTarget.framebuffer:null);}gl.viewport(0,0,this.canvas.width,this.canvas.height);gl.clearColor(.1,.12,.15,1);gl.depthMask(true);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
+  if(!output)this.resize();const gl=this.gl,width=output?.width||this.canvas.width,height=output?.height||this.canvas.height;this.aspect=width/height;this.viewDistance=output?.distance??null;this.eye=eye;const projection=perspective(fov,this.aspect);projection[9]=-shiftY;const up=[Math.sin(roll),Math.cos(roll),0];this.vp=multiply(projection,lookAt(eye,target,up));
+  if(output)gl.bindFramebuffer(gl.FRAMEBUFFER,output.framebuffer);else if(this.quality==='low'){if(this.sceneTarget){this.freeTarget(this.sceneTarget);this.sceneTarget=null;}gl.bindFramebuffer(gl.FRAMEBUFFER,null);}else{if(!this.sceneTarget||this.sceneTarget.width!==this.canvas.width||this.sceneTarget.height!==this.canvas.height){this.freeTarget(this.sceneTarget);this.sceneTarget=this.target(this.canvas.width,this.canvas.height);}gl.bindFramebuffer(gl.FRAMEBUFFER,this.sceneTarget.complete?this.sceneTarget.framebuffer:null);}gl.viewport(0,0,width,height);gl.clearColor(.1,.12,.15,1);gl.depthMask(true);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
   gl.disable(gl.DEPTH_TEST);gl.disable(gl.BLEND);gl.useProgram(this.skyProgram);this.quad(this.skyProgram);const forward=V.norm(V.sub(target,eye)),right=V.norm(V.cross(forward,up)),skyUp=V.cross(right,forward);
   gl.uniform1f(this.skyLocations.uMode,{day:0,sunset:1,rain:2}[this.weather]);gl.uniform1f(this.skyLocations.uAspect,this.aspect);gl.uniform1f(this.skyLocations.uFov,Math.tan(fov/2));gl.uniform1f(this.skyLocations.uShift,shiftY);gl.uniform3fv(this.skyLocations.uForward,forward);gl.uniform3fv(this.skyLocations.uRight,right);gl.uniform3fv(this.skyLocations.uUp,skyUp);gl.uniform3fv(this.skyLocations.uSun,this.sun());gl.drawArrays(gl.TRIANGLES,0,6);gl.enable(gl.DEPTH_TEST);gl.enable(gl.BLEND);gl.useProgram(this.program);
   gl.uniformMatrix4fv(this.locations.uVP,false,this.vp);gl.uniformMatrix4fv(this.locations.uLightVP,false,this.lightVP);gl.uniform3fv(this.locations.uEye,eye);gl.uniform3fv(this.locations.uFog,this.weather==='rain'?[.48,.54,.61]:this.weather==='day'?[.67,.79,.92]:[.80,.59,.41]);gl.uniform3fv(this.locations.uSun,this.sun());gl.uniform3fv(this.locations.uSunColor,this.weather==='sunset'?[1,.80,.61]:[1,.97,.90]);gl.uniform1f(this.locations.uSunIntensity,this.weather==='rain'?.7:this.weather==='sunset'?3.4:3.1);gl.uniform1f(this.locations.uExposure,this.weather==='rain'?1.5:1.18);gl.uniform1f(this.locations.uRain,this.weather==='rain'?1:0);gl.uniform1f(this.locations.uTime,this.time);gl.uniform1f(this.locations.uShadows,this.shadowValid?1:0);gl.uniform1f(this.locations.uShadowTexel,this.shadowTarget?1/this.shadowTarget.width:1/1536);gl.activeTexture(gl.TEXTURE1);gl.bindTexture(gl.TEXTURE_2D,this.shadowValid?this.shadowTarget.texture:this.whiteTexture);gl.uniform1i(this.locations.uShadowMap,1);gl.activeTexture(gl.TEXTURE0);
@@ -291,19 +305,37 @@ function harbor(g,track,rng){
     g.merge(q.transform(modelMatrix([p.x,0,p.z],p.yaw)));
   }
 }
-function terrainSampler(track){
+export function terrainSampler(track){
  if(!track.config.elevation)return()=>0;const cache=new Map(),cell=10;
+ if(track.config.terrainGrid){
+  const sample=(ix,iz)=>{
+   const key=ix+','+iz;if(cache.has(key))return cache.get(key);
+   const x=ix*cell,z=iz*cell;let best=Infinity,at=0;
+   for(let i=0;i<track.count;i+=3){const p=track.nodes[i],d=(x-p.x)**2+(z-p.z)**2;if(d<best){best=d;at=i;}}
+   const distance=Math.sqrt(best),raw=terrainElevation(track.config,x,z)-(track.elevationOffset||0);let height=raw;
+   if(distance<track.halfWidth+38){
+    const projected=track.project(x,z,at*track.step),road=track.sample(projected.progress);
+    const blend=clamp(1-Math.max(0,distance-track.halfWidth-20)/18,0,1);
+    height=lerp(raw,Math.min(raw,road.y-.35),blend);
+   }
+   cache.set(key,height);return height;
+  };
+  return(x,z)=>{const ix=Math.floor(x/cell),iz=Math.floor(z/cell),u=x/cell-ix,v=z/cell-iz;return lerp(lerp(sample(ix,iz),sample(ix+1,iz),u),lerp(sample(ix,iz+1),sample(ix+1,iz+1),u),v);};
+ }
  const sample=(ix,iz)=>{const key=ix+','+iz;if(cache.has(key))return cache.get(key);const x=ix*cell,z=iz*cell;let best=1e20,at=0;for(let i=0;i<track.count;i+=3){const p=track.nodes[i],d=(x-p.x)**2+(z-p.z)**2;if(d<best){best=d;at=i;}}const distance=Math.sqrt(best),fade=clamp(1-Math.max(0,distance-70)/360,0,1),height=track.sample(at*track.step).y*fade-1.1*clamp(1-distance/70,0,1);cache.set(key,height);return height;};
  return(x,z)=>{const b=track.bounds;if(x<b.minX-550||x>b.maxX+550||z<b.minZ-550||z>b.maxZ+550)return 0;const ix=Math.floor(x/cell),iz=Math.floor(z/cell),u=x/cell-ix,v=z/cell-iz;return lerp(lerp(sample(ix,iz),sample(ix+1,iz),u),lerp(sample(ix,iz+1),sample(ix+1,iz+1),u),v);};
 }
 function buildTerrain(g,track,height,color){
- const b=track.bounds,axis=(min,max)=>{const arr=[Math.min(-3000,min-1000)];for(let x=Math.floor((min-180)/12)*12;x<=max+180;x+=12)arr.push(x);arr.push(Math.max(3000,max+1000));return arr;},xs=axis(b.minX,b.maxX),zs=axis(b.minZ,b.maxZ);
+ const b=track.bounds,grid=track.config.terrainGrid;
+ const axis=(min,max)=>{const arr=[Math.min(-3000,min-1000)];for(let x=Math.floor(min/12)*12;x<=max;x+=12)arr.push(x);arr.push(Math.max(3000,max+1000));return arr;};
+ const xs=axis(grid?grid.x:b.minX-180,grid?grid.x+grid.step*(grid.width-1):b.maxX+180);
+ const zs=axis(grid?grid.z:b.minZ-180,grid?grid.z+grid.step*(grid.depth-1):b.maxZ+180);
  for(let i=0;i<xs.length-1;i++)for(let j=0;j<zs.length-1;j++){const x=xs[i],X=xs[i+1],z=zs[j],Z=zs[j+1],point=(x,z)=>[x,height(x,z)-.10,z];g.quad(point(x,z),point(x,Z),point(X,Z),point(X,z),color,2);}
 }
 export function buildWorld(renderer,track){return allocateScene(renderer,scope=>createWorld(scope,track));}
 function createWorld(renderer,track){
   if(renderer.compat)return{mesh:{},line:{},boards:[],textures:[],flags:[]};
-  const low=renderer.quality==='low';Geometry.detail=low?.35:1;
+  const low=renderer.quality==='low',mapped=hasMappedScenery(track.config.id);Geometry.detail=low?.35:1;
   const g=new Geometry(),rng=seeded(track.config.id.split('').reduce((n,c)=>n+c.charCodeAt(0)*129,0)),desert=['desert','canyon'].includes(track.config.theme),coast=track.config.theme==='coast',alpine=track.config.theme==='alpine',forest=track.config.theme==='forest',sakura=track.config.theme==='sakura',marina=track.config.theme==='marina';
   const grass=desert?[.57,.43,.29]:alpine?[.21,.34,.25]:sakura?[.30,.38,.27]:marina?[.35,.39,.37]:coast?[.27,.38,.22]:[.29,.36,.20],gravel=desert?[.68,.53,.34]:[.65,.59,.45],road=[.20,.22,.23];
   const terrain=terrainSampler(track);if(track.config.elevation)buildTerrain(g,track,terrain,grass);else g.quad([-2200,-.07,-2200],[-2200,-.07,2200],[2200,-.07,2200],[2200,-.07,-2200],grass,2);
@@ -314,7 +346,7 @@ function createWorld(renderer,track){
     for(const sign of[-1,1]){strip(g,track,s,e,sign*w,sign*(w+.8),.047,Math.floor(i/2)%2===0?(alpine?[.13,.38,.67]:marina?[.08,.53,.54]:[.86,.11,.09]):[.91,.89,.81]);strip(g,track,s,e,sign*(w+.8),sign*(w+3.2),.012,desert?[.27,.38,.33]:[.20,.40,.27]);strip(g,track,s,e,sign*(w+3.2),sign*(w+15),.005,gravel,3);strip(g,track,s,e,sign*(w-.15),sign*(w-.3),.032,[.77,.78,.73]);}
   }
   for(let j=0;j<24;j++)for(let r=0;r<2;r++)strip(g,track,r*.75,(r+1)*.75,-w+j*w*2/24,-w+(j+1)*w*2/24,.035,(j+r)%2?[.035,.04,.045]:[.94,.94,.89]);
-  for(let i=0;i<8;i++){const s=-i*7-5,side=i%2?-1.65:1.65;strip(g,track,s,s+.13,side-.8,side+.8,.035,[.72,.74,.72]);strip(g,track,s,s+2,side-.8,side-.70,.035,[.72,.74,.72]);strip(g,track,s,s+2,side+.70,side+.8,.035,[.72,.74,.72]);}
+  for(let i=0;i<GRID_SIZE;i++){const {progress:s,offset:side}=gridPlace(i);strip(g,track,s,s+.13,side-.8,side+.8,.035,[.72,.74,.72]);strip(g,track,s,s+2,side-.8,side-.70,.035,[.72,.74,.72]);strip(g,track,s,s+2,side+.70,side+.8,.035,[.72,.74,.72]);}
   for(let s=50;s<track.length;s+=32)if(Math.abs(track.sample(s).k)>.011){for(const side of[-.14,.14])strip(g,track,s-20,s+6,side-.06,side+.06,.031,[.12,.135,.14],1);}
   // Extra detail with a small geometry cost in both graphics modes.
   // Dedicated pit access, painted speed-limit line and individual garage bays.
@@ -335,13 +367,15 @@ function createWorld(renderer,track){
     if(Math.floor(s/19)%7===0)g.box([a.x,2,a.z],[.7,.38,.6],[.98,.72,.18],a.yaw);
   }}
   // Pit garages, a paddock tower, and the start gantry.
+  if(!mapped){
   const pit=scenerySite(track,95,pitSide*38,19,150)||track.sample(95,pitSide*130),local=new Geometry();
   local.box([0,4.8,0],[15,9.6,132],[.69,.71,.68]);local.box([0,10.1,0],[16,1,137],[.25,.28,.28]);
   for(let i=-5;i<=5;i++){local.box([7.56,3,i*11],[.05,4.5,7.8],[.12,.16,.18]);local.box([7.61,6.6,i*11],[.10,1.8,8.8],[.25,.40,.45]);local.box([7.68,8.1,i*11],[.12,.35,9.8],[1,.235,.085]);}
   local.box([0,9.2,0],[15.3,.35,130],[.89,.88,.79]);local.box([-4,17,57],[9,14,12],[.48,.53,.51]);local.box([-4,24.2,57],[11,.4,13],[.22,.25,.27]);local.box([.55,20,57],[.2,4,9],[.23,.40,.43]);g.merge(local.transform(modelMatrix([pit.x,0,pit.z],pit.yaw)));
+  }
   const gantry=track.sample(3);const gate=new Geometry();gate.box([-11,5.3,0],[.4,10.6,.4],[.27,.29,.3]);gate.box([11,5.3,0],[.4,10.6,.4],[.27,.29,.3]);gate.box([0,10.5,0],[22,1.4,.5],[.11,.15,.18]);for(let i=-2;i<=2;i++)gate.sphere([i*.65,10.5,-.29],[.20,.20,.1],[.59,.03,.03],8,4);g.merge(gate.transform(modelMatrix([gantry.x,0,gantry.z],gantry.yaw)));
   // Grandstands and individual crowd colors, combined in one static mesh.
-  for(const station of[170,track.length*.44,track.length*.7]){
+  if(!mapped)for(const station of[170,track.length*.44,track.length*.7]){
     const p=scenerySite(track,station,42,28,72);if(!p)continue;const stand=new Geometry();
     for(let row=0;row<6;row++){
       stand.box([row*1.65,row*.7+.7,0],[2,.8,62],[.45,.48,.46]);
@@ -353,12 +387,12 @@ function createWorld(renderer,track){
   // ring of hills intersected the larger, real-world circuit footprints.
   const landscapeX=(track.bounds.minX+track.bounds.maxX)/2,landscapeZ=(track.bounds.minZ+track.bounds.maxZ)/2;
   const landscapeRadius=Math.hypot((track.bounds.maxX-track.bounds.minX)/2,(track.bounds.maxZ-track.bounds.minZ)/2)+650;
-  for(let i=0;i<(alpine?18:marina?0:22);i++){
+  if(!mapped)for(let i=0;i<(alpine?18:marina?0:22);i++){
     const angle=i/22*Math.PI*2,x=landscapeX+Math.cos(angle)*(landscapeRadius+rng()*480),z=landscapeZ+Math.sin(angle)*(landscapeRadius+rng()*480),h=desert?65+rng()*65:forest?18+rng()*18:60+rng()*90;
     if(alpine||track.config.theme==='canyon'){mountain(g,x,z,180+rng()*250,200+rng()*320,rng,track.config.theme==='canyon');continue;}
     g.sphere([x,-30,z],[140+rng()*180,h,150+rng()*170],desert?[.50+rng()*.12,.38+rng()*.05,.26]:[.23+rng()*.05,.33+rng()*.04,.19],26,12);
   }
-  for(let i=0;i<(low?48:110);i++){
+  if(!mapped)for(let i=0;i<(low?48:110);i++){
     const s=rng()*track.length,p=track.sample(s,(rng()>.5?1:-1)*(38+rng()*55));if(track.nearestDistance(p.x,p.z)<25)continue;
     if(alpine||forest){pine(g,p,8+rng()*8,rng);continue;}
     if(sakura){blossom(g,p,5+rng()*3,rng);continue;}
@@ -372,9 +406,9 @@ function createWorld(renderer,track){
     const p=track.sample(rng()*track.length,(rng()>.5?1:-1)*(25+rng()*24));if(track.nearestDistance(p.x,p.z)<23)continue;
     for(let j=0;j<3;j++){const x=p.x+(rng()-.5)*.5,z=p.z+(rng()-.5)*.5,h=.20+rng()*.45;g.tri([x-.045,0,z],[x+.045,0,z],[x+(rng()-.5)*.2,h,z+.04],[.20+rng()*.07,.34+rng()*.12,.10],5);}
   }
-  if(coast){g.quad([550,-.04,-1800],[550,-.04,1800],[2000,-.04,1800],[2000,-.04,-1800],[.22,.44,.48],13);for(let i=0;i<12;i++)g.box([560,1.6,-560+i*75],[2,3.2,2],[.85,.83,.7]);}
-  if(marina)harbor(g,track,rng);
-  if(sakura){
+  if(coast&&!mapped){g.quad([550,-.04,-1800],[550,-.04,1800],[2000,-.04,1800],[2000,-.04,-1800],[.22,.44,.48],13);for(let i=0;i<12;i++)g.box([560,1.6,-560+i*75],[2,3.2,2],[.85,.83,.7]);}
+  if(marina&&!mapped)harbor(g,track,rng);
+  if(sakura&&!mapped){
     for(const station of [-25,track.length*.32,track.length*.68])pavilion(g,track.sample(station,-66));
     const p=track.sample(-55,52),q=new Geometry();
     for(const x of[-4,4])q.cylinder([x,0,0],[x,6.4,0],.20,[.65,.10,.07],12,.16);
@@ -402,6 +436,7 @@ function createWorld(renderer,track){
    g.merge(q.transform(modelMatrix([p.x,0,p.z],p.yaw)));
   }
   if(track.config.elevation)for(let i=staticStart;i<g.data.length;i+=12)if(g.data[i+9]!==13)g.data[i+1]+=terrain(g.data[i],g.data[i+2]);
+  const mappedStats=mapped?buildMappedScenery(g,track,terrain,renderer.quality):null;
   const boards=[];const textures=['APEX GP','RIDE THE LIMIT','FULL THROTTLE'].map(text=>markTexture(renderer,text));
   for(const corner of track.config.corners||[]){
     const p=track.sample(corner.s-35,-w-5),board=new Geometry();
@@ -426,7 +461,7 @@ function createWorld(renderer,track){
   for(const [name,col] of Object.entries(flagColors)){const mesh=new Geometry();for(let i=0;i<8;i++)for(let j=0;j<5;j++)mesh.quad([i*.13,j*.13,0],[(i+1)*.13,j*.13,0],[(i+1)*.13,(j+1)*.13,0],[i*.13,(j+1)*.13,0],name==='chequered'&&(i+j)%2?[.025,.03,.035]:col,5);flagMeshes[name]=renderer.mesh(mesh);}
   const flagPosts=[];for(let station=0;station<track.length;station+=115){const p=track.sample(station,(station%230?-1:1)*(w+18));flagPosts.push({progress:station,matrix:modelMatrix([p.x,terrain(p.x,p.z)+2.9,p.z],p.yaw)});}
   Geometry.detail=1;
-  return{mesh:renderer.spatialMesh(g),line:renderer.mesh({data:new Float32Array(0)}),boards,textures,flagMeshes,flagPosts};
+  return{mappedStats,mesh:renderer.spatialMesh(g),line:renderer.mesh({data:new Float32Array(0)}),boards,textures,flagMeshes,flagPosts};
 }
 
 

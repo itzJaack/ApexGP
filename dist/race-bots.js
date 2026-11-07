@@ -1,7 +1,8 @@
 import {BIKES,Circuit,TRACKS,clamp} from './simulation.js';
 import {botDriving} from './bot-driving.js';
-export const BOT_DRIVERS=[{name:'L. ROSSI',number:46},{name:'M. SERRA',number:63},{name:'A. TORRES',number:89},{name:'D. COSTA',number:23},{name:'N. MARTIN',number:12},{name:'E. MORETTI',number:21},{name:'S. HAYES',number:41}];
-export function makeBotRoster(humans,enabled){return enabled?Array.from({length:Math.max(0,8-humans)},(_,i)=>({id:'bot-'+i,...BOT_DRIVERS[i],bikeId:BIKES[(humans+i+2)%BIKES.length].id,livery:'factory',slot:humans+i,isBot:true,ready:true,finishTime:null,penalties:0,dnf:false})):[];}
+import {BOT_DRIVERS,GRID_SIZE,paceRank} from './rider-roster.js';
+export {BOT_DRIVERS} from './rider-roster.js';
+export function makeBotRoster(humans,enabled){return enabled?Array.from({length:Math.max(0,GRID_SIZE-humans)},(_,i)=>({id:'bot-'+i,...BOT_DRIVERS[i],bikeId:BIKES[(humans+i+2)%BIKES.length].id,livery:'factory',slot:humans+i,isBot:true,ready:true,finishTime:null,penalties:0,dnf:false})):[];}
 export const botRate=flag=>flag==='red'?0:flag==='vsc'?.30:flag==='yellow'?.60:1;
 export function appendBotPhase(phases,elapsed,flag){
  const rate=botRate(flag),last=phases.at(-1),at=Math.max(last?.at||0,Number(elapsed)||0),restart=last?.rate===0&&rate>0;
@@ -28,7 +29,7 @@ function clockInverse(target,phases){
 }
 export class BotGrid{
  constructor(track,options,humans){this.track=track;this.options=options;this.roster=makeBotRoster(humans,options.bots);this.profiles=this.roster.map((b,i)=>this.profile(b,i));}
- profile(bot,index){const tr=this.track,bike=BIKES.find(b=>b.id===bot.bikeId),driving=botDriving(this.options.difficulty),start=-10-bot.slot*7,finish=tr.length*this.options.laps,n=Math.ceil((finish-start)/5),step=(finish-start)/n,positions=new Float64Array(n+1),speeds=new Float64Array(n+1),times=new Float64Array(n+1),wet=this.options.weather==='rain'?.74:1,pace=driving.pace*(1-index*driving.spread),top=Math.min(bike.top,300,driving.top-index*driving.topSpread)/3.6;
+ profile(bot,index){const tr=this.track,bike=BIKES.find(b=>b.id===bot.bikeId),driving=botDriving(this.options.difficulty),start=-10-bot.slot*7,finish=tr.length*this.options.laps,n=Math.ceil((finish-start)/5),step=(finish-start)/n,positions=new Float64Array(n+1),speeds=new Float64Array(n+1),times=new Float64Array(n+1),wet=this.options.weather==='rain'?.74:1,pace=driving.pace*(1-paceRank(index)*driving.spread),top=Math.min(bike.top,300,driving.top-paceRank(index)*driving.topSpread)/3.6;
   // The entire lap is known: plan braking backwards from each corner, then
   // constrain acceleration forwards. No boost depends on the human's position.
   for(let i=0;i<=n;i++){positions[i]=start+i*step;speeds[i]=Math.min(top,tr.cornerSpeed(positions[i],wet*Math.pow(bike.grip,.35))*pace);}

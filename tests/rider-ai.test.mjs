@@ -24,3 +24,15 @@ test('a physical traction mistake can drop an AI rider and is suppressed under c
  for(const caution of [false,true]){const {ai,b}=setup();b.speed=25;b.ai.mistake='traction';b.ai.mistakeAt=8;b.ai.mistakeUntil=12;b.ai.decisionAt=12;b.ai.targetSpeed=25;let falls=0;
   ai.update(b,[b],1/120,10,{...control,flag:caution?'vsc':'green'},()=>falls++);assert.equal(falls,caution?0:1);}
 });
+
+test('a rider pinched beside the edge uses a clear forward exit instead of waiting forever',()=>{
+ const {ai,b}=setup(1);b.offset=8.1;b.speed=0;
+ const behind={id:'behind',progress:b.progress-1.5,offset:7.1,speed:0,finishTime:null,crash:0};
+ ai.decide(b,[b,behind],10,false);assert(b.ai.targetSpeed>0);assert.equal(b.intent,'hold');
+});
+
+test('a stopped bike near the outer edge is passed on the side with physical room',()=>{
+ const {ai,b}=setup(1);b.offset=8.1;b.speed=10;
+ const ahead={id:'stopped',progress:b.progress+10,offset:7.8,speed:0,finishTime:null,crash:0};
+ ai.decide(b,[b,ahead],10,false);assert(b.ai.desiredOffset<ahead.offset-1.5);
+});

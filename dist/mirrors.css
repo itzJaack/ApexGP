@@ -1,0 +1,8 @@
+.rearviews{position:fixed;z-index:2;top:98px;left:50%;transform:translateX(-50%);width:min(57vw,700px);display:flex;justify-content:space-between;gap:18px;pointer-events:none}
+.rearviews[hidden]{display:none}.rearview{position:relative;width:42%;aspect-ratio:2.75;border:4px solid #10171c;box-shadow:0 3px 14px #0008,inset 0 0 0 1px #91afbf55;border-radius:3px;background:transparent;flex-shrink:0;box-sizing:border-box}
+.hud[data-rearviews=on] .race-notices{top:var(--rearview-bottom)}
+.leader-skip{font-size:9px;text-align:center;color:#9ba9af;line-height:10px}
+.rearview span{position:absolute;bottom:3px;left:6px;color:#eaf1f3;font:700 8px Arial;letter-spacing:1px;text-shadow:0 1px 3px #000;background:#07101477;padding:2px 4px}
+.rearviews[data-mode=center]{justify-content:center}.rearviews[data-mode=center] .rearview{width:72%;aspect-ratio:4.3}.rearviews[data-mode=right]{justify-content:flex-end}
+@media(max-width:650px){.rearviews{top:88px;width:67vw;left:auto;right:12px;transform:none;gap:8px}.rearview{border-width:3px;width:47%}.rearviews[data-mode=center] .rearview{width:90%}.rearview span{font-size:6px;bottom:1px;left:2px;padding:1px 2px}}
+@media(max-height:520px) and (orientation:landscape){.rearviews{top:70px;width:47vw}.rearview{border-width:3px}.rearviews[data-mode=center] .rearview{width:74%}}

@@ -1,5 +1,14 @@
 # Changelog ApexGP
 
+## 4.7.0 — 7 novembre 2026
+
+- Griglie da 20 piloti: 19 bot nelle gare singole e nel World Tour; in multiplayer i bot completano il gruppo mantenendo il limite di otto giocatori umani. Premi fino al ventesimo posto e risultati delle stagioni precedenti conservati.
+- Punti di forza diversi in frenata, curva, accelerazione e velocità, variazioni per settore e scia anche per l'IA. Più occasioni di attacco e una previsione dello spazio durante i sorpassi. Un urto con due caduti viene contato come un solo incidente.
+- Scenari offline ricavati da estratti OpenStreetMap per tutti i 14 circuiti: impronte degli edifici, tribune, boschi, alberi mappati, strade, parcheggi, recinzioni e lampioni. Gradinate, pubblico, box, facciate e auto aggiungono dettaglio; altezze e aspetto non documentati restano approssimati.
+- Terreno continuo su griglie Copernicus DEM GLO-90 tramite Open-Meteo, con quote della pista derivate dalla stessa superficie. Eliminati i salti generati dal precedente raccordo fra punti della pista.
+- Retrovisori 3D sinistro e destro, solo un lato, centrale panoramico o spenti. Impostazioni locali e cambio rapido in gara con il pulsante ↔ o V; aggiornamento ridotto in modalità Prestazioni.
+- Classifica di gara compatta con leader e piloti vicini alla propria posizione.
+
 ## 4.6.0 — 7 novembre 2026
 
 - IA delle gare singole e del World Tour con sette caratteri, tempi di reazione, punti di frenata, decisioni di sorpasso, difesa e rinuncia. Fiducia e pressione cambiano durante la gara; il comportamento varia a ogni partenza.

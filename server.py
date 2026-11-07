@@ -37,8 +37,8 @@ class Hub:
   if r['status']=='finished':return r.get('finishElapsed',0)
   now=self.clock();return max(0,now-r.get('startAt',now)-r.get('pausedTotal',0)-(now-r['pauseStart'] if r.get('pauseStart') is not None else 0))
  def bot_roster(self,humans,enabled):
-  names=['L. ROSSI','M. SERRA','A. TORRES','D. COSTA','N. MARTIN','E. MORETTI','S. HAYES'];numbers=[46,63,89,23,12,21,41];bikes=list(self.bikes)
-  return [{'id':'bot-'+str(i),'name':names[i],'number':numbers[i],'bikeId':bikes[(humans+i+2)%len(bikes)],'livery':'factory','slot':humans+i,'isBot':True,'ready':True,'finishTime':None,'penalties':0,'progress':0,'dnf':False} for i in range(8-humans)] if enabled else []
+  names=['L. ROSSI','M. SERRA','A. TORRES','D. COSTA','N. MARTIN','E. MORETTI','S. HAYES','F. CONTI','J. VEGA','T. WILSON','R. LECLERC','K. TANAKA','P. SILVA','O. WEBER','L. FERRI','A. NOVAK','M. REED','D. ROMANO','H. SATO'];numbers=[46,63,89,23,12,21,41,54,31,77,28,65,18,92,44,36,58,72,96];bikes=list(self.bikes)
+  return [{'id':'bot-'+str(i),'name':names[i],'number':numbers[i],'bikeId':bikes[(humans+i+2)%len(bikes)],'livery':'factory','slot':humans+i,'isBot':True,'ready':True,'finishTime':None,'penalties':0,'progress':0,'dnf':False} for i in range(20-humans)] if enabled else []
  def bot_phase(self,r):
   phases=r.setdefault('botPhases',[{'at':0,'rate':1}]);at=self.elapsed(r);rate={'red':0,'vsc':.3,'yellow':.6}.get(r['flag'],1)
   restart=phases[-1]['rate']==0 and rate>0
