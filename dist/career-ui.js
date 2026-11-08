@@ -49,10 +49,10 @@ export function mountCareerUI({career, tracks, bikes, onBike, onStart, isBusy}) 
     el('career-track-detail').textContent = `TAPPA ${index + 1} · ${event.laps} giri · ${{day: 'Sereno', rain: 'Pioggia', sunset: 'Tramonto'}[event.weather]}`;
     const previous = season?.results[index];
     el('career-track-status').textContent = previous ? `COMPLETATA · ${previous.order.indexOf('player') + 1}° posto · ${POINTS[previous.order.indexOf('player')]} punti`
-      : index === count ? 'PROSSIMA TAPPA · PRONTA A CORRERE' : 'TAPPA FUTURA · COMPLETA LE PRECEDENTI';
+      : index === count ? 'PROSSIMA TAPPA' : 'TAPPA FUTURA · COMPLETA LE PRECEDENTI';
     const standings = seasonStandings(season, profile.name);
     const place = standings.findIndex(rider => rider.id === 'player');
-    el('career-standing-label').textContent = season ? `${place + 1}° · ${standings[place].points} PUNTI${complete ? (place === 0 ? ' · CAMPIONE!' : ' · STAGIONE CONCLUSA') : ''}` : 'LA TUA PRIMA STAGIONE';
+    el('career-standing-label').textContent = season ? `${place + 1}° · ${standings[place].points} PUNTI${complete ? (place === 0 ? ' · CAMPIONE!' : ' · STAGIONE CONCLUSA') : ''}` : 'NUOVA STAGIONE';
     el('career-standings').replaceChildren(...standings.map((rider, index) => {
       const row = document.createElement('div'); row.className = 'season-row' + (rider.id === 'player' ? ' me' : '');
       for (const text of [index + 1, rider.name, rider.points]) {const cell = document.createElement('span'); cell.textContent = text; row.append(cell);}

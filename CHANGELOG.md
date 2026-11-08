@@ -1,5 +1,12 @@
 # Changelog ApexGP
 
+## 4.9.0 — 8 novembre 2026
+
+- Home organizzata in Gara veloce, Carriera e Multiplayer. Moto nella navigazione principale; Officina, Amici, Impostazioni e account nel menu secondario.
+- Rimossi slogan, descrizioni decorative dei modelli, note ridondanti e didascalie visive dei retrovisori. Conservati nomi, dati tecnici, istruzioni di gara e attribuzioni.
+- Anteprime dei circuiti e minimappa con tre confini trasversali: traguardo, S2 e S3. Posizione condivisa con gli indicatori dei settori e orientamento calcolato sulla tangente locale della pista.
+- Navigazione utilizzabile con tastiera, chiusura del menu con Escape e layout per telefono in verticale e orizzontale.
+
 ## 4.8.0 — 8 novembre 2026
 
 - Bandiera rossa con applicazione progressiva dei freni, cadute ancora simulate e tempo ufficiale sospeso. Il conto alla rovescia aspetta il gruppo fermo; partenza e ripartenza con cinque lampade rosse, spente al via.

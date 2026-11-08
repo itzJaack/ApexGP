@@ -1,6 +1,8 @@
-# ApexGP 4.8.0
+# ApexGP 4.9.0
 
 Gioco di corse in moto 3D per browser. **[Gioca su GitHub Pages](https://itzjaack.github.io/ApexGP/)** · [Sorgenti e aggiornamenti](https://github.com/itzJaack/ApexGP).
+
+La home offre **Gara veloce**, **Carriera** e **Multiplayer**. **Moto** apre il catalogo; **Menu** raccoglie Officina, Amici, Impostazioni e account. Le anteprime dei circuiti e la minimappa mostrano i confini dei tre settori con tacche trasversali alla pista.
 
 ## Avversari, contatti e cadute
 
@@ -57,7 +59,7 @@ singole usano l’IA con contatti e cadute fisiche. Procedure FIM di riferimento
 percorsi disponibili e adattamenti sono in [direzione gara](docs/race-direction.md).
 
 
-La versione attuale è **4.8.0**. Lo storico delle novità si trova in fondo a **Impostazioni → Changelog**, con l’ultima release aperta e le precedenti espandibili. È disponibile anche in [CHANGELOG.md](CHANGELOG.md).
+La versione attuale è **4.9.0**. Lo storico delle novità si trova in fondo a **Menu → Impostazioni → Changelog**, con l’ultima release aperta e le precedenti espandibili. È disponibile anche in [CHANGELOG.md](CHANGELOG.md).
 
 ## Bandiere e avvisi di gara
 

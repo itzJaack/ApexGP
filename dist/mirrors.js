@@ -1,5 +1,5 @@
 export const MIRROR_MODES=['off','left','right','both','center'];
-export const MIRROR_LABELS={off:'Spenti',left:'Solo sinistro',right:'Solo destro',both:'Sinistro e destro',center:'Centrale panoramico'};
+export const MIRROR_LABELS={off:'Spenti',left:'Solo sinistro',right:'Solo destro',both:'Sinistro e destro',center:'Centrale'};
 export function rearviewCamera(player,side){
  const local=(x,y,z)=>[player.x+Math.cos(player.heading)*x+Math.sin(player.heading)*z,(player.y||0)+y,player.z-Math.sin(player.heading)*x+Math.cos(player.heading)*z];
  const sign=side==='left'?-1:side==='right'?1:0;
@@ -18,7 +18,7 @@ export class RearViews{
   for(const [side,target]of this.targets)if(!this.sides.includes(side)){this.renderer.freeTarget?.(target);this.targets.delete(side);}
   if(this.container){
    this.container.dataset.mode=this.mode;
-   this.container.innerHTML=this.sides.map(side=>`<div class="rearview" data-mirror="${side}" role="img" aria-label="Retrovisore ${MIRROR_LABELS[side].toLowerCase()}"><span>${side==='center'?'POSTERIORE · PANORAMICO':side==='left'?'SX':'DX'}</span></div>`).join('');
+   this.container.innerHTML=this.sides.map(side=>`<div class="rearview" data-mirror="${side}" role="img" aria-label="Retrovisore ${MIRROR_LABELS[side].toLowerCase()}"></div>`).join('');
   }
  }
  hide(){if(this.container){this.container.hidden=true;const parent=this.container.parentElement;if(parent){delete parent.dataset.rearviews;parent.style.removeProperty('--rearview-bottom');}}}

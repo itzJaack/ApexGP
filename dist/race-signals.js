@@ -43,7 +43,7 @@ export class StartLights {
       this.goRemaining = 0;
       this.panel.classList.remove('hidden');
       this.panel.dataset.phase = 'red';
-      this.title.textContent = restart ? 'RIPARTENZA' : 'PRONTI IN GRIGLIA';
+      this.title.textContent = restart ? 'RIPARTENZA' : 'PARTENZA';
       this.caption.textContent = 'Scatta quando si spengono le luci';
       if (lit !== this.step) {
         this.step = lit;
@@ -59,7 +59,7 @@ export class StartLights {
       this.panel.dataset.phase = 'go';
       this.lamps.forEach(lamp => lamp.classList.remove('is-lit'));
       this.title.textContent = 'VIA!';
-      this.caption.textContent = 'Tutto gas. Buona gara!';
+      this.caption.textContent = '';
       this.panel.setAttribute('aria-label', 'Luci spente. Via!');
       this.onSignal('go', 0);
     }

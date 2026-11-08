@@ -1,3 +1,4 @@
+import {sectorRanges} from './circuit-sectors.js';
 const wrap=(value,length)=>(value%length+length)%length;
 export function makeFlagZone(progress,blocked=false,length=6000,remaining=12){
  const count=Math.ceil(length/180),step=length/count,centre=wrap(progress,length),post=Math.floor(centre/step);
@@ -16,10 +17,9 @@ export function zoneFlagAt(zones,progress,length){
  return flag;
 }
 export function flagSectors(zones,length){
- return [0,1,2].map(index=>{
-  const start=index*length/3,end=(index+1)*length/3;
+ return sectorRanges(length).map(({index,start,end})=>{
   const active=(zones||[]).filter(z=>z.remaining>0&&(zoneContains(z,start,length)||zoneContains(z,end-.01,length)||wrap(z.progress,length)>=start&&wrap(z.progress,length)<end));
-  return{index:index+1,flag:active.some(z=>z.flag==='doubleyellow')?'doubleyellow':active.length?'yellow':'green',zones:active.length};
+  return{index,flag:active.some(z=>z.flag==='doubleyellow')?'doubleyellow':active.length?'yellow':'green',zones:active.length};
  });
 }
 export function mergeFlagZone(zones,zone){
