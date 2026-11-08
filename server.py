@@ -247,13 +247,14 @@ class Hub:
     if r['flag'] in ('yellow','vsc','red') and now>=r['flagUntil']:
      if r.get('pauseStart') is not None:r['pausedTotal']+=now-r['pauseStart'];r['pauseStart']=None
      r['flag']='green';r['flagUntil']=now+4;self.bot_phase(r)
-    if r['status']=='race' and r.get('leaderFinish') is not None:
-     if all(self.players[x].get('finishTime') is not None or self.players[x].get('dnf') for x in r['players']) and all(b['finishTime'] is not None or b.get('dnf') for b in r.get('bots',[])) or now-r['leaderFinish']>40:
-      r['finishElapsed']=self.elapsed(r);r['status']='finished';r['flag']='chequered';r['flagUntil']=now+1e6
-      for b in r.get('bots',[]):
-       if b['finishTime'] is None:b['dnf']=True
-      for x in r['players']:
-       if self.players[x].get('finishTime') is None:self.players[x]['dnf']=True
+    participants=[self.players[x] for x in r['players']]+r.get('bots',[])
+    classified=all(p.get('finishTime') is not None or p.get('dnf') for p in participants)
+    if r['status']=='race' and (classified or r.get('leaderFinish') is not None and now-r['leaderFinish']>40):
+     r['finishElapsed']=self.elapsed(r);r['status']='finished';r['flag']='chequered';r['flagUntil']=now+1e6
+     for b in r.get('bots',[]):
+      if b['finishTime'] is None:b['dnf']=True
+     for x in r['players']:
+      if self.players[x].get('finishTime') is None:self.players[x]['dnf']=True
   for r in rooms:self.broadcast(r)
 
 def websocket_frame(payload,opcode=1):

@@ -30,4 +30,10 @@ class LobbyTests(unittest.TestCase):
   self.send(self.a,'incident',severity=3);self.now=self.r['flagUntil']+.1;self.hub.tick();self.assertEqual(self.r['flag'],'red');self.assertFalse(self.r['redGridReady'])
   peer['pose']['speed']=0;peer['pose']['crash']=0;self.now+=.1;self.hub.tick();self.assertEqual(self.r['flag'],'red');self.now+=1.5;self.hub.tick();self.assertTrue(self.r['redGridReady'])
   self.now=self.r['flagUntil']+.1;self.hub.tick();self.assertEqual(self.r['flag'],'green')
+ def test_all_disqualified_riders_close_the_race_without_a_finisher(self):
+  self.send(self.a,'settings',options={'bots':True});self.ready();self.send(self.a,'start');self.now+=5
+  ids=self.r['players']+[b['id'] for b in self.r['bots']]
+  legal=[{'id':who,'dsq':True,'sanctions':[{'id':i+1,'type':'dsq','status':'applied','reason':'Ripetute infrazioni'}],'timePenalty':0,'positionPenalty':0} for i,who in enumerate(ids)]
+  self.send(self.a,'stewards',roundId=self.r['roundId'],ledger={'revision':1,'nextId':21,'botPlans':[],'riders':legal});self.hub.tick()
+  self.assertEqual(self.r['status'],'finished');self.assertTrue(all(p['dsq'] and p['finishTime'] is None for p in self.hub.room_state(self.r)['players']+self.r['bots']))
 if __name__=='__main__':unittest.main()

@@ -77,3 +77,14 @@ test('red restart waits for an actually stationary and recovered human grid',asy
   at=h.room.flagUntil+100;h.serviceTick();await flush();assert.equal(h.room.flag,'green');assert.equal(p.room.flag,'green');
  }finally{f.close();}
 });
+
+test('a fully disqualified grid closes the room race without waiting for a first finisher',async()=>{
+ const f=clients();try{
+  await lobby(f);await start(f);const[h,p]=f.cs;let at=h.room.startAt+1000;h.now=p.now=()=>at;
+  h.updateStewards(h.view());await flush();
+  for(const rider of h.stewardController.actors.values())h.stewardController.stewards.issue(rider,'dsq',{reason:'Infrazioni ripetute'});
+  at+=100;h.updateStewards(h.view());await flush();h.serviceTick();await flush();
+  assert.equal(h.room.status,'finished');assert.equal(p.room.status,'finished');assert(h.state.players.every(r=>r.dsq&&r.finishTime===null));
+  assert.deepEqual(f.events.map(e=>e.results),[1,1]);
+ }finally{f.close();}
+});
