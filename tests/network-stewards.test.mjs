@@ -63,6 +63,18 @@ test('a human must follow the whole penalty route; a shortcut cannot mark it ser
  for(let distance=0;distance<route.length;distance+=3){time+=.5;move(distance,time);}
  move(route.length,time+1);assert.equal(rider.sanctions[0].status,'served');
 });
+
+test('coasting through a bot penalty route during red does not mark it served after restart',()=>{
+ const{state,controller,grid}=room();controller.tick(state,grid.sample(15),15);
+ const rider=controller.actors.get('bot-0'),penalty=controller.stewards.issue(rider,'longlap',{reason:'Track limits'});
+ let ledger=controller.tick(state,grid.sample(15),15);
+ const window=grid.sample(15,undefined,false,0,[],ledger)[0].serviceWindows[0];assert(window);
+ state.flag='red';ledger=controller.tick(state,grid.sample(window.start+.1,undefined,false,0,[],ledger),15);
+ assert(ledger.botPlans[0].invalid);
+ state.flag='green';const originalDeadline=penalty.deadlineProgress;
+ ledger=controller.tick(state,grid.sample(window.end+.1,undefined,false,0,[],ledger),window.end+.1);
+ assert.equal(penalty.status,'pending');assert(penalty.deadlineProgress>originalDeadline);assert(ledger.botPlans[0].completed);
+});
 test('pending sanctions survive host migration and an ignored bot ride-through ends in DSQ',()=>{
  const{state,controller,grid}=room();controller.tick(state,grid.sample(10),10);
  const rider=controller.actors.get('bot-0'),penalty=controller.stewards.issue(rider,'rideThrough',{reason:'Infrazioni ripetute'});

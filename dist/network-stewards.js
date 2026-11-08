@@ -107,7 +107,16 @@ export class NetworkStewards{
   }
   for(const rider of this.race.riders){
    const meta=bots.find(b=>b.id===rider.id),record=this.stewards.record(rider);
-   if(red){record.serviceCheck=null;rider.service=null;continue;}
+   if(red){
+    record.serviceCheck=null;rider.service=null;
+    // Coasting to the exit during a suspension cannot serve a penalty.
+    // Keep the instruction pending and repeat the route after the restart.
+    if(rider.isBot)for(const plan of this.plans.filter(p=>p.botId===rider.id&&!p.completed&&p.kind!=='yield')){
+     const window=meta?.serviceWindows?.find(s=>s.penaltyId===plan.penaltyId);
+     if(window&&meta.drivingTime>=window.start&&(rider.lastDrivingTime??0)<window.end&&!plan.invalid){plan.invalid=true;this.changed=true;}
+    }
+    rider.lastDrivingTime=meta?.drivingTime;continue;
+   }
    if(rider.isBot){
     for(const plan of this.plans.filter(p=>p.botId===rider.id&&!p.completed&&p.kind!=='yield')){
      const service=meta?.serviceWindows?.find(s=>s.penaltyId===plan.penaltyId&&s.end>=(plan.windowEnd||0));
@@ -118,6 +127,7 @@ export class NetworkStewards{
      if(meta.drivingTime>=service.end){plan.completed=true;rider.service=null;if(plan.invalid)penalty.deadlineProgress+=this.track.length;else if(penalty.remaining>1)penalty.remaining--;else this.stewards.served(rider,penalty);this.changed=true;}
     }
    }else this.observeService(rider,time);
+   rider.lastDrivingTime=meta?.drivingTime;
   }
   const before=this.fingerprint();this.stewards.observe(Math.min(.5,Math.max(0,time-(this.lastTime??time))));
   for(const rider of this.race.riders){
