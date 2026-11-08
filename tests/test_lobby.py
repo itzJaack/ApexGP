@@ -15,5 +15,19 @@ class LobbyTests(unittest.TestCase):
   for i in range(19):self.send(self.a,'bot_finish',id='bot-'+str(i),time=200+i)
   self.assertEqual(self.r['bots'][0]['finishTime'],200);self.send(self.a,'bot_finish',id='bot-0',time=240);self.assertEqual(self.r['bots'][0]['finishTime'],200);self.now+=41;self.hub.tick();self.assertEqual(self.r['status'],'finished');state=self.hub.room_state(self.r);self.assertEqual(state['order'][-1],self.a);self.assertEqual(len(state['order']),20);elapsed=state['elapsed'];self.now+=5;self.assertEqual(self.hub.room_state(self.r)['elapsed'],elapsed);self.send(self.a,'lobby');self.send(self.a,'settings',options={'trackId':'canyon','bots':False});self.assertEqual(self.r['code'],self.code);self.assertEqual(len(self.hub.room_state(self.r)['bots']),0)
  def test_bot_caution_timeline_is_shared_and_race_clock_freezes(self):
-  self.send(self.a,'settings',options={'bots':True});self.ready();self.send(self.a,'start');self.now+=24;self.send(self.a,'incident',severity=2);self.assertEqual(self.r['botPhases'][-1]['rate'],.3);self.now+=5;self.send(self.a,'incident',severity=3);elapsed=self.hub.elapsed(self.r);self.assertEqual(self.r['botPhases'][-1]['rate'],0);self.now+=7.1;self.hub.tick();self.assertEqual(self.r['flag'],'green');self.assertAlmostEqual(self.hub.elapsed(self.r),elapsed);self.assertEqual(self.r['botPhases'][-1]['rate'],1)
+  self.send(self.a,'settings',options={'bots':True});self.ready();self.send(self.a,'start');self.now+=24;self.send(self.a,'incident',severity=2);self.assertEqual(self.r['botPhases'][-1]['rate'],1);self.assertEqual(len(self.r['flagZones']),1);self.now+=5;self.send(self.a,'incident',severity=3);elapsed=self.hub.elapsed(self.r);self.assertEqual(self.r['botPhases'][-1]['rate'],0);self.assertGreater(self.r['botPhases'][-1]['brakeSeconds'],3);self.now=self.r['flagUntil']+.1;self.hub.tick();self.assertEqual(self.r['flag'],'green');self.assertAlmostEqual(self.hub.elapsed(self.r),elapsed);self.assertEqual(self.r['botPhases'][-1]['rate'],1)
+ def test_host_steward_decisions_apply_to_bots_but_peer_and_malformed_reports_are_rejected(self):
+  self.send(self.a,'settings',options={'bots':True});self.ready();self.send(self.a,'start');self.now+=5
+  bot=self.r['bots'][0];sanction={'id':1,'type':'dsq','status':'applied','reason':'Ripetute infrazioni','issuedAt':1,'notifiedLap':0}
+  ledger={'revision':1,'nextId':2,'botPlans':[],'riders':[{'id':bot['id'],'dsq':True,'sanctions':[sanction],'timePenalty':0,'positionPenalty':0}]}
+  self.send(self.b,'stewards',roundId=self.r['roundId'],ledger=ledger);self.assertIsNone(self.r['stewardLedger'])
+  self.send(self.a,'stewards',roundId='old-round',ledger=ledger);self.assertIsNone(self.r['stewardLedger'])
+  self.send(self.a,'stewards',roundId=self.r['roundId'],ledger={**ledger,'riders':[None]});self.assertIsNone(self.r['stewardLedger'])
+  self.send(self.a,'stewards',roundId=self.r['roundId'],ledger=ledger);self.assertTrue(bot['dsq']);self.assertTrue(bot['dnf']);self.assertEqual(self.hub.room_state(self.r)['order'][-1],bot['id'])
+  self.now+=250;self.send(self.a,'bot_finish',id=bot['id'],time=200);self.assertIsNone(bot['finishTime'])
+ def test_red_grid_waits_for_actual_stop_before_restart_lights(self):
+  self.ready();self.send(self.a,'start');self.now+=5;peer=self.hub.players[self.b];peer['pose']['speed']=50;peer['pose']['crash']=3
+  self.send(self.a,'incident',severity=3);self.now=self.r['flagUntil']+.1;self.hub.tick();self.assertEqual(self.r['flag'],'red');self.assertFalse(self.r['redGridReady'])
+  peer['pose']['speed']=0;peer['pose']['crash']=0;self.now+=.1;self.hub.tick();self.assertEqual(self.r['flag'],'red');self.now+=1.5;self.hub.tick();self.assertTrue(self.r['redGridReady'])
+  self.now=self.r['flagUntil']+.1;self.hub.tick();self.assertEqual(self.r['flag'],'green')
 if __name__=='__main__':unittest.main()

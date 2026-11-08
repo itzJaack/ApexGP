@@ -16,14 +16,22 @@ export class RaceNotices {
 
   setFlag(info) {
     const flag = info?.flag || 'green';
-    if (this.flag === flag) return;
+    const changed = this.flag !== flag;
     this.flag = flag;
     this.flagPanel.classList.toggle('hidden', flag === 'green');
     this.flagPanel.dataset.flag = flag;
     if (flag === 'green') return;
-    this.flagLabel.textContent = info.label;
-    this.flagText.textContent = info.text;
+    if (this.flagLabel.textContent !== info.label) this.flagLabel.textContent = info.label;
+    if (this.flagText.textContent !== info.text) this.flagText.textContent = info.text;
     this.flagPanel.style.setProperty('--notice-color', info.color);
+    if (changed && !globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+      this.flagAnimation?.cancel();
+      this.flagAnimation = this.flagPanel.animate?.([
+        {opacity: 0, transform: 'translateY(-10px) rotate(-2deg) scale(.96)'},
+        {opacity: 1, transform: 'translateY(2px) rotate(.5deg) scale(1.01)', offset: .72},
+        {opacity: 1, transform: 'translateY(0) rotate(0) scale(1)'},
+      ], {duration: 380, easing: 'ease-out'});
+    }
   }
 
   push({key, title, text = '', tone = 'info', icon = 'info', priority = 0, duration = 2500}, now = performance.now()) {

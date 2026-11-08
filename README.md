@@ -1,4 +1,4 @@
-# ApexGP 4.7.0
+# ApexGP 4.8.0
 
 Gioco di corse in moto 3D per browser. **[Gioca su GitHub Pages](https://itzjaack.github.io/ApexGP/)** · [Sorgenti e aggiornamenti](https://github.com/itzJaack/ApexGP).
 
@@ -36,11 +36,28 @@ Gli urti possono far cadere entrambi i piloti e coinvolgere chi segue. Moto e
 pilota hanno movimenti separati con gravità e attrito; il pilota è articolato.
 È una simulazione semplificata per il gioco, con recupero automatico dopo la caduta.
 
-La bandiera rossa ferma tutti prima del conto alla rovescia. Anche i bot LAN e
+La bandiera rossa frena progressivamente tutto il gruppo e aspetta che sia fermo prima del conto alla rovescia con cinque luci. Anche i bot LAN e
 online ripartono da zero: la ripartenza non riutilizza la velocità precedente.
 Il client completo versionato viene generato da `npm run build`.
 
-La versione attuale è **4.7.0**. Lo storico delle novità si trova in fondo a **Impostazioni → Changelog**, con l’ultima release aperta e le precedenti espandibili. È disponibile anche in [CHANGELOG.md](CHANGELOG.md).
+Le gialle interessano le zone dei commissari e sono mostrate nella minimappa e
+nei tre settori. Singola: pericolo a bordo pista; doppia: ostacolo in pista.
+Gialle e incidenti separati non sospendono automaticamente la gara. Le penalità
+valgono per umani e bot: restituzione di posizioni, long lap, doppio long lap,
+ride-through, tempo aggiunto, retrocessioni e squalifica. **B / SCONTA** prenota
+la guida al percorso; attraversare i box richiede di rispettare **60 km/h**.
+Scadenze e sanzioni pendenti restano dopo la rossa; all’arrivo la classifica
+include gli equivalenti e i piloti squalificati non segnano punti.
+
+Giocatore e bot condividono aderenza e limite di piega della moto di serie.
+Una frenata tardiva non aumenta il grip: può allargare la curva, portare
+sull’erba e costare tempo. Anche i bot multiplayer hanno limiti coerenti;
+la loro traiettoria resta una ricostruzione deterministica, mentre le gare
+singole usano l’IA con contatti e cadute fisiche. Procedure FIM di riferimento,
+percorsi disponibili e adattamenti sono in [direzione gara](docs/race-direction.md).
+
+
+La versione attuale è **4.8.0**. Lo storico delle novità si trova in fondo a **Impostazioni → Changelog**, con l’ultima release aperta e le precedenti espandibili. È disponibile anche in [CHANGELOG.md](CHANGELOG.md).
 
 ## Bandiere e avvisi di gara
 

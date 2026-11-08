@@ -95,7 +95,7 @@ test('yellow zones are local, VSC limits every arrow and a red flag never advise
   assert.equal(guide.hint.flag,null);assert(guide.limitAt(100)>25);assert(guide.limitAt(500)<=25);
   race.player.progress=500;guide.update(race);assert.equal(guide.hint.flag,'yellow');
   race.control.set('vsc');guide.update(race);assert.equal(guide.hint.flag,'vsc');assert(guide.speeds.every(v=>v<=25));
-  race.control.set('red');race.player.speed=0;guide.update(race);assert.equal(guide.hint.action,'stop');assert.equal(guide.hint.target,0);
+  race.control.set('red');race.player.speed=0;guide.update(race);assert.equal(guide.hint.action,'stop');assert.equal(guide.hint.target,0);assert(guide.markers.every(m=>m.urgency===1));
   race.control.set('green');guide.update(race);assert(guide.limitAt(100)>25);assert.equal(guide.hint.action,'accelerate');
 });
 

@@ -162,7 +162,7 @@ test('complete races on every circuit: laps, AI order, finish times and reusable
       assert(Object.entries(p).filter(([,v])=>typeof v==='number').every(([,v])=>Number.isFinite(v)));
     }
     assert.equal(race.state,'finished',config.name);assert.equal(race.lapTimes.length,2);assert.equal(lapEvents.length,2);
-    assert(Math.abs(race.lapTimes.reduce((a,b)=>a+b)-race.player.finishTime)<.001);
+    assert(Math.abs(race.lapTimes.reduce((a,b)=>a+b)+(race.player.timePenalty||0)-race.player.finishTime)<.001);
     assert(race.position>=1&&race.position<=20);assert.equal(race.order.length,20);
     for(const event of lapEvents){assert(event.recording.length>500);assert.equal(event.recording.at(-1).s,track.length);for(let i=1;i<event.recording.length;i++){assert(event.recording[i].s>=0&&event.recording[i].s<=track.length);assert(event.recording[i].t>=event.recording[i-1].t);}}
   }

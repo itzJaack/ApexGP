@@ -22,6 +22,15 @@ function finishRound(career, {order = CHAMPIONSHIP_RIDERS, id = 'race-' + career
   return career.completeRound(ticket, {raceId: id, order, trackId: ticket.trackId, finished: true, time: 180});
 }
 
+test('a disqualified player advances the season with no points or race prize, and cannot settle twice',()=>{
+ const career=new Career();career.chooseStarter(STARTER_BIKES[0]);career.beginSeason('sport');
+ const ticket=career.roundTicket(),before=career.profile.credits;
+ const result={raceId:'black-flag-round',order:[...CHAMPIONSHIP_RIDERS.filter(id=>id!=='player'),'player'],trackId:ticket.trackId,finished:false,time:90,disqualified:['player','bot0']};
+ assert(career.completeRound(ticket,result).ok);assert.equal(career.profile.credits,before);
+ const standings=seasonStandings(career.profile.season);assert.equal(standings.find(r=>r.id==='player').points,0);assert.equal(standings.find(r=>r.id==='bot0').points,0);
+ assert.equal(career.roundTicket().index,1);assert(!career.completeRound(ticket,result).ok);
+});
+
 test('new careers choose exactly one of the three lowest powered bikes and must buy the rest', () => {
   assert.deepEqual([...STARTER_BIKES].sort(), BIKES.toSorted((a, b) => a.power - b.power).slice(0, 3).map(bike => bike.id).sort());
   for (const id of STARTER_BIKES) {

@@ -80,7 +80,7 @@ export class RacingLine{
   }
   ensureProfile(race){
     const bike=race.options.bike,weather=race.options.weather,control=race.control;
-    const key=[bike.grip,bike.braking??1,bike.top,weather,control?.flag,control?.zone].join('|');
+    const key=[bike.grip,bike.braking??1,bike.top,weather,control?.flag,control?.zone,control?.sequence].join('|');
     if(key===this.profileKey)return;
     this.profileKey=key;this.smoothed.fill(-1);
     const grip=bike.grip*(weather==='rain'?.74:1),lean=(weather==='rain'?.92:1.12)*Math.pow(bike.grip,.075);
@@ -91,7 +91,7 @@ export class RacingLine{
       const p=this.samples[i],s=i*this.step;
       let limit=Math.min(this.top,Math.sqrt(lateral/Math.max(.0001,p.curvature)));
       if(control?.flag==='red')limit=0;
-      else if(control?.flag==='vsc'||control?.flag==='yellow'&&control.applies({progress:s},this.track))limit=Math.min(limit,25);
+      else if(control?.flag==='vsc'||control?.applies({progress:s},this.track))limit=Math.min(limit,control.cautionLimit?.({progress:s,bike},this.track)??25);
       this.speeds[i]=this.limits[i]=limit;
     }
     // Two backward laps propagate the slowest corner across the lap boundary.
@@ -137,7 +137,7 @@ export class RacingLine{
       const brake=Math.max(3,this.braking+9.81*grade),underGas=Math.sqrt(forecast*forecast+2*this.acceleration(forecast,bike)*travel);
       forecast=underGas<=limit?underGas:Math.max(limit,Math.sqrt(Math.max(0,forecast*forecast-2*brake*travel)));
       const demand=this.demand(forecast,station,this.spacing),slot=mod(first+i,this.smoothed.length),old=this.smoothed[slot];
-      const urgency=old<0?demand.urgency:lerp(old,demand.urgency,1-Math.exp(-clamp(dt,0,.1)*(demand.urgency>old?18:10)));
+      const urgency=red?1:old<0?demand.urgency:lerp(old,demand.urgency,1-Math.exp(-clamp(dt,0,.1)*(demand.urgency>old?18:10)));
       this.smoothed[slot]=urgency;
       const marker=this.pool[i],q=this.point(station),color=racingLineColor(urgency);
       Object.assign(marker,q,{s:station,distance,urgency,target:demand.target,alpha:clamp(distance/5,0,1)*clamp((horizon-distance)/35,0,1)});

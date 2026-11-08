@@ -6,6 +6,7 @@ import {scenerySite} from './scenery.js';
 import {buildMappedScenery,hasMappedScenery} from './mapped-scenery.js';
 import {GRID_SIZE,gridPlace} from './rider-roster.js';
 import {terrainElevation} from './elevation.js';
+import {drawPenaltyRoutes} from './penalty-routes.js';
 
 const V={sub:(a,b)=>a.map((v,i)=>v-b[i]),dot:(a,b)=>a.reduce((s,v,i)=>s+v*b[i],0),cross:(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]],norm:a=>{const l=Math.hypot(...a)||1;return a.map(v=>v/l);}};
 export const identity=()=>new Float32Array([1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1]);
@@ -437,6 +438,7 @@ function createWorld(renderer,track){
   }
   if(track.config.elevation)for(let i=staticStart;i<g.data.length;i+=12)if(g.data[i+9]!==13)g.data[i+1]+=terrain(g.data[i],g.data[i+2]);
   const mappedStats=mapped?buildMappedScenery(g,track,terrain,renderer.quality):null;
+  drawPenaltyRoutes(g,track);
   const boards=[];const textures=['APEX GP','RIDE THE LIMIT','FULL THROTTLE'].map(text=>markTexture(renderer,text));
   for(const corner of track.config.corners||[]){
     const p=track.sample(corner.s-35,-w-5),board=new Geometry();

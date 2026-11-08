@@ -30,13 +30,13 @@ class HubTests(unittest.TestCase):
   for _ in range(5):self.clock.advance(.05);self.pose(self.b,s,60);s+=3
   self.hub.tick();self.assertEqual(self.room['status'],'finished');state=self.hub.room_state(self.room);self.assertEqual(state['order'][0],self.a);self.assertTrue(all(p['finishTime'] is not None for p in state['players']));self.assertEqual(state['flag'],'chequered')
  def test_incidents_and_red_flags_are_shared_and_pause_the_race_clock(self):
-  self.start();self.hub.handle(self.a,{'type':'incident','severity':1});self.assertEqual(self.room['flag'],'yellow');self.hub.handle(self.b,{'type':'incident','severity':2});self.assertEqual(self.room['flag'],'vsc');self.clock.advance(5);self.hub.handle(self.a,{'type':'incident','severity':3});before=self.hub.room_state(self.room)['elapsed'];self.assertEqual(self.room['flag'],'red');self.clock.advance(7.1);self.hub.tick();after=self.hub.room_state(self.room)['elapsed'];self.assertAlmostEqual(before,after,places=4);self.assertEqual(self.room['flag'],'green')
+  self.start();self.hub.handle(self.a,{'type':'incident','severity':1});self.assertEqual(self.room['flag'],'yellow');self.hub.handle(self.b,{'type':'incident','severity':2});self.assertEqual(self.room['flag'],'yellow');self.clock.advance(5);self.hub.handle(self.a,{'type':'incident','severity':3});before=self.hub.room_state(self.room)['elapsed'];self.assertEqual(self.room['flag'],'red');self.clock.value=self.room['flagUntil']+.1;self.hub.tick();after=self.hub.room_state(self.room)['elapsed'];self.assertAlmostEqual(before,after,places=4);self.assertEqual(self.room['flag'],'green')
  def test_host_disconnect_promotes_the_other_player_and_cleans_empty_rooms(self):
   self.hub.remove(self.a);self.assertEqual(self.room['host'],self.b);self.hub.remove(self.b);self.assertNotIn(self.code,self.hub.rooms)
  def test_reset_is_authoritative_and_adds_a_penalty(self):
   self.start();self.hub.handle(self.a,{'type':'reset'});self.assertEqual(self.hub.players[self.a]['penalties'],2);self.assertTrue(any(m.get('type')=='reset' for m in self.messages[self.a]))
  def test_server_enforces_vsc_speed_limit(self):
-  self.start();self.hub.handle(self.a,{'type':'incident','severity':2});s=self.hub.players[self.a]['progress']
+  self.start();self.room['flag']='vsc';self.room['flagUntil']=self.clock()+30;s=self.hub.players[self.a]['progress']
   for _ in range(75):self.clock.advance(.05);s+=1.75;self.pose(self.a,s,35)
   self.assertEqual(self.hub.players[self.a]['penalties'],3);self.assertTrue(any(m.get('type')=='penalty' and m.get('reason')=='VSC' for m in self.messages[self.a]))
 class Client:

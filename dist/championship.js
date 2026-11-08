@@ -31,7 +31,8 @@ export function normalizeSeason(raw) {
     if (result?.trackId !== event.trackId || !(validOrder(result.order)||legacyOrder)
       || typeof result.raceId !== 'string' || !result.raceId || result.raceId.length > 150
       || season.results.some(previous => previous.raceId === result.raceId)) break;
-    season.results.push({trackId: event.trackId, raceId: result.raceId, order: [...result.order]});
+    const disqualified=Array.isArray(result.disqualified)?[...new Set(result.disqualified.filter(id=>result.order.includes(id)))]:[];
+    season.results.push({trackId: event.trackId, raceId: result.raceId, order: [...result.order],...(disqualified.length?{disqualified}:{})});
   }
   return season;
 }
@@ -39,6 +40,7 @@ export function normalizeSeason(raw) {
 export function seasonStandings(season, playerName = 'PILOTA') {
   const rows = CHAMPIONSHIP_RIDERS.map((id, index) => ({id, name: index ? BOT_NAMES[index - 1] : playerName, points: 0, finishes: Array(GRID_SIZE).fill(0)}));
   for (const result of season?.results || []) result.order.forEach((id, place) => {
+    if(result.disqualified?.includes(id))return;
     const rider = rows.find(row => row.id === id);
     rider.points += POINTS[place];
     rider.finishes[place]++;

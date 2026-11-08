@@ -1,9 +1,12 @@
 import {botDriving} from './bot-driving.js';
 import {paceRank} from './rider-roster.js';
+import {tyreGrip,availableCornerForce} from './tyre-grip.js';
 
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const approach=(a,b,step)=>a+clamp(b-a,-step,step);
 const gap=(a,b,length)=>((a-b+length*.5)%length+length)%length-length*.5;
+const wrapAngle=value=>Math.atan2(Math.sin(value),Math.cos(value));
+const DEFAULT_BIKE={grip:1.1,braking:1,accel:1,handling:1,mass:230,power:200,top:312};
 export const RIDER_CHARACTERS=[
   {name:'attaccante',aggression:.90,courtesy:.20,brakeBias:.62,consistency:.78},
   {name:'prudente',aggression:.24,courtesy:.94,brakeBias:-.65,consistency:.90},
@@ -33,7 +36,7 @@ export class RiderAI{
       startLane:bot.offset,formationUntil:4.5,
       strengths:{corner:.94+random()*.12,drive:.92+random()*.16,top:.98+random()*.04,braking:.94+random()*.12},
       sectorPace:Array.from({length:12},()=>.96+random()*.08)};
-    bot.lateralSpeed=0;bot.crash=0;bot.invulnerable=0;bot.travel=0;bot.brake=0;bot.pitch=0;
+    bot.lateralSpeed=0;bot.crash=0;bot.invulnerable=0;bot.travel=0;bot.brake=0;bot.pitch=0;bot.throttle=0;bot.acceleration=0;bot.offtrackEvents=0;
     const p=this.track.sample(bot.progress,bot.offset);Object.assign(bot,{x:p.x,z:p.z,y:p.y||0,heading:p.yaw,angle:0});
   }
   restart(bot,time){
@@ -150,6 +153,11 @@ export class RiderAI{
       *ai.strengths.corner*ai.sectorPace[sector];
     const wet=this.options.weather==='rain',grip=wet?.74:1;
     let target=tr.targetSpeed(bot.progress+brakeShift,grip*1.03,pace,this.driving.planningBrake,Math.max(180,bot.speed*7));
+    const bike=bot.bike||this.options.bike||DEFAULT_BIKE,budget=tyreGrip(bike,this.options.weather);
+    const cornerMargin=this.options.difficulty==='pro'?.96:this.options.difficulty==='rookie'?.78:.89;
+    const planningBrake=Math.min(this.driving.planningBrake,14.6*(bike.braking??1)*budget.grip*.82);
+    const physicalTarget=tr.targetSpeed(bot.progress+Math.min(0,brakeShift*.22),budget.lateral*cornerMargin**2/(9.81*1.43),1,planningBrake,Math.max(180,bot.speed*7));
+    target=Math.min(target,physicalTarget);
     const braking=bot.speed>target+1;
     if(braking&&!ai.wasBraking&&time>6&&time-ai.mistakeAt>6){
       ai.brakeJitter=(ai.random()-.5)*(1-this.skill.precision)*bot.speed*.8;
@@ -160,18 +168,22 @@ export class RiderAI{
     }
     ai.wasBraking=braking;
     if(time>ai.mistakeUntil)ai.mistake=null;
-    if(ai.mistake==='late'){target=Math.min(this.driving.top/3.6,target+6+c.aggression*4);desired+=Math.sign(bend||entry)*(1+c.aggression)*-1;}
+    if(ai.mistake==='late'){target=Math.min(bike.top/3.6,target+3+c.aggression*4);desired+=Math.sign(bend||entry)*(1+c.aggression)*-1;}
     if(ai.mistake==='hesitate')target*=.80;
-    ai.desiredOffset=clamp(desired,-width,width);ai.targetSpeed=Math.min(target,speedLimit,underFlag?25:Infinity);
+    const lapper=visible.find(o=>o.distance<0&&o.distance>-45&&o.rider.progress>bot.progress+tr.length*.75&&o.rider.speed>bot.speed+2);
+    if(lapper&&!underFlag){ai.intent='blue-yield';desired=(bot.offset>=lapper.rider.offset?1:-1)*width*.72;target=Math.min(target,lapper.rider.speed*.80);}
+    ai.desiredOffset=clamp(desired,-width,width);ai.targetSpeed=Math.min(target,speedLimit,underFlag?(ai.cautionLimit??25):Infinity);
     ai.decisionAt=time+this.skill.reaction*(.8+ai.random()*.45);
     bot.intent=ai.intent;
   }
   update(bot,riders,dt,time,control,onFall){
     const ai=bot.ai,tr=this.track;if(!ai)return;
-    if(bot.finishTime!==null||bot.crash>0)return;
+    if(bot.finishTime!==null||bot.crash>0||bot.dnf)return;
     bot.invulnerable=Math.max(0,(bot.invulnerable||0)-dt);
-    const underFlag=control.flag==='vsc'||control.flag==='yellow'&&control.applies(bot,tr);
-    if(time>=ai.decisionAt)this.decide(bot,riders,time,underFlag);
+    const underRed=control.flag==='red',underFlag=underRed||control.flag==='vsc'||control.flag==='yellow'&&control.applies(bot,tr);
+    ai.cautionLimit=control.cautionLimit?.(bot,tr)??(underFlag?25:Infinity);
+    if(underRed){ai.intent='stop';ai.mistake=null;ai.stuckTime=0;ai.backingUntil=0;bot.intent='stop';}
+    else if(time>=ai.decisionAt)this.decide(bot,riders,time,underFlag);
     ai.stuckTime=bot.speed<.3&&['yield','hold','avoid'].includes(ai.intent)?ai.stuckTime+dt:0;
     if(ai.stuckTime>1.5){
       const blockedBehind=this.perceive(bot,riders).some(o=>o.distance<0&&o.distance>-4&&Math.abs(o.rider.offset-bot.offset)<1.0);
@@ -186,28 +198,58 @@ export class RiderAI{
     }
     bot.reversing=false;
     bot.slipstream=!underFlag&&this.perceive(bot,riders).some(o=>o.distance>3&&o.distance<32&&Math.abs(o.rider.offset-bot.offset)<1.6&&!o.rider.crash);
-    const top=(this.driving.top-paceRank(ai.index)*this.driving.topSpread)/3.6*ai.strengths.top*(bot.slipstream?1.035:1),target=Math.min(ai.targetSpeed,top,underFlag?25:Infinity);
-    const oldSpeed=bot.speed;
-    if(time<ai.launchAt&&bot.speed<.05)bot.speed=0;
-    else if(bot.speed<target)bot.speed=Math.min(target,bot.speed+(this.driving.acceleration-3.8*bot.speed/top)*ai.strengths.drive*(bot.slipstream?1.12:1)*dt);
-    else bot.speed=Math.max(target,bot.speed-this.driving.braking*ai.strengths.braking*(this.options.weather==='rain'?.78:1)*dt);
-    bot.brake=clamp((oldSpeed-bot.speed)/dt/this.driving.braking,0,1);bot.pitch=approach(bot.pitch,clamp((oldSpeed-bot.speed)/dt*.004,-.04,.065),dt*.3);
-    let desired=ai.desiredOffset;
-    const lateralLimit=Math.min(3.2,bot.speed*(bot.speed<8?.75:.22)),wanted=clamp((desired-bot.offset)*(this.driving.response*.75),-lateralLimit,lateralLimit);
-    bot.lateralSpeed=approach(bot.lateralSpeed,wanted,dt*(2.3+this.skill.precision*1.4));
-    bot.offset+=bot.lateralSpeed*dt;
-    const previous=bot.progress,road=tr.sample(bot.progress);
-    bot.offset+=((bot.impactVX||0)*road.tz-(bot.impactVZ||0)*road.tx)*dt;
-    bot.progress+=(bot.speed+(bot.impactVX||0)*road.tx+(bot.impactVZ||0)*road.tz)*dt;bot.travel+=bot.speed*dt;
-    bot.yawKick=((bot.yawKick||0)+(bot.impactYaw||0)*dt)*Math.exp(-dt*3);
+    const bike=bot.bike||this.options.bike||DEFAULT_BIKE;
+    const off=Math.max(0,Math.abs(bot.offset)-tr.halfWidth),surface=1-.57*clamp(off/3,0,1);
+    const budget=tyreGrip(bike,this.options.weather,surface);
+    const top=Math.min(bike.top,this.driving.top-paceRank(ai.index)*this.driving.topSpread)/3.6*(bot.slipstream?1.035:1);
+    let target=underRed?0:Math.min(ai.targetSpeed,top,underFlag?Math.max(0,ai.cautionLimit-.65):Infinity,off>1?Math.max(7,18-off*2):Infinity,bot.serviceGuide?.speed??Infinity);
+    if(underFlag&&!underRed){
+      const ahead=this.perceive(bot,riders).filter(o=>o.distance>0&&o.distance<55&&!o.rider.crash&&o.rider.speed>5).sort((a,b)=>a.distance-b.distance)[0];
+      if(ahead)target=Math.min(target,Math.max(0,ahead.rider.speed+(ahead.distance-6)*.65));
+    }
+    const previous=bot.progress,oldSpeed=bot.speed;
+    const physicalDrive=Math.min(11.2*(bike.accel??1),bike.power*735.5*.86/((bike.mass??230)*Math.max(12,bot.speed)));
+    const brakeLimit=Math.min(budget.traction*.91,14.6*(bike.braking??1)*budget.grip*surface);
+    let propulsion=0,braking=0;
+    if(underRed){
+      bot.redBrakeForce=approach(bot.redBrakeForce||0,Math.min(8,brakeLimit),dt*6);
+      braking=bot.redBrakeForce;
+    }else if(bot.speed>target+.3){
+      bot.brake=approach(bot.brake,1,dt*4.5);braking=brakeLimit*bot.brake;
+    }else if(time>=ai.launchAt){
+      bot.brake=approach(bot.brake,0,dt*6);
+      propulsion=Math.min(physicalDrive,(this.driving.acceleration-3.8*bot.speed/Math.max(1,top))*ai.strengths.drive)*(bot.slipstream?1.06:1);
+      if(bot.speed>=target)propulsion=0;
+    }
+    if(underRed)bot.brake=braking/Math.max(1,brakeLimit);
+    const road=tr.sample(bot.progress),drag=.18+(bike.aeroDrag??.001)*bot.speed**2*(bot.slipstream?.80:1)+(propulsion?0:.55+.009*bot.speed);
+    const gravel=off>0?(.35+bot.speed*.25+bot.speed**2*.017)*clamp(off/3,0,1):0;
+    bot.speed=clamp(bot.speed+(propulsion-braking-drag-gravel-9.81*(road.grade||0)*Math.cos(bot.angle||0))*dt,0,top);
+    bot.acceleration=(bot.speed-oldSpeed)/dt;bot.pitch=approach(bot.pitch,clamp(-bot.acceleration*.0045,-.048,.065),dt*.3);
+    bot.throttle=propulsion>0?1:0;
+    const lookahead=Math.max(9,Math.min(55,bot.speed*.72));
+    const aim=bot.serviceGuide?.point||tr.sample(bot.progress+lookahead,bot.serviceGuide?.offset??ai.desiredOffset);
+    const error=wrapAngle(Math.atan2(aim.x-bot.x,aim.z-bot.z)-bot.heading);
+    const requestedTurn=2*bot.speed*Math.sin(error)/lookahead;
+    const available=availableCornerForce(budget,propulsion-braking);
+    const turnLimit=available/Math.max(3,bot.speed),turn=clamp(requestedTurn,-turnLimit,turnLimit);
+    const mid=bot.heading+turn*dt*.5;
+    const vx=Math.sin(mid)*bot.speed+(bot.impactVX||0),vz=Math.cos(mid)*bot.speed+(bot.impactVZ||0);
+    bot.x+=vx*dt;bot.z+=vz*dt;bot.heading=wrapAngle(bot.heading+(turn+(bot.impactYaw||0))*dt);
+    const projected=tr.project?tr.project(bot.x,bot.z,previous):{progress:bot.z,offset:bot.x};
+    bot.progress=projected.progress;bot.offset=projected.offset;bot.travel+=bot.speed*dt;
+    const q=tr.sample(bot.progress);bot.y=q.y||0;bot.angle=wrapAngle(bot.heading-q.yaw);
+    bot.lateralSpeed=bot.speed*Math.sin(bot.angle);bot.turnRate=turn;
+    bot.lean=approach(bot.lean,Math.atan(turn*bot.speed/9.81),dt*4);
+    bot.usedLateralForce=Math.abs(turn*bot.speed);bot.availableLateralForce=available;
     bot.impactVX=(bot.impactVX||0)*Math.exp(-dt*3.5);bot.impactVZ=(bot.impactVZ||0)*Math.exp(-dt*3.5);bot.impactYaw=(bot.impactYaw||0)*Math.exp(-dt*5);
-    const q=tr.sample(bot.progress,bot.offset);bot.x=q.x;bot.z=q.z;bot.y=q.y||0;
-    bot.angle=Math.atan2(bot.lateralSpeed,Math.max(3,bot.speed))+(bot.yawKick||0);bot.heading=q.yaw+bot.angle;
-    bot.turnRate=q.k*bot.speed;bot.lean=approach(bot.lean,clamp(Math.atan(bot.speed*bot.speed*q.k/9.81),-1.12,1.12),dt*4);
+    if(off>.7&&!bot.wasOfftrack){bot.offtrackEvents++;bot.wasOfftrack=true;}
+    if(off<.2)bot.wasOfftrack=false;
+    if(off>1){ai.intent='rejoin';bot.intent='rejoin';ai.desiredOffset=clamp(bot.offset,-tr.halfWidth*.55,tr.halfWidth*.55);}
     if(ai.mistake==='traction'&&time-ai.mistakeAt>.6&&Math.abs(q.k)>.003&&bot.speed>14&&!underFlag){
       ai.mistake=null;ai.confidence=.65;onFall(bot,{kind:bot.brake>.3?'lowside':'highside',closingSpeed:0,deltaV:2+bot.speed*.04});
     }
     const finish=tr.length*this.options.laps;
-    if(bot.progress>=finish&&bot.crash<=0){bot.finishTime=time-dt+clamp((finish-previous)/Math.max(.001,bot.progress-previous),0,1)*dt;bot.progress=finish;bot.speed=0;}
+    if(!underRed&&bot.progress>=finish&&bot.crash<=0){bot.finishTime=time-dt+clamp((finish-previous)/Math.max(.001,bot.progress-previous),0,1)*dt;bot.progress=finish;bot.speed=0;}
   }
 }

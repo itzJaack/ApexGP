@@ -1,0 +1,34 @@
+.start-signals{z-index:4;top:44%;width:min(370px,calc(100vw - 40px));pointer-events:none}
+.start-board{padding:15px 20px 13px;border:1px solid #ffffff2b;border-top:3px solid #e64c51;border-radius:13px;background:linear-gradient(145deg,#202a32f5,#0d141bf5);box-shadow:0 12px 40px #0007,inset 0 1px #ffffff0c}
+.start-light-row{display:flex;justify-content:center;gap:12px;padding:8px 10px 13px;border-bottom:1px solid #ffffff13}
+.start-light-row i{width:43px;height:43px;display:block;flex-shrink:0;border-radius:50%;border:3px solid #0b0e12;background:radial-gradient(circle at 38% 30%,#3c2529,#22171c 55%,#100d12);box-shadow:0 2px 4px #0009,inset 0 2px 5px #000a;transition:background .1s,box-shadow .16s}
+.start-light-row i.is-lit{background:radial-gradient(circle at 38% 28%,#ffbeb3,#ff3b43 40%,#d50923 75%);box-shadow:0 0 16px #ff243a88,0 0 3px #ff9c98,inset 0 1px 3px #fff5;animation:start-bulb-on .22s ease-out}
+.start-copy b{display:block;margin-top:12px;font:italic 27px Impact,'Arial Narrow',sans-serif;letter-spacing:1.8px;color:#fff}
+.start-signals .start-copy small{font-size:10px;line-height:1.5;letter-spacing:.7px;color:#bdc8d1;margin-top:4px;text-shadow:none}
+.start-signals[data-phase=go] .start-board{border-top-color:#8ff2b5;animation:start-release .85s ease-out both}
+.start-signals[data-phase=go] .start-copy b{color:#a1fac4}
+@keyframes start-bulb-on{from{transform:scale(.84);filter:brightness(.65)}to{transform:scale(1);filter:brightness(1)}}
+@keyframes start-release{0%,55%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-15px) scale(1.04)}}
+.flag-panel .flag-glyph{transform-origin:5px 20px;animation:race-flag-wave 1.65s ease-in-out infinite}
+.flag-panel .flag-shape{transform-origin:6px 6px;animation:race-flag-cloth .83s ease-in-out infinite alternate}
+.flag-panel .notice-icon{position:relative}.flag-panel .flag-twin{display:none}.flag-panel[data-flag=doubleyellow] .flag-twin{display:block;position:absolute;left:0;top:1px;opacity:.8;animation-delay:-.6s}.flag-panel[data-flag=black] .flag-shape{fill:#04090e;stroke:#b8c5d2;stroke-width:.8}
+.sector-status{display:flex;gap:5px;margin:5px 0 9px}.sector-status span{flex:1;display:flex;align-items:center;justify-content:center;gap:4px;padding:5px 3px;border:1px solid #c4d2d344;border-radius:3px;font:700 8px Arial;letter-spacing:.6px;background:#101920bb;color:#b9c8c6}.sector-status span::before{content:'';width:5px;height:5px;border-radius:50%;background:#6fc594}.sector-status [data-flag=yellow],.sector-status [data-flag=doubleyellow]{color:#ffe287;border-color:#e7bd43}.sector-status [data-flag=yellow]::before,.sector-status [data-flag=doubleyellow]::before{background:#ffd453}.sector-status [data-flag=doubleyellow]::before{box-shadow:3px -3px #ffd453}.sector-status [data-flag=red]{border-color:#e56b74;color:#ffb3bb}.sector-status [data-flag=red]::before{background:#ff6877}
+.steward-panel{--notice-color:#ffd783;position:absolute;right:32px;bottom:205px;width:300px;pointer-events:none}.steward-panel .notice-icon{font-weight:800;font-size:20px}.steward-panel button{pointer-events:auto;align-self:stretch;padding:8px;border:1px solid #f2d17c66;background:#332c20;color:#ffe298;border-radius:4px;font-size:9px;letter-spacing:.6px}.steward-panel button small{display:block;font-size:9px;margin-top:5px;color:#d5c6a7}.steward-panel button[disabled]{opacity:.5;pointer-events:none}.sanction-badge{display:inline-block;color:#ffe398;font-size:7px;margin-left:5px}.leader-row.me .sanction-badge{color:#221809}
+@media(max-width:650px){.steward-panel{right:12px;bottom:270px;width:255px}.sector-status{gap:3px;margin:2px 0 6px}.sector-status span{font-size:7px;padding:4px 2px}}
+@media(max-height:540px) and (orientation:landscape){.steward-panel{right:12px;bottom:auto;top:max(126px,calc(var(--rearview-bottom,110px) + 6px));width:235px;padding:8px;gap:8px}.steward-panel .notice-icon{display:none}.steward-panel .notice-copy b{font-size:9px}.steward-panel .notice-copy small{font-size:9px;line-height:1.3}.steward-panel button{font-size:8px;padding:6px}.sector-status span{padding:3px 2px}}
+.flag-panel[data-flag=red] .notice-icon{animation:race-red-ring 2s ease-in-out infinite}
+.flag-panel[data-flag=vsc] .flag-code{animation:race-vsc-float 1.8s ease-in-out infinite}
+.flag-panel::after{content:'';position:absolute;left:0;right:0;bottom:0;height:3px;background:linear-gradient(90deg,transparent,var(--notice-color),transparent);opacity:.65;transform-origin:left;animation:race-flag-sweep 2.8s ease-in-out infinite}
+.flag-panel[data-flag=chequered]::after{height:5px;background:repeating-conic-gradient(#f0f2ef 0% 25%,#151c22 0% 50%) 0/10px 10px;animation:race-checker-parade 2s linear infinite}
+.result-modal{position:relative}
+.result-modal::before{content:'';position:absolute;top:0;left:0;right:0;height:6px;background:repeating-conic-gradient(#e7ece9 0% 25%,#1a2228 0% 50%) 0/12px 12px;animation:race-checker-parade 2s linear infinite}
+#result-eyebrow::before{content:'🏁';display:inline-block;font-size:18px;vertical-align:middle;margin-right:8px;transform-origin:20% 80%;animation:race-flag-wave 1.6s ease-in-out infinite}
+@keyframes race-flag-wave{0%,100%{transform:rotate(-9deg)}50%{transform:rotate(9deg)}}
+@keyframes race-flag-cloth{from{transform:skewY(-5deg) scaleX(.93)}to{transform:skewY(4deg) scaleX(1)}}
+@keyframes race-red-ring{0%,100%{box-shadow:0 0 0 0 #ff646900}50%{box-shadow:0 0 0 4px #ff64691a}}
+@keyframes race-vsc-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}
+@keyframes race-flag-sweep{0%,100%{transform:scaleX(.4);opacity:.25}50%{transform:scaleX(1);opacity:.7}}
+@keyframes race-checker-parade{to{background-position:24px 0}}
+@media(max-width:650px){.start-signals{width:min(320px,calc(100vw - 28px))}.start-board{padding:10px 12px}.start-light-row{gap:8px;padding:6px 6px 10px}.start-light-row i{width:37px;height:37px}.start-copy b{font-size:23px}.start-signals .start-copy small{font-size:9px}}
+@media(max-height:540px) and (orientation:landscape){.start-signals{top:49%;width:305px}.start-board{padding:8px 12px}.start-light-row{gap:9px;padding:2px 4px 7px}.start-light-row i{width:31px;height:31px}.start-copy b{font-size:21px;margin-top:7px}.start-signals .start-copy small{font-size:9px;margin-top:1px}}
+@media(prefers-reduced-motion:reduce){.start-signals *,.flag-panel *,.flag-panel::after,.result-modal::before,#result-eyebrow::before{animation:none!important;transition:none!important}}

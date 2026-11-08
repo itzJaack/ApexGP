@@ -1,5 +1,6 @@
 import {clamp,lerp,wrapAngle} from './simulation.js';
 import {networkBots} from './race-bots.js';
+import {NetworkStewards} from './network-stewards.js';
 export class LanClient{
  constructor(handlers={}){this.handlers=handlers;this.socket=null;this.id=null;this.state=null;this.offset=0;this.latency=0;this.history=new Map();this.lastSend=0;this.lastPing=0;this.roundKey=null;this.results=new Set();this.heartbeat=null;}
  disconnect(){clearInterval(this.heartbeat);this.heartbeat=null;if(this.socket){this.socket.onclose=null;this.socket.close();}this.socket=null;this.id=null;this.state=null;this.history.clear();}
@@ -27,6 +28,14 @@ export class LanClient{
  setBike(bikeId,livery){return this.send({type:'bike',bikeId,livery});}
  setOptions(options){return this.send({type:'settings',options});}
  botRiders(){return networkBots(this);}
+ updateStewards(state=this.state,bots=this.botRiders()){
+  if(!state||state.status!=='race'||state.hostId!==this.id||this.now()<state.startAt)return;
+  if(this.stewardRound!==state.roundId||this.stewardHost!==this.id){this.stewardRound=state.roundId;this.stewardHost=this.id;this.stewardController=new NetworkStewards(state,state.stewardLedger);this.lastStewardTick=0;}
+  if(this.now()-this.lastStewardTick<95)return;this.lastStewardTick=this.now();
+  const elapsed=state.flag==='red'?state.elapsed:state.elapsed+clamp((this.now()-state.now)/1000,0,2);
+  const ledger=this.stewardController.tick(state,bots,elapsed);
+  if(this.stewardController.changed||!state.stewardLedger)this.send({type:'stewards',roundId:state.roundId,ledger});
+ }
  leave(){this.send({type:'leave'});this.state=null;this.roundKey=null;this.history.clear();}
  receive(m){
   this.state=m;
@@ -38,7 +47,8 @@ export class LanClient{
  sample(id){const h=this.history.get(id);if(!h?.length)return null;const at=this.now()-90;let a=h[0],b=h.at(-1);for(let i=1;i<h.length;i++)if(h[i].at>=at){a=h[i-1];b=h[i];break;}const t=clamp((at-a.at)/Math.max(1,b.at-a.at),0,1),out={...b};for(const k of ['x','z','y','speed','lean','pitch','wheelie','travel','progress','crash'])out[k]=lerp(a[k]||0,b[k]||0,t);out.heading=a.heading+wrapAngle(b.heading-a.heading)*t;return out;}
  tick(now,player=null){
   if(!this.id)return;if(now-this.lastPing>2000){this.lastPing=now;this.send({type:'ping',at:Date.now()});}
-  if(this.state?.status==='race'&&this.state.hostId===this.id)for(const b of this.botRiders())if(b.finishTime!==null&&!this.botFinishSent.has(b.id)&&!this.state.bots?.find(q=>q.id===b.id)?.finishTime){if(this.send({type:'bot_finish',id:b.id,time:b.finishTime}))this.botFinishSent.add(b.id);}
+  this.updateStewards();
+  if(this.state?.status==='race'&&this.state.hostId===this.id)for(const b of this.botRiders())if(b.finishTime!==null&&!this.botFinishSent.has(b.id)&&!this.state.bots?.find(q=>q.id===b.id)?.finishTime){if(this.send({type:'bot_finish',id:b.id,time:b.rawFinishTime??b.finishTime}))this.botFinishSent.add(b.id);}
   if(player&&this.state?.status==='race'&&now-this.lastSend>=45){this.lastSend=now;this.send({type:'pose',pose:{x:player.x,z:player.z,heading:player.heading,speed:player.speed,lean:player.lean,pitch:player.pitch,wheelie:player.wheelie||0,travel:player.wheelTravel||0,crash:player.crash||0}});}
  }
 }

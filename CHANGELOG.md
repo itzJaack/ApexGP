@@ -1,5 +1,16 @@
 # Changelog ApexGP
 
+## 4.8.0 — 8 novembre 2026
+
+- Bandiera rossa con applicazione progressiva dei freni, cadute ancora simulate e tempo ufficiale sospeso. Il conto alla rovescia aspetta il gruppo fermo; partenza e ripartenza con cinque lampade rosse, spente al via.
+- Gialle locali, singole per pericolo fuori pista e doppie per ostacoli in pista. Settori, minimappa e commissari indicano le zone; soltanto un’ostruzione grave e persistente genera la sospensione automatica.
+- Stesse regole per giocatore e bot: avvertimenti, restituzione di una posizione, long lap, doppio long lap, ride-through, tempo aggiunto, perdita di posizioni e squalifica. SCONTA / B guida al percorso fisico. Penalità persistenti dopo la rossa, scadenze per giro, aggravamento e conversione all’arrivo.
+- Classifica corretta da tempi e retrocessioni; i piloti squalificati non segnano punti. Anche una squalifica del giocatore consente di proseguire la stagione senza premio gara.
+- Long lap e pit lane ricavati, dove presenti, dagli estratti OSM: 12 pit lane e 6 long lap. Collegamenti e percorsi mancanti sono approssimazioni di gioco, documentate in `docs/race-direction.md`.
+- Decisioni multiplayer condivise dall’host, compresi i bot: percorsi riprodotti dai client senza trasmettere le loro pose. Il passaggio dei giocatori viene verificato lungo la corsia; un salto all’uscita non sconta la penalità.
+- Aderenza e piega massima condivise tra giocatore e IA. Velocità in curva e frenata dipendono dalla moto e dal bagnato; gli errori possono causare vere uscite di pista. Maggiore rispetto delle posizioni sotto gialla e nessuna penalità per chi riceve indietro una posizione.
+- Animazioni di bandiere, avvisi e scacchi finali, con riduzione del movimento rispettata.
+
 ## 4.7.0 — 7 novembre 2026
 
 - Griglie da 20 piloti: 19 bot nelle gare singole e nel World Tour; in multiplayer i bot completano il gruppo mantenendo il limite di otto giocatori umani. Premi fino al ventesimo posto e risultati delle stagioni precedenti conservati.

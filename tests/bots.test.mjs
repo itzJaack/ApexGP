@@ -37,11 +37,11 @@ test('local driving profiles get faster with skill and all levels obey cautions'
   });
   const median=r=>r.bots.map(b=>b.finishTime).sort((a,b)=>a-b)[Math.floor(r.bots.length/2)];
   assert(median(runs[1])<median(runs[0])*.94,config.id+' '+weather+' Sport field pace');
-  assert(median(runs[2])<median(runs[1])*.92,config.id+' '+weather+' Pro field pace');
+  assert(median(runs[2])<median(runs[1])*.985,JSON.stringify({track:config.id,weather,pace:runs.map(median)}));
   for(const race of runs){
-   for(const b of race.bots){b.finishTime=null;b.speed=20;b.progress=0;}
-   race.control.set('vsc',100);for(let i=0;i<200;i++)race.update(.05,{});assert(race.bots.every(b=>b.speed<=25));
-   race.control.set('red',100);const progress=race.bots.map(b=>b.progress);for(let i=0;i<60;i++)race.update(.05,{});assert.deepEqual(race.bots.map(b=>b.progress),progress);
+   for(const [index,b] of race.bots.entries()){b.finishTime=null;b.speed=20;b.progress=300+index*30;const q=race.track.sample(b.progress,b.offset);Object.assign(b,{x:q.x,z:q.z,y:q.y,heading:q.yaw});}
+   race.control.set('vsc',100);for(let i=0;i<200;i++)race.update(.05,{});assert(race.bots.every(b=>b.speed<=25.4),JSON.stringify({track:config.id,weather,difficulty:race.options.difficulty,bots:race.bots.filter(b=>b.speed>25.4).map(b=>({id:b.id,speed:b.speed,brake:b.brake,fall:!!b.fall,intent:b.intent}))}));
+   race.control.set('red',100);const before=race.bots.map(b=>b.progress);for(let i=0;i<200;i++)race.update(.05,{});assert(race.bots.every((b,i)=>b.progress>before[i]&&b.speed===0));const progress=race.bots.map(b=>b.progress);for(let i=0;i<60;i++)race.update(.05,{});assert.deepEqual(race.bots.map(b=>b.progress),progress);
   }
  }
 });

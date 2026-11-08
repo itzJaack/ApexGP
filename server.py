@@ -5,11 +5,51 @@ from http.server import BaseHTTPRequestHandler,ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlparse,unquote
 ROOT=Path(__file__).resolve().parent
+START_LIGHT_SECONDS=3.6
+RED_STOP_HOLD_SECONDS=1.25
+
+def red_braking_seconds(speed,weather):
+ return max(3,min(30,math.ceil(max(0,min(110,speed))*1.5/(5.5 if weather=='rain' else 7.5))))
+
+def make_flag_zone(progress,blocked,length):
+ step=length/math.ceil(length/180);centre=progress%length;post=math.floor(centre/step)
+ return {'id':post,'progress':centre,'start':((post-1)*step)%length,'end':((post+1)*step)%length,'flag':'doubleyellow' if blocked else 'yellow','remaining':12}
+
+def zone_contains(zone,progress,length):
+ point=progress%length;start=zone['start']%length;end=zone['end']%length
+ return start<=point<end if start<=end else point>=start or point<end
 
 def finite(v,default=0):
  try:
   v=float(v);return v if math.isfinite(v) else default
  except (TypeError,ValueError):return default
+
+def valid_steward_ledger(ledger,ids):
+ if not isinstance(ledger,dict) or not isinstance(ledger.get('revision'),int) or ledger['revision']<0 or not isinstance(ledger.get('nextId'),int) or ledger['nextId']<1:return False
+ riders=ledger.get('riders');plans=ledger.get('botPlans')
+ if not isinstance(riders,list) or len(riders)>20 or not isinstance(plans,list) or len(plans)>200:return False
+ seen=set();types={'warning','giveBack','longlap','doubleLonglap','rideThrough','time','position','dsq'}
+ def safe(value,depth=0):
+  if depth>9:return False
+  if value is None or isinstance(value,bool):return True
+  if isinstance(value,(float,int)):return math.isfinite(value) and abs(value)<1e8
+  if isinstance(value,str):return len(value)<500
+  if isinstance(value,list):return len(value)<=200 and all(safe(v,depth+1) for v in value)
+  if isinstance(value,dict):return len(value)<=40 and all(safe(v,depth+1) for v in value.values())
+  return False
+ if not safe(ledger):return False
+ for rider in riders:
+  if not isinstance(rider,dict) or rider.get('id') not in ids or rider['id'] in seen:return False
+  seen.add(rider['id']);sanctions=rider.get('sanctions')
+  if not isinstance(rider.get('dsq'),bool) or not isinstance(sanctions,list) or len(sanctions)>80:return False
+  if any(not isinstance(rider.get(k),(int,float)) or not 0<=rider[k]<=3600 for k in ['timePenalty','positionPenalty']):return False
+  for penalty in sanctions:
+   if not isinstance(penalty,dict) or not isinstance(penalty.get('id'),int) or penalty['id']<1 or penalty.get('type') not in types or penalty.get('status') not in {'pending','served','applied','converted','escalated'} or not isinstance(penalty.get('reason'),str):return False
+   if penalty.get('targetId') is not None and penalty['targetId'] not in ids:return False
+ for plan in plans:
+  if not isinstance(plan,dict) or plan.get('botId') not in ids or not plan['botId'].startswith('bot-') or plan.get('kind') not in {'pit','longlap','yield'} or not isinstance(plan.get('penaltyId'),int):return False
+  if any(not isinstance(plan.get(k),(int,float)) for k in ['anchor','entry']):return False
+ return True
 
 def clean_name(value):return ''.join(c for c in str(value) if c.isalnum() or c in ' _.-')[:16].strip() or 'PILOTA'
 
@@ -40,20 +80,25 @@ class Hub:
   names=['L. ROSSI','M. SERRA','A. TORRES','D. COSTA','N. MARTIN','E. MORETTI','S. HAYES','F. CONTI','J. VEGA','T. WILSON','R. LECLERC','K. TANAKA','P. SILVA','O. WEBER','L. FERRI','A. NOVAK','M. REED','D. ROMANO','H. SATO'];numbers=[46,63,89,23,12,21,41,54,31,77,28,65,18,92,44,36,58,72,96];bikes=list(self.bikes)
   return [{'id':'bot-'+str(i),'name':names[i],'number':numbers[i],'bikeId':bikes[(humans+i+2)%len(bikes)],'livery':'factory','slot':humans+i,'isBot':True,'ready':True,'finishTime':None,'penalties':0,'progress':0,'dnf':False} for i in range(20-humans)] if enabled else []
  def bot_phase(self,r):
-  phases=r.setdefault('botPhases',[{'at':0,'rate':1}]);at=self.elapsed(r);rate={'red':0,'vsc':.3,'yellow':.6}.get(r['flag'],1)
+  phases=r.setdefault('botPhases',[{'at':0,'rate':1}]);at=self.elapsed(r);rate={'red':0,'vsc':.3}.get(r['flag'],1)
   restart=phases[-1]['rate']==0 and rate>0
-  if abs(phases[-1]['at']-at)<1e-7 and not restart:phases[-1]={'at':at,'rate':rate}
-  elif phases[-1]['rate']!=rate:phases.append({'at':at,'rate':rate,**({'restart':True} if restart else {})})
+  braking={'brakeSeconds':r['redBrakingSeconds']} if rate==0 and r.get('redBrakingSeconds') else {}
+  if abs(phases[-1]['at']-at)<1e-7 and not restart:phases[-1]={'at':at,'rate':rate,**braking}
+  elif phases[-1]['rate']!=rate:phases.append({'at':at,'rate':rate,**braking,**({'restart':True} if restart else {})})
  def room_state(self,r):
   now=self.clock();elapsed=self.elapsed(r)
   players=[]
   for pid in r['players']:
    p=self.players.get(pid)
    if not p:continue
-   players.append({k:p.get(k) for k in ['id','name','bikeId','livery','ready','slot','pose','progress','finishTime','penalties','dnf']})
+   players.append({k:p.get(k) for k in ['id','name','bikeId','livery','ready','slot','pose','progress','finishTime','rawFinishTime','penalties','dnf','dsq','sanctions','timePenalty','positionPenalty']})
   bots=self.bot_roster(len(players),r['options'].get('bots')) if r['status']=='lobby' else r.get('bots',[])
-  order=sorted(players+bots,key=lambda p:(bool(p.get('dnf')),p['finishTime'] is None,p['finishTime'] if p['finishTime'] is not None else -finite(p['progress'])))
-  return {'type':'room','code':r['code'],'hostId':r['host'],'status':r['status'],'options':r['options'],'roundId':r.get('roundId'),'startAt':r.get('startAt',0)*1000,'now':now*1000,'elapsed':elapsed,'players':players,'bots':bots,'gridHumans':r.get('gridHumans'),'botPhases':r.get('botPhases',[{'at':0,'rate':1}]),'order':[p['id'] for p in order],'flag':r.get('flag','green'),'flagRemaining':max(0,r.get('flagUntil',0)-now),'flagZone':r.get('flagZone'),'stock':True}
+  order=sorted(players+bots,key=lambda p:(bool(p.get('dsq')),bool(p.get('dnf')),p['finishTime'] is None,p['finishTime'] if p['finishTime'] is not None else -finite(p['progress'])))
+  finishers=[p for p in order if p['finishTime'] is not None and not p.get('dnf') and not p.get('dsq')]
+  for rider in [p for p in finishers if p.get('positionPenalty',0)>0]:
+   start=finishers.index(rider);finishers.pop(start);finishers.insert(min(len(finishers),start+int(rider['positionPenalty'])),rider)
+  order=finishers+[p for p in order if p not in finishers]
+  return {'type':'room','code':r['code'],'hostId':r['host'],'status':r['status'],'options':r['options'],'roundId':r.get('roundId'),'startAt':r.get('startAt',0)*1000,'now':now*1000,'elapsed':elapsed,'players':players,'bots':bots,'gridHumans':r.get('gridHumans'),'botPhases':r.get('botPhases',[{'at':0,'rate':1}]),'order':[p['id'] for p in order],'flag':r.get('flag','green'),'flagRemaining':max(0,r.get('flagUntil',0)-now),'redStartedAt':r['pauseStart']*1000 if r.get('pauseStart') is not None else None,'redBrakingSeconds':r.get('redBrakingSeconds'),'redGridReady':r.get('redGridReady',False),'flagZones':[{**z,'remaining':max(0,z['until']-now)} for z in r.get('flagZones',[])],'zoneHistory':r.get('zoneHistory',[]),'flagZone':r.get('flagZone'),'stewardLedger':r.get('stewardLedger'),'stock':True}
  def broadcast(self,r):
   with self.lock:data=self.room_state(r);sends=[self.players[x]['send'] for x in r['players'] if x in self.players]
   for send in sends:
@@ -76,10 +121,24 @@ class Hub:
   p['incidentAt']=now
   if r.get('flag')=='red':return
   r['incidents']=[x for x in r.get('incidents',[]) if now-x<18]+[now];r['flagZone']=p.get('progress',0)
-  if severity>=3 or len(r['incidents'])>=3:r['flag']='red';r['flagUntil']=now+7;r['pauseStart']=now
-  elif severity>=2 or len(r['incidents'])>=2:r['flag']='vsc';r['flagUntil']=now+18
-  else:r['flag']='yellow';r['flagUntil']=now+13
+  zone=None
+  if severity>=3:
+   speeds=[finite(self.players[x].get('pose',{}).get('speed')) for x in r['players']]
+   speeds.extend(min(self.bikes[b['bikeId']]['top'],300)/3.6 for b in r.get('bots',[]) if b['finishTime'] is None)
+   r['redBrakingSeconds']=red_braking_seconds(max(speeds,default=0),r['options']['weather'])
+   elapsed=self.elapsed(r)
+   r['zoneHistory']=[{**event,'endAt':elapsed,'endPhaseCount':len(r['botPhases'])} if event['at']+event['duration']>elapsed else event for event in r.get('zoneHistory',[])]
+   r['redGridReady']=False;r['redReadyAt']=now+r['redBrakingSeconds'] if all(self.players[x].get('dnf') or self.players[x].get('finishTime') is not None or finite((self.players[x].get('pose') or {}).get('speed'))<.3 and finite((self.players[x].get('pose') or {}).get('crash'))<=0 for x in r['players']) else None
+   r['flagZones']=[];r['flag']='red';r['flagUntil']=now+r['redBrakingSeconds']+RED_STOP_HOLD_SECONDS+START_LIGHT_SECONDS;r['pauseStart']=now
+  else:
+   track=self.tracks[r['options']['trackId']];pose=p.get('pose') or {};q=track.sample(p.get('progress',0));offset=math.hypot(pose.get('x',q['x'])-q['x'],pose.get('z',q['z'])-q['z'])
+   zone=make_flag_zone(p.get('progress',0),offset<track.data['halfWidth']+.3,track.length);zone['until']=now+12
+   zones=r.setdefault('flagZones',[]);existing=next((z for z in zones if z['id']==zone['id']),None)
+   if existing:existing.update(until=max(existing['until'],zone['until']),flag='doubleyellow' if 'doubleyellow' in (existing['flag'],zone['flag']) else 'yellow')
+   else:zones.append(zone)
+   r['flag']='yellow';r['flagUntil']=max(z['until'] for z in zones)
   self.bot_phase(r)
+  if zone:r['zoneHistory']=[*r.get('zoneHistory',[]),{'at':self.elapsed(r),'duration':12,'phaseCount':len(r['botPhases']),'zone':zone}]
  def handle(self,pid,msg):
   if not isinstance(msg,dict):return
   with self.lock:
@@ -125,19 +184,32 @@ class Hub:
     if r['host']!=pid:error('Solo il creatore può avviare la gara.');return
     if (len(r['players'])<2 and not r['options'].get('bots')) or not all(self.players[x]['ready'] for x in r['players']):error('Servono due piloti oppure i bot attivi, e tutti devono essere pronti.');return
     if r['status']!='lobby':return
-    r.update(gridHumans=len(r['players']),bots=self.bot_roster(len(r['players']),r['options'].get('bots')),botPhases=[{'at':0,'rate':1}],finishElapsed=None,status='race',roundId=secrets.token_hex(8),startAt=now+4,pausedTotal=0,pauseStart=None,flag='green',flagUntil=now+8,incidents=[],leaderFinish=None)
+    r.update(gridHumans=len(r['players']),bots=self.bot_roster(len(r['players']),r['options'].get('bots')),botPhases=[{'at':0,'rate':1}],flagZones=[],zoneHistory=[],stewardLedger=None,finishElapsed=None,status='race',roundId=secrets.token_hex(8),startAt=now+4,pausedTotal=0,pauseStart=None,flag='green',flagUntil=now+8,incidents=[],leaderFinish=None)
     t=self.tracks[r['options']['trackId']]
     for slot,who in enumerate(r['players']):
-     q=self.players[who];s=-10-slot*7.0;offset=1.85 if slot%2 else -1.85;q.update(slot=slot,progress=s,pose={**t.sample(s,offset),'speed':0,'lean':0,'pitch':0,'wheelie':0,'travel':0,'crash':0},finishTime=None,penalties=0,dnf=False,lastPose=now+4,incidentAt=-100,violation=0,penaltyAt=-100)
+     q=self.players[who];s=-10-slot*7.0;offset=1.85 if slot%2 else -1.85;q.update(slot=slot,progress=s,pose={**t.sample(s,offset),'speed':0,'lean':0,'pitch':0,'wheelie':0,'travel':0,'crash':0},finishTime=None,rawFinishTime=None,penalties=0,resetPenalties=0,dsq=False,sanctions=[],timePenalty=0,positionPenalty=0,dnf=False,lastPose=now+4,incidentAt=-100,violation=0,penaltyAt=-100)
+   elif kind=='stewards' and r['status']=='race' and r['host']==pid and msg.get('roundId')==r['roundId']:
+    ledger=msg.get('ledger');ids=set(r['players'])|{b['id'] for b in r.get('bots',[])}
+    if not valid_steward_ledger(ledger,ids) or ledger['revision']<=(r.get('stewardLedger') or {}).get('revision',-1):return
+    r['stewardLedger']=ledger
+    for legal in ledger['riders']:
+     rider=self.players.get(legal['id']) if legal['id'] in r['players'] else next((b for b in r.get('bots',[]) if b['id']==legal['id']),None)
+     if rider is None:continue
+     rider.update({k:legal[k] for k in ['sanctions','timePenalty','positionPenalty','dsq']})
+     rider['penalties']=rider.get('resetPenalties',0)+legal['timePenalty']
+     if rider.get('rawFinishTime') is not None:rider['finishTime']=rider['rawFinishTime']+rider['penalties']
+     if legal['dsq']:
+      rider['dnf']=True;rider['finishTime']=None
+      if legal.get('retirement'):rider['progress']=legal['retirement']['progress']
    elif kind=='bot_finish' and r['status']=='race' and r['host']==pid:
     bot=next((b for b in r.get('bots',[]) if b['id']==msg.get('id')),None);reported=finite(msg.get('time'),-1);minimum=self.tracks[r['options']['trackId']].length*r['options']['laps']/112
-    if not bot or bot['finishTime'] is not None or reported<minimum or reported>self.elapsed(r)+.25:return
-    bot['finishTime']=reported;bot['progress']=self.tracks[r['options']['trackId']].length*r['options']['laps']
+    if not bot or bot.get('dsq') or bot['finishTime'] is not None or reported<minimum or reported>self.elapsed(r)+.25:return
+    bot['rawFinishTime']=reported;bot['finishTime']=reported+bot.get('penalties',0);bot['progress']=self.tracks[r['options']['trackId']].length*r['options']['laps']
     if r['leaderFinish'] is None:r['leaderFinish']=now
    elif kind=='reset' and r['status']=='race':
-    t=self.tracks[r['options']['trackId']];p['pose']={**t.sample(p.get('progress',0)),'speed':min(18,finite(p.get('pose',{}).get('speed'))),'lean':0,'pitch':0,'wheelie':0,'travel':finite(p.get('pose',{}).get('travel')),'crash':0};p['penalties']+=2;p['lastPose']=now;p['send']({'type':'reset','pose':p['pose'],'progress':p['progress']})
+    t=self.tracks[r['options']['trackId']];p['pose']={**t.sample(p.get('progress',0)),'speed':min(18,finite(p.get('pose',{}).get('speed'))),'lean':0,'pitch':0,'wheelie':0,'travel':finite(p.get('pose',{}).get('travel')),'crash':0};p['resetPenalties']=p.get('resetPenalties',0)+(0 if r['flag']=='red' else 2);p['penalties']=p['resetPenalties']+p.get('timePenalty',0);p['lastPose']=now;p['send']({'type':'reset','pose':p['pose'],'progress':p['progress']})
    elif kind=='incident' and r['status']=='race':self.incident(r,p,max(1,min(3,int(finite(msg.get('severity'),1)))))
-   elif kind=='pose' and r['status']=='race' and now>=r['startAt'] and p.get('finishTime') is None:
+   elif kind=='pose' and r['status']=='race' and now>=r['startAt'] and p.get('finishTime') is None and not p.get('dnf'):
     q=msg.get('pose')
     if not isinstance(q,dict):return
     required=['x','z','heading','speed','lean','pitch','wheelie','travel','crash']
@@ -147,15 +219,12 @@ class Hub:
     t=self.tracks[r['options']['trackId']];progress,offset=t.project(q['x'],q['z'],p['progress'])
     if progress-p['progress']>delta*125+10:return
     previous_progress=p['progress'];p['progress']=progress;p['lastPose']=now;p['pose']={k:float(q[k]) for k in required};p['pose']['y']=t.sample(progress)['y']
-    if r['flag'] in ('yellow','vsc') and now-p.get('penaltyAt',-100)>6 and (r['flag']=='vsc' or -55<(r.get('flagZone',0)-p['progress']+t.length/2)%t.length-t.length/2<210):
-     overtaken=any(previous_progress<self.players[x].get('progress',0)<=progress and finite((self.players[x].get('pose') or {}).get('crash'))<=0 and finite((self.players[x].get('pose') or {}).get('speed'))>5 for x in r['players'] if x!=pid)
-     if overtaken:p['penalties']+=3;p['penaltyAt']=now;p['send']({'type':'penalty','seconds':3,'reason':'SORPASSO IN NEUTRALIZZAZIONE'})
     if r['flag']=='vsc' and q['speed']>27:
      p['violation']=p.get('violation',0)+delta
-     if p['violation']>3 and now-p.get('penaltyAt',0)>6:p['penalties']+=3;p['penaltyAt']=now;p['violation']=0;p['send']({'type':'penalty','seconds':3,'reason':'VSC'})
+     if p['violation']>3 and now-p.get('penaltyAt',0)>6:p['resetPenalties']=p.get('resetPenalties',0)+3;p['penalties']+=3;p['penaltyAt']=now;p['violation']=0;p['send']({'type':'penalty','seconds':3,'reason':'VSC'})
     else:p['violation']=max(0,p.get('violation',0)-delta)
-    if progress>=t.length*r['options']['laps']:
-     elapsed=max(0,now-r['startAt']-r['pausedTotal']);p['finishTime']=elapsed+p['penalties'];p['pose']['speed']=0
+    if r['flag']!='red' and progress>=t.length*r['options']['laps']:
+     elapsed=max(0,now-r['startAt']-r['pausedTotal']);p['rawFinishTime']=elapsed;p['finishTime']=elapsed+p['penalties'];p['pose']['speed']=0
      if r['leaderFinish'] is None:r['leaderFinish']=now
    elif kind=='lobby' and r['host']==pid:
     if r['status']=='finished':r['status']='lobby';r['flag']='green';r['flagUntil']=0;[self.players[x].update(ready=False) for x in r['players']]
@@ -166,11 +235,20 @@ class Hub:
   with self.lock:
    rooms=list(self.rooms.values())
    for r in rooms:
+    if r['flag']=='red':
+     stopped=all(self.players[x].get('dnf') or self.players[x].get('finishTime') is not None or finite((self.players[x].get('pose') or {}).get('speed'))<.3 and finite((self.players[x].get('pose') or {}).get('crash'))<=0 for x in r['players'])
+     if not stopped:r['redReadyAt']=None;r['redGridReady']=False;r['flagUntil']=max(r['flagUntil'],now+RED_STOP_HOLD_SECONDS+START_LIGHT_SECONDS)
+     else:
+      if r.get('redReadyAt') is None:r['redReadyAt']=now
+      ready_at=max(r['redReadyAt'],r['pauseStart']+r['redBrakingSeconds'])+RED_STOP_HOLD_SECONDS
+      r['redGridReady']=now>=ready_at;r['flagUntil']=max(r['flagUntil'],ready_at+START_LIGHT_SECONDS)
+    if r['flag']=='yellow':
+     r['flagZones']=[z for z in r.get('flagZones',[]) if z['until']>now];r['flagUntil']=max([now,*[z['until'] for z in r['flagZones']]])
     if r['flag'] in ('yellow','vsc','red') and now>=r['flagUntil']:
      if r.get('pauseStart') is not None:r['pausedTotal']+=now-r['pauseStart'];r['pauseStart']=None
      r['flag']='green';r['flagUntil']=now+4;self.bot_phase(r)
     if r['status']=='race' and r.get('leaderFinish') is not None:
-     if all(self.players[x].get('finishTime') is not None for x in r['players']) and all(b['finishTime'] is not None for b in r.get('bots',[])) or now-r['leaderFinish']>40:
+     if all(self.players[x].get('finishTime') is not None or self.players[x].get('dnf') for x in r['players']) and all(b['finishTime'] is not None or b.get('dnf') for b in r.get('bots',[])) or now-r['leaderFinish']>40:
       r['finishElapsed']=self.elapsed(r);r['status']='finished';r['flag']='chequered';r['flagUntil']=now+1e6
       for b in r.get('bots',[]):
        if b['finishTime'] is None:b['dnf']=True

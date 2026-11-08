@@ -116,18 +116,20 @@ export class Career {
     const season = this.profile.season, index = season?.results.length, event = CALENDAR[index];
     return event ? {seasonId: season.id, index, difficulty: season.difficulty, ...event} : null;
   }
-  completeRound(ticket, {raceId, order, trackId, finished, time}) {
+  completeRound(ticket, {raceId, order, trackId, finished, time,disqualified=[]}) {
     const current = this.roundTicket();
-    if (!current || !ticket || current.seasonId !== ticket.seasonId || current.index !== ticket.index
-      || current.trackId !== ticket.trackId || trackId !== current.trackId || !finished || !Number.isFinite(time) || time < 25
-      || !this.profile.paid.includes(raceId) || !validOrder(order)) return {ok: false, bonus: 0};
+    if (typeof raceId!=='string'||!raceId||raceId.length>180||!Array.isArray(disqualified)||!current || !ticket || current.seasonId !== ticket.seasonId || current.index !== ticket.index
+      || current.trackId !== ticket.trackId || trackId !== current.trackId || !finished&&!disqualified.includes('player') || !Number.isFinite(time) || time < (disqualified.includes('player')?0:25)
+      || !this.profile.paid.includes(raceId)&&!disqualified.includes('player') || !validOrder(order)) return {ok: false, bonus: 0};
     const season = this.profile.season;
     if (season.results.some(result => result.raceId === raceId)) return {ok: false, bonus: 0};
-    season.results.push({raceId, trackId, order: [...order]});
+    const excluded=[...new Set(disqualified.filter(id=>order.includes(id)))];
+    if(excluded.includes('player')&&!this.profile.paid.includes(raceId))this.profile.paid.push(raceId);
+    season.results.push({raceId, trackId, order: [...order],...(excluded.length?{disqualified:excluded}:{})});
     let bonus = 0;
     if (season.results.length === CALENDAR.length) {
       const position = seasonStandings(season).findIndex(rider => rider.id === 'player');
-      bonus = Math.round([18000, 12000, 8000, 6000, 5000, 4000, 3000, 2000][position] * DIFFICULTIES[season.difficulty].multiplier);
+      bonus = Math.round(([18000, 12000, 8000, 6000, 5000, 4000, 3000, 2000][position]??0) * DIFFICULTIES[season.difficulty].multiplier);
       this.profile.credits = integer(this.profile.credits + bonus);
       this.profile.stats.earned += bonus;
       this.profile.stats.seasons++;
