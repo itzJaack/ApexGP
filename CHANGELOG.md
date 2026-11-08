@@ -1,5 +1,10 @@
 # Changelog ApexGP
 
+## 4.9.1 — 8 novembre 2026
+
+- Cliccando una moto nel catalogo, la sua officina si apre a destra dell'elenco con una X per chiuderla. Acquisti, potenziamenti e livree usano la scheda esistente e la stessa selezione.
+- Pannello sovrapposto sugli schermi stretti, chiusura con Escape e ritorno della tastiera alla moto selezionata. Elenco scorrevole separato dal pulsante Gara veloce.
+
 ## 4.9.0 — 8 novembre 2026
 
 - Home organizzata in Gara veloce, Carriera e Multiplayer. Moto nella navigazione principale; Officina, Amici, Impostazioni e account nel menu secondario.

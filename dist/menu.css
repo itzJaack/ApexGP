@@ -48,6 +48,21 @@
 .menu .menu-footer{margin:0 40px;height:58px}
 .sector-divider{stroke-linecap:butt;fill:none}
 
+/* The catalog and the selected motorcycle's workshop share the same selection. */
+.menu #garage-panel{display:flex;flex-direction:column;max-height:none;overflow:hidden}
+.menu #garage-panel>.panel-top,.menu #garage-panel>h2{flex-shrink:0}
+.menu #garage-panel .bike-list{display:flex;flex-direction:column;gap:10px;flex:1 1 0;min-height:0;max-height:none;overflow-y:auto;padding-bottom:3px}
+.menu #garage-panel>.primary-button{flex-shrink:0;margin-top:18px}
+.workshop-topbar{display:flex;align-items:center;gap:12px;margin-bottom:20px}
+.workshop-topbar>.panel-top{flex:1;min-width:0;gap:8px;margin-bottom:0}
+.workshop-close{display:grid;place-items:center;flex-shrink:0;width:40px;height:40px;border:1px solid #ffffff30;border-radius:5px;background:#19232d;color:#ecf0f2}
+.workshop-close:hover{border-color:var(--orange);color:var(--orange)}
+.workshop-close svg{width:20px;height:20px}
+.menu.bike-details-open[data-page=garage] #workshop-panel{left:calc(clamp(32px,5vw,96px) + min(510px,43vw) + 20px);max-height:none}
+.menu.bike-details-open #workshop-panel .workshop-topbar{position:sticky;top:0;z-index:1;background:#101820;padding:4px 0 10px}
+@keyframes workshop-enter{from{opacity:0;transform:translateX(18px)}to{opacity:1;transform:translateX(0)}}
+.menu.bike-details-open #workshop-panel{animation:workshop-enter .18s ease-out}
+
 @media(max-width:1024px){
  .menu .topbar{position:sticky;top:0;grid-template-columns:auto 1fr auto;gap:10px;margin:0;height:auto;min-height:72px;padding:10px max(16px,var(--safe-right)) 10px max(16px,var(--safe-left));background:#0d141deb;backdrop-filter:blur(12px)}
  .menu .topbar .brand{font-size:26px}
@@ -62,6 +77,10 @@
  .menu .setup-panel,.menu[data-page]:not([data-page=race]) .setup-panel{position:relative;left:auto;right:auto;top:auto;bottom:auto;width:calc(100% - 32px);max-width:600px;max-height:none;margin:20px auto 22px;padding:22px;overflow:visible}
  .menu .menu-footer{position:relative;min-height:48px;height:auto;margin:auto 20px 0;padding:12px 0 max(14px,var(--safe-bottom));width:auto;flex-direction:column;gap:8px}
  .menu .menu-footer .footer-brand{display:block;font-size:8px}
+ .menu #garage-panel{height:calc(100dvh - 170px - var(--safe-top) - var(--safe-bottom));min-height:330px;overflow:hidden}
+ .menu.bike-details-open{overflow-y:hidden}
+ .menu.bike-details-open #garage-panel{opacity:.4}
+ .menu.bike-details-open[data-page=garage] #workshop-panel{position:fixed;left:16px;right:16px;top:calc(88px + var(--safe-top));bottom:max(16px,var(--safe-bottom));width:auto;max-width:600px;max-height:none;height:auto;margin:0 0 0 auto;overflow-y:auto;z-index:7;box-shadow:0 16px 60px #000b}
 }
 @media(max-width:650px){
  .menu-tools>summary{padding:10px;gap:0}
@@ -107,4 +126,7 @@
  .menu .menu-footer{min-height:32px;padding:8px 0}
  .menu-footer>.keyboard-only{display:none}
  .menu .setup-panel{margin-top:16px}
+ .menu #garage-panel{height:calc(100dvh - 130px);min-height:250px}
+ .menu.bike-details-open[data-page=garage] #workshop-panel{top:calc(72px + var(--safe-top))}
 }
+@media(prefers-reduced-motion:reduce){.menu.bike-details-open #workshop-panel{animation:none}}

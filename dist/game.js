@@ -47,6 +47,8 @@ if(!['rookie','sport','pro'].includes(settings.difficulty))settings.difficulty='
 if(![2,3,5].includes(Number(settings.laps)))settings.laps=3;
 const records=safeRead('apexgp.records.v4',{}),controls=new DrivingControls(),input=controls.state;
 let touchInput=null,mobileUI=null,tiltUI=null,keyboardDriving=false,careerUI=null,raceMap=null;
+let bikeWorkshopOpen=false;
+const compactWorkshop=matchMedia('(max-width:1024px)');
 let renderer,mirrors,world,track,racingLine,playerBike,botBikes=[],ghostBike,race=null,page='home',cameraMode=0,lastFrame=0,accumulator=0,hudAt=0,menuTime=0,frameId=0,camera=null,ghostRecord=null,telemetryAt=0;
 const reducedMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
 const notices=new RaceNotices({flagPanel:$('flag-panel'),messagePanel:$('race-message')});
@@ -107,10 +109,37 @@ function selectTrack(index){
 function selectBike(index){
   settings.bike=mod(index,BIKES.length);index=settings.bike;saveSettings();freeBike(playerBike);freeBike(ghostBike);ghostBike=null;playerBike=buildBike(renderer,BIKES[index].rgb,27,1,BIKES[index].style,career.profile.liveries[BIKES[index].id]);
   $('home-bike-name').textContent=BIKES[index].name;$('home-bike-detail').textContent=`${BIKES[index].cc} cc · ${BIKES[index].year}`;
-  document.querySelectorAll('.bike-card').forEach((el,i)=>el.classList.toggle('active',i===index));refreshCareer();
+  document.querySelectorAll('.bike-card').forEach((el,i)=>{el.classList.toggle('active',i===index);el.setAttribute('aria-expanded',String(bikeWorkshopOpen&&i===index));});refreshCareer();
+}
+function syncBikeWorkshopLayout(){
+  $('garage-panel').inert=bikeWorkshopOpen&&compactWorkshop.matches;
+  if($('garage-panel').inert&&$('garage-panel').contains(document.activeElement))$('close-bike-workshop').focus({preventScroll:true});
+}
+function openBikeWorkshop(index){
+  bikeWorkshopOpen=true;
+  selectBike(index);
+  $('shop-status').textContent='';
+  $('menu').classList.add('bike-details-open');
+  show('workshop-panel');show('close-bike-workshop');
+  syncBikeWorkshopLayout();
+  $('workshop-panel').scrollTop=0;
+  $('close-bike-workshop').focus({preventScroll:true});
+}
+function closeBikeWorkshop(restoreFocus=true){
+  if(!bikeWorkshopOpen)return;
+  bikeWorkshopOpen=false;
+  $('menu').classList.remove('bike-details-open');
+  show('workshop-panel',false);show('close-bike-workshop',false);
+  syncBikeWorkshopLayout();
+  $('bike-list').querySelectorAll('.bike-card').forEach(button=>button.setAttribute('aria-expanded','false'));
+  if(restoreFocus){
+    const selected=$('bike-list').querySelector(`[data-bike="${settings.bike}"]`);
+    selected?.focus({preventScroll:true});selected?.scrollIntoView({block:'nearest',inline:'nearest'});
+  }
 }
 function setPage(value){
   const pages=['home','race','career','garage','workshop','lan','settings'];if(!pages.includes(value))return;
+  closeBikeWorkshop(false);
   if(value==='race'&&settings.mode==='lan')setMode('race');
   page=value;$('menu').dataset.page=value;$('menu-tools').open=false;
   for(const name of pages)show(`${name}-panel`,name===value);
@@ -362,6 +391,9 @@ function setupUI(){
   document.querySelectorAll('[data-fullscreen]').forEach(el=>el.addEventListener('click',()=>mobileUI.toggleFullscreen().catch(()=>message('SCHERMO INTERO NON DISPONIBILE IN QUESTO BROWSER',2))));
   $('reset-button').addEventListener('click',()=>{if(race?.state==='running'&&!localPause){clearInput();race.resetPlayer();}});
   document.querySelectorAll('button[data-page]').forEach(el=>el.addEventListener('click',()=>setPage(el.dataset.page)));
+  $('bike-list').addEventListener('click',event=>{const button=event.target.closest('[data-bike]');if(button)openBikeWorkshop(Number(button.dataset.bike));});
+  $('close-bike-workshop').addEventListener('click',()=>closeBikeWorkshop());
+  compactWorkshop.addEventListener('change',syncBikeWorkshopLayout);
   document.querySelectorAll('[data-mode]').forEach(el=>el.addEventListener('click',()=>setMode(el.dataset.mode)));
   $('menu-tools').addEventListener('click',event=>{if(event.target.closest('button'))$('menu-tools').open=false;});
   document.addEventListener('pointerdown',event=>{if(!$('menu-tools').contains(event.target))$('menu-tools').open=false;});
@@ -380,6 +412,7 @@ function setupUI(){
     if(/^(INPUT|TEXTAREA|SELECT)$/.test(e.target?.tagName||'')&&command!=='Escape')return;
     if(command==='Escape'&&!$('controls-overlay').classList.contains('hidden')){show('controls-overlay',false);return;}
     if(command==='Escape'&&$('menu-tools').open){$('menu-tools').open=false;$('menu-tools').querySelector('summary').focus();return;}
+    if(command==='Escape'&&bikeWorkshopOpen){e.preventDefault();closeBikeWorkshop();return;}
     if(!race)return;if(command==='KeyB'&&!localPause&&race.state==='running'){e.preventDefault();race.stewards.request();updateHUD();return;}if(localPause){if(command==='Escape'||command==='KeyP'){e.preventDefault();pause(false);}return;}if(controls.actionFor(e)){e.preventDefault();if(race.state==='running'||race.state==='countdown'){keyboardDriving=true;controls.keyDown(e);updateInputDisplay();}return;}
     if(e.repeat)return;
     if(command==='Escape'||command==='KeyP'){e.preventDefault();pause(race.options.mode==='lan'?!localPause:race.state!=='paused');}
@@ -409,8 +442,7 @@ function toggleSound(){settings.audio=!settings.audio;sound.enabled=settings.aud
 function returnLanLobby(){freeRaceAssets();localPause=false;sound.tick(null);clearInput();race=null;settings.mode='race';show('result-overlay',false);show('pause-overlay',false);show('hud',false);show('menu');setPage('lan');if(lan.state?.hostId===lan.id)lan.send({type:'lobby'});receiveLanState(lan.state);}
 function effectiveBike(){return career.bike(BIKES[settings.bike].id,{stock:settings.mode==='lan'});}
 function renderGarage(){
- $('bike-list').innerHTML=BIKES.map((b,i)=>`<button class="bike-card ${i===settings.bike?'active':''} ${career.owns(b.id)?'':'locked'}" data-bike="${i}"><i class="bike-color" style="background:${b.color}"></i><span><strong>${b.name}${b.isNew?'<em class="new-bike">NEW</em>':''}</strong><small>${b.cc} cc · ${b.year}</small><span class="bike-owned">${career.owns(b.id)?'NEL GARAGE':b.price.toLocaleString('it-IT')+' CR'}</span></span><span class="bike-metrics"><span><b>${declaredPower(b.id)}</b>CV SERIE</span><span><b>${career.bike(b.id).top}</b>KM/H</span></span></button>`).join('');
- document.querySelectorAll('[data-bike]').forEach(el=>el.addEventListener('click',()=>selectBike(Number(el.dataset.bike))));
+ $('bike-list').innerHTML=BIKES.map((b,i)=>`<button class="bike-card ${i===settings.bike?'active':''} ${career.owns(b.id)?'':'locked'}" data-bike="${i}" aria-controls="workshop-panel" aria-expanded="${bikeWorkshopOpen&&i===settings.bike}"><i class="bike-color" style="background:${b.color}"></i><span><strong>${b.name}${b.isNew?'<em class="new-bike">NEW</em>':''}</strong><small>${b.cc} cc · ${b.year}</small><span class="bike-owned">${career.owns(b.id)?'NEL GARAGE':b.price.toLocaleString('it-IT')+' CR'}</span></span><span class="bike-metrics"><span><b>${declaredPower(b.id)}</b>CV SERIE</span><span><b>${career.bike(b.id).top}</b>KM/H</span></span></button>`).join('');
 }
 function refreshCareer(){
  const b=BIKES[settings.bike],owned=career.owns(b.id),profile=career.profile,credits=profile.credits.toLocaleString('it-IT')+' CR';
