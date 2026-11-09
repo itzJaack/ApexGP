@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#101215">
   <meta name="description" content="APEX GP. Entra in pista in un gioco di corse in moto 3D: gare contro avversari, cronometro, 14 circuiti reali, 15 moto, carriera e multiplayer Internet e LAN, con comandi da tastiera o touch.">
-  <title>APEX GP 4.10.0</title>
+  <title>APEX GP 4.11.0</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23121417'/%3E%3Cpath d='M12 47 30 14h12L28 47zm19 0 12-23h10L41 47z' fill='%23ff6033'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="styles.css?v=4.5.0">
+  <link rel="stylesheet" href="styles.css?v=4.11.0">
   <link rel="stylesheet" href="accounts.css">
   <link rel="stylesheet" href="career.css?v=4.5.0">
   <link rel="stylesheet" href="mobile.css?v=4.5.0">
@@ -16,7 +16,7 @@
   <link rel="stylesheet" href="tilt.css">
   <link rel="stylesheet" href="race-notices.css?v=4.8.0">
   <link rel="stylesheet" href="race-signals.css?v=4.8.0-r1">
-  <link rel="stylesheet" href="menu.css?v=4.10.0">
+  <link rel="stylesheet" href="menu.css?v=4.11.0">
 </head>
 <body>
   <canvas id="world" aria-label="Circuito di corse in moto 3D"></canvas>
@@ -25,7 +25,7 @@
 
   <main id="menu" class="menu hidden" data-page="home">
     <header class="topbar">
-      <a class="brand" href="#" aria-label="Apex GP, home">APEX<span>GP</span><i></i><small class="build-version">v4.10.0</small></a>
+      <a class="brand" href="#" aria-label="Apex GP, home">APEX<span>GP</span><i></i><small class="build-version">v4.11.0</small></a>
       <nav aria-label="Navigazione principale"><button class="nav-link active" data-page="home">Home</button><button class="nav-link" data-page="garage">Moto</button></nav>
       <div class="profile"><span class="profile-icon">27</span><span><b id="profile-name">JACK</b><small id="wallet">3.000 CR</small></span></div>
       <details id="menu-tools" class="menu-tools">
@@ -143,9 +143,13 @@
       <p id="render-resolution" class="muted"></p>
       <button id="show-controls" class="text-button">Tutti i comandi ↗</button>
       <section id="settings-changelog" class="settings-changelog" aria-labelledby="changelog-heading">
-        <div class="changelog-heading"><h3 id="changelog-heading">Changelog</h3><span class="changelog-current">VERSIONE ATTUALE · 4.10.0</span></div>
+        <div class="changelog-heading"><h3 id="changelog-heading">Changelog</h3><span class="changelog-current">VERSIONE ATTUALE · 4.11.0</span></div>
         <p class="changelog-intro">Tutte le novità, dalla più recente. Tocca una versione per leggere i dettagli.</p>
         <details class="release-note" open>
+          <summary><span class="release-version">v4.11.0</span><span class="release-title">Box e qualifiche</span><time datetime="2026-11-09">9 nov 2026</time></summary>
+          <ul><li>Corsie box, ingressi e uscite rivisti su 22 circuiti usando immagini aeree e planimetrie. Portoni aperti, corsia di lavoro, muretti e segnali; corretti Misano, Assen e i raccordi moto di Le Mans.</li><li>Long lap rimossi. Penalità da scontare guidando ai box a 60 km/h: ride-through o stop-and-go con 5 secondi fermi nel riquadro. Vale anche per gli avversari.</li><li>Carriera: Practice, Q1 e Q2 da 5 minuti, griglia dai tempi reali e gare da 5 giri. Intralciare fuori dal proprio giro veloce costa posizioni in griglia, anche ai bot.</li><li>Tempi, sessioni e arretramenti salvati quando interrompi il weekend. Le qualifiche non danno premi gara.</li></ul>
+        </details>
+        <details class="release-note">
           <summary><span class="release-version">v4.10.0</span><span class="release-title">Tutte le piste del 2026</span><time datetime="2026-11-09">9 nov 2026</time></summary>
           <ul><li>22 circuiti: aggiunti Buriram, Goiânia, Balaton Park, Brno, Aragón, Mandalika, Sepang e Valencia.</li><li>Tracciati sulle coordinate reali, configurazioni MotoGP e dislivelli più dettagliati. Edifici, tribune, vie di fuga, strade, recinzioni e vegetazione dai dati geografici disponibili.</li><li>Terreno e boschi completati con dati satellitari. Rimossi cordoli, ghiaia e recinzioni che si ripetevano attorno a tutta la pista.</li><li>Campionato nell'ordine del calendario 2026. Le stagioni precedenti continuano senza perdere risultati; la nuova stagione passa a 22 tappe.</li></ul>
         </details>
@@ -159,7 +163,7 @@
         </details>
         <details class="release-note">
           <summary><span class="release-version">v4.8.0</span><span class="release-title">Direzione gara e aderenza reale dei bot</span><time datetime="2026-11-08">8 nov 2026</time></summary>
-          <ul><li>Bandiera rossa con frenata progressiva: si riparte da fermi dopo cinque luci rosse, che si spengono al via.</li><li>Gialle e doppie gialle nelle zone degli incidenti, settori e minimappa colorati. Gli incidenti separati non fermano tutta la sessione.</li><li>Restituzione della posizione, long lap, doppio long lap, ride-through nei box a 60 km/h, tempo aggiunto, retrocessioni e squalifiche. Valgono anche per i bot, online e in LAN.</li><li>Premi B o SCONTA per imboccare il percorso della penalità. Le penalità non scontate si aggravano; quelle rimaste all’arrivo modificano la classifica.</li><li>Stessa aderenza di base per giocatore e avversari: frenare troppo tardi può far allargare la curva e andare fuori pista. Animazioni delle bandiere e rispetto del movimento ridotto.</li></ul>
+          <ul><li>Bandiera rossa con frenata progressiva: si riparte da fermi dopo cinque luci rosse, che si spengono al via.</li><li>Gialle e doppie gialle nelle zone degli incidenti, settori e minimappa colorati. Gli incidenti separati non fermano tutta la sessione.</li><li>Restituzione della posizione, ride-through e stop-and-go nei box a 60 km/h, tempo aggiunto, retrocessioni e squalifiche. Valgono anche per i bot, online e in LAN.</li><li>Premi B o MOSTRA BOX per vedere il percorso sulla mappa e guidalo manualmente. Le penalità non scontate si aggravano; quelle rimaste all’arrivo modificano la classifica.</li><li>Stessa aderenza di base per giocatore e avversari: frenare troppo tardi può far allargare la curva e andare fuori pista. Animazioni delle bandiere e rispetto del movimento ridotto.</li></ul>
         </details>
         <details class="release-note">
           <summary><span class="release-version">v4.7.0</span><span class="release-title">Griglie da 20, scenari e retrovisori</span><time datetime="2026-11-07">7 nov 2026</time></summary>
@@ -262,6 +266,10 @@
       </div>
     </div>
     <div id="leaderboard" class="leaderboard"></div>
+    <div id="qualifying-hud" class="qualifying-hud hidden" aria-label="Sessione di qualifica">
+      <div><b id="qualifying-phase">PRACTICE</b><strong id="qualifying-clock">5:00</strong><small id="qualifying-status">GIRO DI LANCIO</small></div>
+      <div class="qualifying-actions"><button id="qualifying-cooldown" type="button">GIRO DI RIENTRO</button><button id="qualifying-end" type="button">TERMINA IL TUO TURNO</button></div>
+    </div>
     <div id="countdown" class="countdown start-signals hidden" role="status" aria-live="polite" aria-atomic="true">
       <div class="start-board">
         <div class="start-light-row" aria-hidden="true"><i data-start-lamp></i><i data-start-lamp></i><i data-start-lamp></i><i data-start-lamp></i><i data-start-lamp></i></div>
@@ -270,7 +278,7 @@
     </div>
     <div id="steward-panel" class="race-notice steward-panel hidden" role="status" aria-live="polite" aria-atomic="true">
       <span class="notice-icon" aria-hidden="true">!</span><div class="notice-copy"><b id="steward-label"></b><small id="steward-text"></small></div>
-      <button id="serve-penalty" type="button" title="Sconta penalità (B)" aria-label="Richiedi il percorso per scontare la penalità">SCONTA <small>B</small></button>
+      <button id="serve-penalty" type="button" title="Mostra ingresso box (B)" aria-label="Mostra la corsia box sulla mappa">MOSTRA BOX <small>B</small></button>
     </div>
     <div class="hud-bottom"><div class="circuit-hud"><div class="eyebrow" id="hud-track">MUGELLO</div><canvas id="minimap" width="240" height="180" aria-label="Mappa e posizione dei piloti"></canvas><div id="sector-status" class="sector-status" aria-label="Bandiere nei tre settori"><span data-sector="1" data-flag="green">S1</span><span data-sector="2" data-flag="green">S2</span><span data-sector="3" data-flag="green">S3</span></div><div class="surface"><span class="live-dot"></span><span id="surface-label">ASCIUTTO</span><b id="delta-label">—</b></div></div>
       <div class="driving-hint"><span id="corner-hint">GUIDA</span><div class="keyboard-only"><b class="key">A</b><b class="key">D</b> PIEGA <b class="key">S</b> FRENA <span><b class="key">R</b> RIENTRA</span></div></div>
@@ -367,6 +375,6 @@
       <div id="account-recovery-box" class="account-conflict hidden"><p><b>Salva il tuo codice di recupero.</b> Consente di reimpostare la password: conservalo per te. Resta valido fino a quando ne crei uno nuovo dal profilo.</p><input id="account-recovery-value" readonly aria-label="Codice personale di recupero" spellcheck="false"><button id="account-download-code" class="secondary-button">SALVA CODICE DI RECUPERO</button></div>
     </section>
   </div>
-  <script type="module" src="app.bundle.js?v=4.10.0"></script>
+  <script type="module" src="app.bundle.js?v=4.11.0"></script>
 </body>
 </html>

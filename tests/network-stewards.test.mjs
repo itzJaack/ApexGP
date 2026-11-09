@@ -55,18 +55,36 @@ test('network bots physically traverse a ride-through, preserve the past and sha
 });
 test('a human must follow the whole penalty route; a shortcut cannot mark it served',()=>{
  const{state,controller,grid}=room();controller.tick(state,grid.sample(0),0);
- const rider=controller.actors.get('human');controller.stewards.issue(rider,'longlap',{reason:'Track limits'});
- const route=controller.stewards.routes.longlap;
+ const rider=controller.actors.get('human');controller.stewards.issue(rider,'rideThrough',{reason:'Track limits'});
+ const route=controller.stewards.routes.pit;
  function move(distance,time){const q=route.sample(distance);state.players[0]={...state.players[0],progress:q.progress,pose:{...q,speed:Math.min(route.speedAt(distance),10),travel:distance}};return controller.tick(state,grid.sample(time),time);}
- move(0,1);move(route.length,2);assert.equal(rider.sanctions[0].status,'pending');
- move(0,3);let time=3;
- for(let distance=0;distance<route.length;distance+=3){time+=.5;move(distance,time);}
- move(route.length,time+1);assert.equal(rider.sanctions[0].status,'served');
+ move(route.serviceStart,1);move(route.serviceEnd,2);assert.equal(rider.sanctions[0].status,'pending');
+ move(route.serviceStart,3);let time=3;
+ for(let distance=route.serviceStart;distance<route.serviceEnd;distance+=3){time+=.5;move(distance,time);}
+ move(route.serviceEnd,time+.5);assert.equal(rider.sanctions[0].status,'served');
+});
+
+test('a network stop-and-go holds the physical bot stationary for five seconds on every peer',()=>{
+ const{state,controller,grid}=room();const peer=new BotGrid(new Circuit(TRACKS[0]),state.options,1);
+ controller.tick(state,grid.sample(15),15);const rider=controller.actors.get('bot-0');
+ const penalty=controller.stewards.issue(rider,'stopGo',{reason:'Velocità eccessiva ai box'});
+ let ledger=controller.tick(state,grid.sample(15),15),stationary=0,longest=0,previous=null,served=false;
+ assert.equal(ledger.botPlans[0].stopSeconds,5);
+ for(let time=15;time<240;time+=.1){
+  const bots=grid.sample(time,undefined,false,0,[],ledger),bot=bots[0],other=peer.sample(time,undefined,false,0,[],ledger)[0];
+  assert.deepEqual(bot.pose,other.pose);
+  const still=previous&&bot.pose.speed<.01&&Math.hypot(bot.pose.x-previous.x,bot.pose.z-previous.z)<1e-6;
+  stationary=still?stationary+.1:0;longest=Math.max(longest,stationary);previous=bot.pose;
+  ledger=controller.tick(state,bots,time);if(penalty.status==='served'){served=true;break;}
+ }
+ assert(served);assert(longest>=4.8,longest);
+ const ids=new Set(['human',...grid.roster.map(b=>b.id)]);
+ assert(validStewardLedger(ledger,ids));assert(!validStewardLedger({...ledger,botPlans:ledger.botPlans.map(p=>({...p,stopSeconds:Infinity}))},ids));
 });
 
 test('coasting through a bot penalty route during red does not mark it served after restart',()=>{
  const{state,controller,grid}=room();controller.tick(state,grid.sample(15),15);
- const rider=controller.actors.get('bot-0'),penalty=controller.stewards.issue(rider,'longlap',{reason:'Track limits'});
+ const rider=controller.actors.get('bot-0'),penalty=controller.stewards.issue(rider,'rideThrough',{reason:'Track limits'});
  let ledger=controller.tick(state,grid.sample(15),15);
  const window=grid.sample(15,undefined,false,0,[],ledger)[0].serviceWindows[0];assert(window);
  state.flag='red';ledger=controller.tick(state,grid.sample(window.start+.1,undefined,false,0,[],ledger),15);
@@ -77,7 +95,7 @@ test('coasting through a bot penalty route during red does not mark it served af
 });
 test('pending sanctions survive host migration and an ignored bot ride-through ends in DSQ',()=>{
  const{state,controller,grid}=room();controller.tick(state,grid.sample(10),10);
- const rider=controller.actors.get('bot-0'),penalty=controller.stewards.issue(rider,'rideThrough',{reason:'Infrazioni ripetute'});
+ const rider=controller.actors.get('bot-0'),penalty=controller.stewards.issue(rider,'stopGo',{reason:'Infrazioni ripetute'});
  const ledger=controller.ledger(),ids=new Set(['human',...grid.roster.map(b=>b.id)]);assert(validStewardLedger(ledger,ids));
  const migrated=new NetworkStewards(state,structuredClone(ledger));
  const bots=grid.sample(10);bots[0].progress=penalty.deadlineProgress+1;

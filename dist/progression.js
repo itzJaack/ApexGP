@@ -1,5 +1,6 @@
 import {BIKES, clamp} from './simulation.js?v=4.5.0';
 import {CALENDAR_ID, seasonCalendar, DIFFICULTIES, normalizeSeason, seasonStandings, validOrder} from './championship.js';
+import {createWeekend,normalizeSession,sessionParticipants,completeWeekendSession} from './qualifying.js';
 export {DIFFICULTIES} from './championship.js';
 export const STARTER_BIKES = ['v2c', 's3', 'r1'];
 const LEGACY_FREE_BIKES = ['r27', 'v4', 'rs', 'v2c', 'x4a', 'r9e'];
@@ -31,6 +32,7 @@ export function normalizeProfile(raw = {}) {
   }
   profile.paid = Array.isArray(raw.paid) ? raw.paid.filter(id => typeof id === 'string' && id.length <= 150).slice(-150) : [];
   for (const key of ['races', 'wins', 'earned', 'seasons', 'titles']) profile.stats[key] = integer(raw.stats?.[key]);
+  if(profile.season?.weekend&&!profile.owned.includes(profile.season.weekend.bikeId))delete profile.season.weekend;
   return profile;
 }
 
@@ -93,7 +95,7 @@ export class Career {
   }
   reward(result) {
     const {id, time = 0, finished = false, position = 8, mode = 'race'} = result;
-    if (!finished || typeof id !== 'string' || !id || id.length > 150 || this.profile.paid.includes(id) || !Number.isFinite(time) || time < 25) return 0;
+    if (!['race','time','lan'].includes(mode) || !finished || typeof id !== 'string' || !id || id.length > 150 || this.profile.paid.includes(id) || !Number.isFinite(time) || time < 25) return 0;
     const amount = racePrize(result);
     if (!amount) return 0;
     this.profile.credits = integer(this.profile.credits + amount);
@@ -116,6 +118,28 @@ export class Career {
     const season = this.profile.season, index = season?.results.length, event = seasonCalendar(season)[index];
     return event ? {seasonId: season.id, index, difficulty: season.difficulty, ...event} : null;
   }
+  prepareWeekend(bikeId){
+    const ticket=this.roundTicket();if(!ticket||!this.owns(bikeId))return null;
+    const season=this.profile.season;
+    if(!season.weekend)season.weekend=createWeekend(ticket,bikeId);
+    this.commit();return season.weekend;
+  }
+  checkpointWeekend(raw){
+    const weekend=this.profile.season?.weekend;
+    if(!weekend)return false;
+    const next=normalizeSession(raw,weekend.phase,sessionParticipants(weekend));
+    if(!next||next.elapsed<(weekend.checkpoint?.elapsed||0))return false;
+    // An interrupted/restarted session keeps its clock, best laps and sanctions.
+    for(const [id,time]of Object.entries(weekend.checkpoint?.times||{}))next.times[id]=Math.min(time,next.times[id]??Infinity);
+    const penalties=new Map([...(weekend.checkpoint?.penalties||[]),...next.penalties].map(p=>[p.id,p]));
+    next.penalties=[...penalties.values()];weekend.checkpoint=next;this.commit();return true;
+  }
+  completeQualifying(raw){
+    const weekend=this.profile.season?.weekend;if(!weekend)return false;
+    if(!this.checkpointWeekend(raw))return false;
+    if(!completeWeekendSession(weekend,weekend.checkpoint))return false;
+    this.commit();return true;
+  }
   completeRound(ticket, {raceId, order, trackId, finished, time,disqualified=[]}) {
     const current = this.roundTicket();
     if (typeof raceId!=='string'||!raceId||raceId.length>180||!Array.isArray(disqualified)||!current || !ticket || current.seasonId !== ticket.seasonId || current.index !== ticket.index
@@ -126,6 +150,7 @@ export class Career {
     const excluded=[...new Set(disqualified.filter(id=>order.includes(id)))];
     if(excluded.includes('player')&&!this.profile.paid.includes(raceId))this.profile.paid.push(raceId);
     season.results.push({raceId, trackId, order: [...order],...(excluded.length?{disqualified:excluded}:{})});
+    delete season.weekend;
     let bonus = 0;
     if (season.results.length === seasonCalendar(season).length) {
       const position = seasonStandings(season).findIndex(rider => rider.id === 'player');

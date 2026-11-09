@@ -30,6 +30,16 @@ class LobbyTests(unittest.TestCase):
   self.send(self.a,'incident',severity=3);self.now=self.r['flagUntil']+.1;self.hub.tick();self.assertEqual(self.r['flag'],'red');self.assertFalse(self.r['redGridReady'])
   peer['pose']['speed']=0;peer['pose']['crash']=0;self.now+=.1;self.hub.tick();self.assertEqual(self.r['flag'],'red');self.now+=1.5;self.hub.tick();self.assertTrue(self.r['redGridReady'])
   self.now=self.r['flagUntil']+.1;self.hub.tick();self.assertEqual(self.r['flag'],'green')
+ def test_stop_and_go_plan_is_relayed_to_peers_and_an_invalid_hold_cannot_replace_it(self):
+  self.send(self.a,'settings',options={'bots':True});self.ready();self.send(self.a,'start');self.now+=5
+  bot=self.r['bots'][0]
+  ledger={'revision':1,'nextId':2,'botPlans':[{'botId':bot['id'],'kind':'pit','penaltyId':1,'anchor':100,'entry':200,'lap':0,'stopSeconds':5}],
+   'riders':[{'id':bot['id'],'dsq':False,'sanctions':[{'id':1,'type':'stopGo','status':'pending','reason':'Velocità ai box','stopSeconds':5}],'timePenalty':0,'positionPenalty':0}]}
+  self.send(self.a,'stewards',roundId=self.r['roundId'],ledger=ledger)
+  self.assertEqual(self.r['stewardLedger']['botPlans'][0]['stopSeconds'],5)
+  bad={**ledger,'revision':2,'botPlans':[{**ledger['botPlans'][0],'stopSeconds':999}]}
+  self.send(self.a,'stewards',roundId=self.r['roundId'],ledger=bad)
+  self.assertEqual(self.r['stewardLedger']['revision'],1)
  def test_all_disqualified_riders_close_the_race_without_a_finisher(self):
   self.send(self.a,'settings',options={'bots':True});self.ready();self.send(self.a,'start');self.now+=5
   ids=self.r['players']+[b['id'] for b in self.r['bots']]

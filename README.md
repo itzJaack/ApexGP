@@ -1,4 +1,4 @@
-# ApexGP 4.10.0
+# ApexGP 4.11.0
 
 Gioco di corse in moto 3D per browser. **[Gioca su GitHub Pages](https://itzjaack.github.io/ApexGP/)** · [Sorgenti e aggiornamenti](https://github.com/itzJaack/ApexGP).
 
@@ -50,9 +50,10 @@ Il client completo versionato viene generato da `npm run build`.
 Le gialle interessano le zone dei commissari e sono mostrate nella minimappa e
 nei tre settori. Singola: pericolo a bordo pista; doppia: ostacolo in pista.
 Gialle e incidenti separati non sospendono automaticamente la gara. Le penalità
-valgono per umani e bot: restituzione di posizioni, long lap, doppio long lap,
-ride-through, tempo aggiunto, retrocessioni e squalifica. **B / SCONTA** prenota
-la guida al percorso; attraversare i box richiede di rispettare **60 km/h**.
+valgono per umani e bot: restituzione di posizioni, ride-through, stop-and-go,
+tempo aggiunto, retrocessioni e squalifica. I long lap sono rimossi.
+**B / MOSTRA BOX** evidenzia la corsia sulla mappa: si guida manualmente,
+a non oltre **60 km/h**. Lo stop-and-go richiede **5 secondi fermi** nel riquadro.
 Scadenze e sanzioni pendenti restano dopo la rossa; all’arrivo la classifica
 include gli equivalenti e i piloti squalificati non segnano punti.
 
@@ -64,7 +65,19 @@ singole usano l’IA con contatti e cadute fisiche. Procedure FIM di riferimento
 percorsi disponibili e adattamenti sono in [direzione gara](docs/race-direction.md).
 
 
-La versione attuale è **4.9.1**. Lo storico delle novità si trova in fondo a **Menu → Impostazioni → Changelog**, con l’ultima release aperta e le precedenti espandibili. È disponibile anche in [CHANGELOG.md](CHANGELOG.md).
+La versione attuale è **4.11.0**. Lo storico delle novità si trova in fondo a **Menu → Impostazioni → Changelog**, con l’ultima release aperta e le precedenti espandibili. È disponibile anche in [CHANGELOG.md](CHANGELOG.md).
+
+## Qualifiche e box
+
+Practice, Q1 e Q2 durano cinque minuti ciascuna. I primi dieci della Practice
+vanno direttamente in Q2; gli altri dieci disputano Q1 e i primi due avanzano.
+La griglia deriva dai giri percorsi; intralciare fuori dal giro veloce costa
+tre posti in griglia, anche ai bot. I weekend si salvano e le gare di carriera
+durano cinque giri. Nessun premio prima della gara.
+
+I box dei 22 circuiti sono stati confrontati con 70 immagini aeree. Ingressi,
+uscite, garage e corsie di lavoro conservano riferimenti verificabili in
+[pit lane](docs/pit-lanes.md). Altezze e dettagli restano ricostruzioni di gioco.
 
 ## Bandiere e avvisi di gara
 

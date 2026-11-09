@@ -29,6 +29,7 @@ export function botDetours(base,plans,track,bike,index,weather){
  let profile=base;
  const grip=tyreGrip(bike,weather),braking=Math.min(9.5,grip.traction*.72);
  for(const plan of plans){
+  if(plan.kind==='longlap')continue; // Obsolete plans from a pre-update host.
   const anchorIndex=profile.positions.findIndex(s=>s>=plan.anchor);
   if(anchorIndex<1||anchorIndex>=profile.positions.length-2)continue;
   const route=plan.kind==='yield'?null:penaltyRoutes(track)[plan.kind];
@@ -46,7 +47,12 @@ export function botDetours(base,plans,track,bike,index,weather){
   }
   if(route){
    const steps=Math.ceil(route.length/4);
-   for(let i=0;i<=steps;i++){const d=i/steps*route.length,q=route.sample(d,plan.lap);add({...q,yaw:q.heading},q.progress,route.speedAt(d),true);}
+   const distances=[...Array.from({length:steps+1},(_,i)=>i/steps*route.length),...(plan.stopSeconds?[route.stopDistance]:[])].sort((a,b)=>a-b);
+   for(const d of [...new Set(distances)]){
+    const q=route.sample(d,plan.lap),stop=plan.stopSeconds&&Math.abs(d-route.stopDistance)<.001;
+    add({...q,yaw:q.heading},q.progress,stop?0:route.speedAt(d),true);
+    if(stop)records.push({...records.at(-1),cap:0,holdSeconds:plan.stopSeconds});
+   }
   }else{
    for(let s=entry;s<=exit;s+=5)add(track.sample(s,botOffset(index,s,track)),s,plan.limit);
   }
@@ -62,7 +68,7 @@ export function botDetours(base,plans,track,bike,index,weather){
   for(let i=anchorIndex+1;i<n;i++){
    const distance=distances[i]-distances[i-1],acceleration=Math.min(grip.traction*.55,Math.max(2.5,(bike.accel||1)*7-3*speeds[i-1]/85));
    speeds[i]=Math.min(speeds[i],Math.sqrt(speeds[i-1]**2+2*acceleration*distance));
-   times[i]=times[i-1]+2*distance/Math.max(.1,speeds[i-1]+speeds[i]);
+   times[i]=times[i-1]+(records[i].holdSeconds||2*distance/Math.max(.1,speeds[i-1]+speeds[i]));
   }
   const serviceStart=records.findIndex((q,i)=>i>anchorIndex&&q.service),serviceEnd=records.findIndex((q,i)=>i>serviceStart&&serviceStart>=0&&!q.service);
   const services=[...(profile.services||[])];

@@ -1,0 +1,44 @@
+{
+  "adriatica:overview": {
+    "url": "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/export?bbox=1411099.554%2C5458989.425%2C1412754.838%2C5460023.977&bboxSR=3857&imageSR=3857&size=1600%2C1000&format=jpg&f=image",
+    "bbox3857": [
+      1411099.5537928466,
+      5458989.42455499,
+      1412754.838466307,
+      5460023.977475903
+    ],
+    "size": [
+      1600,
+      1000
+    ],
+    "attribution": "Source: Esri, Vantor, Earthstar Geographics, and the GIS User Community"
+  },
+  "nordland:circuit": {
+    "url": "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/export?bbox=723981.481%2C6974144.105%2C727887.661%2C6976585.468&bboxSR=3857&imageSR=3857&size=1600%2C1000&format=jpg&f=image",
+    "bbox3857": [
+      723981.4809781294,
+      6974144.105269283,
+      727887.6608433784,
+      6976585.467685064
+    ],
+    "size": [
+      1600,
+      1000
+    ],
+    "attribution": "Source: Esri, Vantor, Earthstar Geographics, and the GIS User Community"
+  },
+  "azzurra:overview": {
+    "url": "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/export?bbox=21459.233%2C6097484.025%2C24992.049%2C6099692.035&bboxSR=3857&imageSR=3857&size=1600%2C1000&format=jpg&f=image",
+    "bbox3857": [
+      21459.233005216374,
+      6097484.024833868,
+      24992.049485026073,
+      6099692.03513375
+    ],
+    "size": [
+      1600,
+      1000
+    ],
+    "attribution": "Source: Esri, Vantor, Earthstar Geographics, and the GIS User Community"
+  }
+}

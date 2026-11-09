@@ -56,8 +56,8 @@ test('host decisions penalise and disqualify bots on every peer, and a peer cann
   await lobby(f);const[h,p]=f.cs;h.setOptions({bots:true});await flush();await start(f);
   let at=h.room.startAt+23000;h.now=p.now=()=>at;h.updateStewards(h.view());await flush();
   const controller=h.stewardController,bot=controller.actors.get('bot-0');
-  controller.stewards.issue(bot,'longlap',{reason:'Track limits'});at+=100;h.updateStewards(h.view());await flush();
-  assert(p.state.bots.find(b=>b.id===bot.id).sanctions.some(s=>s.type==='longlap'&&s.status==='pending'));
+  controller.stewards.issue(bot,'rideThrough',{reason:'Track limits'});at+=100;h.updateStewards(h.view());await flush();
+  assert(p.state.bots.find(b=>b.id===bot.id).sanctions.some(s=>s.type==='rideThrough'&&s.status==='pending'));
   const before=h.room.stewardLedger.revision;
   p.send({type:'stewards',roundId:h.room.roundId,ledger:{...h.room.stewardLedger,revision:before+1000,riders:[]}});await flush();assert.equal(h.room.stewardLedger.revision,before);
   controller.stewards.issue(bot,'dsq',{reason:'Guida ripetutamente pericolosa'});at+=100;h.updateStewards(h.view());await flush();

@@ -1,6 +1,7 @@
 // Official 2026 circuit order, including the rescheduled Qatar round.
 // Weather and short race distances remain game options.
 import {BOT_DRIVERS,GRID_SIZE} from './rider-roster.js';
+import {normalizeWeekend,CAREER_RACE_LAPS} from './qualifying.js';
 export const LEGACY_CALENDAR_ID = 'world-tour-14';
 export const CALENDAR_ID = 'motogp-2026';
 export const LEGACY_CALENDAR = [
@@ -8,7 +9,7 @@ export const LEGACY_CALENDAR = [
   ['marina', 'day'], ['toscana', 'sunset'], ['nordland', 'rain'], ['sachsenring', 'day'],
   ['silverstone', 'day'], ['alpine', 'sunset'], ['adriatica', 'day'], ['sakura', 'rain'],
   ['phillip', 'day'], ['atlas', 'sunset'],
-].map(([trackId, weather]) => ({trackId, weather, laps: 2}));
+].map(([trackId, weather]) => ({trackId, weather, laps: CAREER_RACE_LAPS}));
 export const CALENDAR = [
   ['buriram','2026-03-01'], ['goiania','2026-03-22'], ['canyon','2026-03-29'],
   ['jerez','2026-04-26'], ['azzurra','2026-05-10'], ['marina','2026-05-17'],
@@ -17,7 +18,7 @@ export const CALENDAR = [
   ['aragon','2026-08-30'], ['adriatica','2026-09-13'], ['alpine','2026-09-20'],
   ['sakura','2026-10-04'], ['mandalika','2026-10-11'], ['phillip','2026-10-25'],
   ['sepang','2026-11-01'], ['dune','2026-11-08'], ['atlas','2026-11-22'], ['valencia','2026-11-29'],
-].map(([trackId,date])=>({trackId,date,weather:trackId==='dune'?'sunset':'day',laps:2}));
+].map(([trackId,date])=>({trackId,date,weather:trackId==='dune'?'sunset':'day',laps:CAREER_RACE_LAPS}));
 export const seasonCalendar = season => season && season.calendarId !== CALENDAR_ID ? LEGACY_CALENDAR : CALENDAR;
 export const POINTS = [25,20,16,13,11,10,9,8,7,6,5,4,3,2,1,0,0,0,0,0];
 export const DIFFICULTIES = {
@@ -49,6 +50,9 @@ export function normalizeSeason(raw) {
     const disqualified=Array.isArray(result.disqualified)?[...new Set(result.disqualified.filter(id=>result.order.includes(id)))]:[];
     season.results.push({trackId: event.trackId, raceId: result.raceId, order: [...result.order],...(disqualified.length?{disqualified}:{})});
   }
+  const event=calendar[season.results.length];
+  const weekend=event&&normalizeWeekend(raw.weekend,{index:season.results.length,...event});
+  if(weekend)season.weekend=weekend;
   return season;
 }
 

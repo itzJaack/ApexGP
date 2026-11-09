@@ -1,15 +1,16 @@
 import {BIKES,Circuit,TRACKS} from './simulation.js';
 import {RaceControl} from './race-control.js';
-import {RaceStewards,PENALTY_LABELS} from './race-stewards.js';
+import {RaceStewards,PENALTY_LABELS,penaltyType} from './race-stewards.js';
 import {tyreGrip} from './tyre-grip.js';
+import {observePenaltyPassage} from './penalty-passage.js';
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const mod=(v,n)=>(v%n+n)%n;
-const serviceTypes=['longlap','doubleLonglap','rideThrough'];
+const serviceTypes=['rideThrough','stopGo'];
 const statuses=['pending','served','applied','converted','escalated'];
 
 export function legalMetadata(ledger,id){
  const rider=ledger?.riders?.find(r=>r.id===id);
- return rider?{sanctions:rider.sanctions,timePenalty:rider.timePenalty,positionPenalty:rider.positionPenalty,dsq:rider.dsq,retirement:rider.retirement}:{};
+ return rider?{sanctions:(rider.sanctions||[]).map(p=>({...p,type:penaltyType(p.type),label:PENALTY_LABELS[penaltyType(p.type)]})),timePenalty:rider.timePenalty,positionPenalty:rider.positionPenalty,dsq:rider.dsq,retirement:rider.retirement}:{};
 }
 export function validStewardLedger(ledger,ids){
  if(ledger==null)return true;
@@ -18,8 +19,8 @@ export function validStewardLedger(ledger,ids){
  const number=v=>v===undefined||Number.isFinite(v)&&Math.abs(v)<1e8;
  if(!ledger||!Number.isInteger(ledger.revision)||ledger.revision<0||!Number.isInteger(ledger.nextId)||ledger.nextId<1||!Array.isArray(ledger.riders)||ledger.riders.length>20||!Array.isArray(ledger.botPlans)||ledger.botPlans.length>200)return false;
  if(new Set(ledger.riders.map(r=>r?.id)).size!==ledger.riders.length)return false;
- if(!ledger.riders.every(r=>r&&ids.has(r.id)&&typeof r.dsq==='boolean'&&[r.timePenalty,r.positionPenalty].every(v=>Number.isFinite(v)&&v>=0&&v<=3600)&&Array.isArray(r.sanctions)&&r.sanctions.length<=80&&r.sanctions.every(p=>p&&Number.isInteger(p.id)&&p.id>0&&Object.hasOwn(PENALTY_LABELS,p.type)&&statuses.includes(p.status)&&typeof p.reason==='string'&&p.reason.length<500&&['issuedAt','deadline','deadlineProgress','notifiedLap','remaining','seconds','places'].every(k=>number(p[k]))&&(p.targetId===undefined||ids.has(p.targetId)))&&(!r.retirement||['at','progress','speed','x','z','heading'].every(k=>Number.isFinite(r.retirement[k])))))return false;
- return ledger.botPlans.every(p=>p&&ids.has(p.botId)&&/^bot-\d+$/.test(p.botId)&&['pit','longlap','yield'].includes(p.kind)&&Number.isInteger(p.penaltyId)&&['anchor','entry','exit','lap','limit'].every(k=>number(p[k]))&&Number.isFinite(p.anchor)&&Number.isFinite(p.entry)&&p.entry>p.anchor&&(p.kind==='yield'?Number.isFinite(p.exit)&&p.exit>p.entry&&Number.isFinite(p.limit)&&p.limit>0&&p.limit<60:Number.isInteger(p.lap)));
+ if(!ledger.riders.every(r=>r&&ids.has(r.id)&&typeof r.dsq==='boolean'&&[r.timePenalty,r.positionPenalty].every(v=>Number.isFinite(v)&&v>=0&&v<=3600)&&Array.isArray(r.sanctions)&&r.sanctions.length<=80&&r.sanctions.every(p=>p&&Number.isInteger(p.id)&&p.id>0&&Object.hasOwn(PENALTY_LABELS,penaltyType(p.type))&&statuses.includes(p.status)&&typeof p.reason==='string'&&p.reason.length<500&&['issuedAt','deadline','deadlineProgress','notifiedLap','remaining','seconds','places','stopSeconds'].every(k=>number(p[k]))&&(p.targetId===undefined||ids.has(p.targetId)))&&(!r.retirement||['at','progress','speed','x','z','heading'].every(k=>Number.isFinite(r.retirement[k])))))return false;
+ return ledger.botPlans.every(p=>p&&ids.has(p.botId)&&/^bot-\d+$/.test(p.botId)&&['pit','longlap','yield'].includes(p.kind)&&Number.isInteger(p.penaltyId)&&['anchor','entry','exit','lap','limit','stopSeconds'].every(k=>number(p[k]))&&(p.stopSeconds===undefined||p.stopSeconds>=0&&p.stopSeconds<=30)&&Number.isFinite(p.anchor)&&Number.isFinite(p.entry)&&p.entry>p.anchor&&(p.kind==='yield'?Number.isFinite(p.exit)&&p.exit>p.entry&&Number.isFinite(p.limit)&&p.limit>0&&p.limit<60:Number.isInteger(p.lap)));
 }
 function closestOnRoute(route,pose){
  let nearest={distance:Infinity,at:0};
@@ -37,7 +38,7 @@ function closestOnRoute(route,pose){
 export class NetworkStewards{
  constructor(state,ledger=null){
   this.roundId=state.roundId;this.track=new Circuit(TRACKS.find(t=>t.id===state.options.trackId));this.actors=new Map();this.revision=ledger?.revision||0;
-  this.plans=structuredClone(ledger?.botPlans||[]);this.saved=new Map((ledger?.riders||[]).map(r=>[r.id,structuredClone(r)]));
+  this.plans=structuredClone(ledger?.botPlans||[]).filter(p=>p.kind!=='longlap');this.saved=new Map((ledger?.riders||[]).map(r=>[r.id,structuredClone(r)]));
   this.race={track:this.track,options:{...state.options,difficulty:state.options.difficulty||'sport'},time:0,penalties:0,state:'running',riders:[],emit:()=>{this.dirty=true;}};
   this.race.control=new RaceControl(this.track);this.stewards=new RaceStewards(this.race);this.stewards.nextId=ledger?.nextId||1;
  }
@@ -54,25 +55,13 @@ export class NetworkStewards{
  observeService(rider,time){
   const penalty=this.stewards.active(rider),record=this.stewards.record(rider);
   if(!penalty||!serviceTypes.includes(penalty.type)||rider.fall){record.serviceCheck=null;return;}
-  const route=this.stewards.routes[penalty.type==='rideThrough'?'pit':'longlap'];
-  const q=closestOnRoute(route,rider),check=record.serviceCheck;
-  if(!check){
-   if(q.at<14&&q.distance<route.width/2+.6&&rider.speed<route.limit+.8)record.serviceCheck={penaltyId:penalty.id,at:q.at,started:time,invalid:false};
-   return;
-  }
-  if(check.penaltyId!==penalty.id||q.distance>route.width/2+2||q.at<check.at-12||q.at-check.at>Math.max(15,rider.speed*1.5)){
-   record.serviceCheck=null;rider.service=null;return;
-  }
-  check.at=Math.max(check.at,q.at);
-  if(route.kind==='longlap'&&this.race.control.applies({progress:route.entry},this.track))check.invalid=true;
-  if(rider.speed>route.limit+1)check.invalid=true;
-  rider.service={kind:route.kind};
-  if(check.at>=route.length-7&&time-check.started>=route.length/route.limit-2){
-   record.serviceCheck=null;rider.service=null;
-   if(check.invalid){penalty.deadlineProgress+=this.track.length;this.changed=true;}
-   else if(penalty.remaining>1){penalty.remaining--;this.changed=true;}
-   else this.stewards.served(rider,penalty);
-  }
+  const route=this.stewards.routes.pit,previous=record.serviceCheck;
+  const check=previous?.penaltyId===penalty.id&&Number.isInteger(previous.nextGate)?previous:null;
+  const result=observePenaltyPassage(route,check,rider,time,{stopSeconds:penalty.type==='stopGo'?5:0,fallen:!!rider.fall});
+  record.serviceCheck=result.check?{...result.check,penaltyId:penalty.id}:null;
+  rider.service=result.check?{kind:'pit',manual:true}:null;
+  if(result.event==='served')this.stewards.served(rider,penalty);
+  if(result.event==='served'||result.event==='invalid')this.changed=true;
  }
  planBot(rider){
   const penalty=this.stewards.active(rider);if(!penalty||rider.dnf)return;
@@ -84,13 +73,13 @@ export class NetworkStewards{
    this.plans.push({botId:rider.id,penaltyId:penalty.id,kind:'yield',anchor,entry,exit:entry+170,limit:speed});this.changed=true;return;
   }
   if(!serviceTypes.includes(penalty.type))return;
-  const route=this.stewards.routes[penalty.type==='rideThrough'?'pit':'longlap'];
+  const route=this.stewards.routes.pit;
   if(this.race.control.applies({progress:route.entry},this.track))return;
   const budget=tyreGrip(rider.bike,this.race.options.weather),braking=Math.min(9.5,budget.traction*.72);
   const approach=Math.max(180,((rider.bike.top/3.6)**2-route.limit**2)/(2*braking)+45);
   let lap=Math.ceil((rider.progress+approach+25-route.entry)/this.track.length),entry=route.entry+lap*this.track.length;
   if(entry>=this.track.length*this.race.options.laps-10)return;
-  this.plans.push({botId:rider.id,penaltyId:penalty.id,kind:route.kind,anchor:entry-approach,entry,lap});this.changed=true;
+  this.plans.push({botId:rider.id,penaltyId:penalty.id,kind:'pit',anchor:entry-approach,entry,lap,...(penalty.type==='stopGo'?{stopSeconds:5}:{})});this.changed=true;
  }
  tick(state,bots,time=state.elapsed){
   this.changed=false;this.race.time=Math.max(0,time);this.race.control.sync(state);this.race.options.weather=state.options.weather;
@@ -123,8 +112,8 @@ export class NetworkStewards{
      const penalty=rider.sanctions.find(p=>p.id===plan.penaltyId);
      if(!service||!penalty||penalty.status!=='pending')continue;
      plan.windowEnd=service.end;
-     if(meta.drivingTime>=service.start&&meta.drivingTime<service.end){rider.service={kind:plan.kind};if(plan.kind==='longlap'&&this.race.control.applies({progress:this.stewards.routes.longlap.entry},this.track))plan.invalid=true;}
-     if(meta.drivingTime>=service.end){plan.completed=true;rider.service=null;if(plan.invalid)penalty.deadlineProgress+=this.track.length;else if(penalty.remaining>1)penalty.remaining--;else this.stewards.served(rider,penalty);this.changed=true;}
+     if(meta.drivingTime>=service.start&&meta.drivingTime<service.end)rider.service={kind:'pit'};
+     if(meta.drivingTime>=service.end){plan.completed=true;rider.service=null;if(plan.invalid)penalty.deadlineProgress+=this.track.length;else this.stewards.served(rider,penalty);this.changed=true;}
     }
    }else this.observeService(rider,time);
    rider.lastDrivingTime=meta?.drivingTime;

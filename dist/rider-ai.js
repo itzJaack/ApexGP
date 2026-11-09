@@ -162,7 +162,7 @@ export class RiderAI{
     if(braking&&!ai.wasBraking&&time>6&&time-ai.mistakeAt>6){
       ai.brakeJitter=(ai.random()-.5)*(1-this.skill.precision)*bot.speed*.8;
       ai.lineVariation=(ai.random()-.5)*(1-this.skill.precision)*1.1;
-      if(!underFlag&&this.options.aiMistakes!==false&&ai.random()<mistakeProbability(this.options.difficulty,c,ai.pressure,wet)){
+      if(!underFlag&&this.options.aiMistakes!==false&&ai.random()<mistakeProbability(this.options.difficulty,c,ai.pressure,wet)*(this.options.mode==='qualifying'?.2:1)){
         const roll=ai.random();ai.mistake=roll<.57?'late':roll<.85?'hesitate':'traction';ai.mistakeAt=time;ai.mistakeUntil=time+1.1+ai.random()*1.5;
       }
     }
@@ -172,6 +172,11 @@ export class RiderAI{
     if(ai.mistake==='hesitate')target*=.80;
     const lapper=visible.find(o=>o.distance<0&&o.distance>-45&&o.rider.progress>bot.progress+tr.length*.75&&o.rider.speed>bot.speed+2);
     if(lapper&&!underFlag){ai.intent='blue-yield';desired=(bot.offset>=lapper.rider.offset?1:-1)*width*.72;target=Math.min(target,lapper.rider.speed*.80);}
+    if(this.options.mode==='qualifying'&&!bot.timedLap){
+      target*=.80;
+      const fast=visible.filter(o=>o.distance<0&&o.distance>-50&&o.rider.timedLap).sort((a,b)=>b.distance-a.distance)[0];
+      if(fast){desired=(fast.rider.offset>0?-1:1)*(width-.5);target=Math.min(target,Math.max(12,fast.rider.speed*.72));ai.intent='yield';}
+    }
     ai.desiredOffset=clamp(desired,-width,width);ai.targetSpeed=Math.min(target,speedLimit,underFlag?(ai.cautionLimit??25):Infinity);
     ai.decisionAt=time+this.skill.reaction*(.8+ai.random()*.45);
     bot.intent=ai.intent;

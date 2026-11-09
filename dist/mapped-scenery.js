@@ -1,4 +1,7 @@
+import {groundPatch} from './terrain-patches.js';
+export {groundPatch} from './terrain-patches.js';
 import earcut from 'earcut';
+import {isPitBuilding,drawPitBuildings} from './pit-buildings.js';
 import {SCENERY_DATA} from './scenery-data.js';
 import {circuitEnvironment,mappedGroundMaterial,landcoverAt} from './circuit-environment.js';
 export const hasMappedScenery=id=>!!SCENERY_DATA[id]?.features.length;
@@ -76,6 +79,7 @@ export function mappedSceneryPlan(track,quality='low',data=SCENERY_DATA[track.co
   trees.push(...candidates.slice(0,Math.max(0,limit-trees.length)));
  }
  const safeBuildings=buildings.filter(f=>{
+  if(isPitBuilding(track.config.id,f.id))return false;
   const vertices=f.rings.flat(),clear=vertices.filter(p=>track.nearestDistance(...p)>track.halfWidth+3).length;
   // Stand roof outlines can slightly overhang an imperfect mapped road edge.
   // Preserve the rest of the structure and trim its rendered pieces below.
@@ -96,39 +100,6 @@ function polygonTriangles(feature,callback){
 function parseColor(value,fallback){
  if(/^#[0-9a-f]{6}$/i.test(value||''))return[1,3,5].map(i=>parseInt(value.slice(i,i+2),16)/255);
  return fallback;
-}
-
-function clipPolygon(polygon,distance){
- const out=[];
- for(let i=0;i<polygon.length;i++){
-  const a=polygon[(i+polygon.length-1)%polygon.length],b=polygon[i],da=distance(a),db=distance(b);
-  if((da<0)!==(db<0)){const t=da/(da-db);out.push([a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t]);}
-  if(db>=0)out.push(b);
- }
- return out;
-}
-// Cut every surface to the same grid and diagonal as the ground underneath.
-// Independent large triangles previously intersected and flickered on slopes.
-export function groundPatch(g,triangle,terrain,color,surface,lift=.025){
- if(terrain.bounds){
-  const b=terrain.bounds;
-  for(const edge of[p=>p[0]-b.minX,p=>b.maxX-p[0],p=>p[1]-b.minZ,p=>b.maxZ-p[1]])triangle=clipPolygon(triangle,edge);
-  if(triangle.length<3)return;
- }
- const step=terrain.cellStep||12,b=bounds(triangle);
- for(let x=Math.floor(b.minX/step)*step;x<b.maxX;x+=step)for(let z=Math.floor(b.minZ/step)*step;z<b.maxZ;z+=step){
-  let polygon=triangle;
-  for(const edge of[p=>p[0]-x,p=>x+step-p[0],p=>p[1]-z,p=>z+step-p[1]])polygon=clipPolygon(polygon,edge);
-  if(polygon.length<3)continue;
-  for(const sign of[-1,1]){
-   const half=clipPolygon(polygon,p=>sign*((p[0]-x)-(p[1]-z)));
-   const point=([X,Z])=>[X,terrain(X,Z)+lift,Z];
-   for(let i=1;i<half.length-1;i++){
-    const a=half[0],b=half[i],c=half[i+1];
-    if(Math.abs((b[0]-a[0])*(c[1]-a[1])-(b[1]-a[1])*(c[0]-a[0]))>1e-7)g.tri(point(c),point(b),point(a),color,surface);
-   }
-  }
- }
 }
 
 function footprintAxes(feature){
@@ -230,6 +201,7 @@ function coastalWater(g,grid,offset=0){
 export function buildMappedScenery(g,track,terrain,quality){
  const plan=mappedSceneryPlan(track,quality);if(!plan)return null;
  const low=quality==='low',style=circuitEnvironment(track.config.id);
+ drawPitBuildings(g,track,terrain,low);
  if(track.config.terrainGrid&&plan.features.some(f=>f.kind==='coastline'))coastalWater(g,track.config.terrainGrid,track.elevationOffset||0);
  for(const feature of plan.features){
   // Woodland follows the terrain through individual trees. A single large
@@ -240,6 +212,7 @@ export function buildMappedScenery(g,track,terrain,quality){
   polygonTriangles(feature,tri=>groundPatch(g,tri,terrain,color,water?13:material==='gravel'?3:material==='asphalt'||parking?1:2,parking?.065:water?.045:material==='asphalt'?.04:.02));
  }
  for(const feature of plan.features.filter(f=>f.kind==='road'||f.kind==='fence')){
+  if(/long.?lap/i.test(feature.tags.name||''))continue;
   const line=feature.line;if(!line)continue;
   for(let i=1;i<line.length;i++){
    const a=line[i-1],b=line[i],dx=b[0]-a[0],dz=b[1]-a[1],length=Math.hypot(dx,dz);if(length<.1)continue;

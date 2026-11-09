@@ -57,6 +57,16 @@ test('cloud progress survives a second device and remains isolated from other ac
   assert.equal(env.rows.get('alice').payload.credits, 9000);
   assert.equal(env.rows.get('bob').payload.credits, 11000);
 });
+
+test('an interrupted qualifying weekend reaches a second client with clock, best lap and grid penalty intact',async()=>{
+ const env=setup(),first=new SaveSync(env),second=new SaveSync({...env,storage:{getItem:()=>null,setItem:()=>{}}});
+ const career=new Career();career.chooseStarter('r1');career.beginSeason();career.prepareWeekend('r1');
+ career.checkpointWeekend({phase:'practice',elapsed:144,times:{player:95.6,bot0:96.1},penalties:[{id:'practice:1',riderId:'player',victimId:'bot0',places:3,at:130}]});
+ await first.load('quali-user',{});first.change({version:1,career:career.profile,records:{},settings:{}});assert(await first.flush());
+ const payload=await second.load('quali-user',{}),restored=new Career(payload.career),saved=restored.profile.season.weekend;
+ assert.equal(saved.phase,'practice');assert.equal(saved.checkpoint.elapsed,144);assert.equal(saved.checkpoint.times.player,95.6);
+ assert.equal(saved.checkpoint.penalties[0].places,3);assert.equal(restored.profile.stats.races,0);
+});
 test('stale concurrent device cannot overwrite a newer save, explicit cloud resolution keeps it', async () => {
   const env = setup(), first = new SaveSync(env), second = new SaveSync(env);
   await first.load('alice', {}); first.change({credits: 12000}); await first.flush();

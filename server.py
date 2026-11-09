@@ -28,7 +28,7 @@ def valid_steward_ledger(ledger,ids):
  if not isinstance(ledger,dict) or not isinstance(ledger.get('revision'),int) or ledger['revision']<0 or not isinstance(ledger.get('nextId'),int) or ledger['nextId']<1:return False
  riders=ledger.get('riders');plans=ledger.get('botPlans')
  if not isinstance(riders,list) or len(riders)>20 or not isinstance(plans,list) or len(plans)>200:return False
- seen=set();types={'warning','giveBack','longlap','doubleLonglap','rideThrough','time','position','dsq'}
+ seen=set();types={'warning','giveBack','longlap','doubleLonglap','rideThrough','stopGo','time','position','dsq'}
  def safe(value,depth=0):
   if depth>9:return False
   if value is None or isinstance(value,bool):return True
@@ -49,6 +49,7 @@ def valid_steward_ledger(ledger,ids):
  for plan in plans:
   if not isinstance(plan,dict) or plan.get('botId') not in ids or not plan['botId'].startswith('bot-') or plan.get('kind') not in {'pit','longlap','yield'} or not isinstance(plan.get('penaltyId'),int):return False
   if any(not isinstance(plan.get(k),(int,float)) for k in ['anchor','entry']):return False
+  if 'stopSeconds' in plan and (not isinstance(plan['stopSeconds'],(int,float)) or isinstance(plan['stopSeconds'],bool) or not 0<=plan['stopSeconds']<=30):return False
  return True
 
 def clean_name(value):return ''.join(c for c in str(value) if c.isalnum() or c in ' _.-')[:16].strip() or 'PILOTA'

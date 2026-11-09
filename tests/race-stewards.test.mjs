@@ -38,41 +38,37 @@ test('both humans and bots face a black flag for ignoring a ride-through deadlin
  for(const bot of [false,true]){
   const race=new RaceModel(new Circuit(TRACKS[0]),{laps:5,botSeed:27});race.state='running';
   const rider=bot?race.bots[0]:race.player;
-  const penalty=race.stewards.issue(rider,'rideThrough',{reason:'Ripetute infrazioni'});
+  const penalty=race.stewards.issue(rider,'stopGo',{reason:'Ripetute infrazioni'});
   rider.progress=penalty.deadlineProgress+1;race.stewards.observe(.025);
   assert(rider.dsq&&rider.dnf);assert.equal(race.order.at(-1),rider);assert.equal(rider.finishTime,null);
   if(bot)assert.equal(race.state,'running');else assert.equal(race.state,'finished');
  }
 });
-test('long lap escalates to double long lap, ride-through and disqualification for every rider',()=>{
+test('legacy long laps migrate to pit penalties and ignored ride-through escalates to stop-and-go then DSQ',()=>{
  const race=new RaceModel(new Circuit(TRACKS[0]),{laps:20});race.state='running';
  for(const rider of [race.player,race.bots[0]]){
   race.stewards.issue(rider,'longlap',{reason:'Track limits'});
-  for(const expected of ['doubleLonglap','rideThrough','dsq']){
+  for(const expected of ['stopGo','dsq']){
    const pending=race.stewards.active(rider);rider.progress=pending.deadlineProgress+1;
    race.stewards.observe(.025);assert.equal(rider.sanctions.at(-1).type,expected);
   }
  }
 });
-test('a bot serves a physical long lap and a player can request the same path',()=>{
- for(const useBot of [false,true]){
-  const race=new RaceModel(new Circuit(TRACKS[0]),{laps:3,weather:'day',botSeed:27});race.state='running';
-  const rider=useBot?race.bots[0]:race.player;
-  for(const other of race.bots)if(other!==rider)other.finishTime=1;
-  if(useBot){race.player.progress=-500;race.player.offset=40;race.placePlayer();}
-  const penalty=race.stewards.issue(rider,'longlap',{reason:'Infrazione'});race.time=2;
-  if(useBot)penalty.complies=true;else assert(race.stewards.request(rider));
-  const route=race.stewards.routes.longlap,entry=route.sample(0),q=race.track.sample(route.entry-1);
-  Object.assign(rider,{x:q.x,z:q.z,progress:route.entry-1,offset:0,speed:10,heading:entry.heading});
-  let travelled=0,wasInRoute=false,previous={x:rider.x,z:rider.z};
-  for(let i=0;i<3000&&penalty.status==='pending';i++){
-   race.update(.025,{});wasInRoute||=!!rider.service;
-   travelled+=Math.hypot(rider.x-previous.x,rider.z-previous.z);previous={x:rider.x,z:rider.z};
-   if(rider.service)assert(rider.speed<=route.limit+.01);
-  }
-  assert(wasInRoute);assert.equal(penalty.status,'served');assert(travelled>route.length*.95);
+test('a bot follows the physical pit route and holds still for five seconds for stop-and-go',()=>{
+ const race=new RaceModel(new Circuit(TRACKS[0]),{laps:5,weather:'day',botSeed:27});race.state='running';race.time=2;
+ const rider=race.bots[0],route=race.stewards.routes.pit;
+ const penalty=race.stewards.issue(rider,'stopGo',{reason:'Infrazione'});
+ rider.service={kind:'pit',distance:0,lap:0,penaltyId:penalty.id,stopped:0};rider.speed=10;
+ let travelled=0,stopped=0,previous=route.sample(0);Object.assign(rider,previous);
+ for(let i=0;i<8000&&penalty.status==='pending';i++){
+  race.time+=.025;race.stewards.driveService(rider,.025);
+  travelled+=Math.hypot(rider.x-previous.x,rider.z-previous.z);previous={x:rider.x,z:rider.z};
+  if(rider.speed===0&&Math.abs(route.project(rider).at-route.stopDistance)<.5)stopped+=.025;
+  assert(rider.speed<=route.limit+.01);
  }
+ assert.equal(penalty.status,'served');assert(travelled>route.length*.99);assert(stopped>=4.99);
 });
+
 test('a clear dangerous rear-end penalises the offender, not the fallen victim',()=>{
  const race=new RaceModel(new Circuit(TRACKS[0]));race.state='running';race.time=10;
  const offender=race.bots[0],victim=race.player;
@@ -93,14 +89,14 @@ test('added time and dropped positions change classification, while disqualified
  assert.equal(standings.find(r=>r.id==='bot0').points,0);assert.equal(standings.find(r=>r.id==='player').points,25);
 });
 test('all tracks have a connected finite penalty path, with explicit provenance for mapped routes',()=>{
- let realPit=0,realLongLap=0;
+ let realPit=0;
  for(const config of TRACKS)for(const [kind,route] of Object.entries(penaltyRoutes(new Circuit(config)))){
   assert(route.length>50&&route.length<2500);assert(route.exit>route.entry);
   for(let s=0;s<=route.length;s+=5)assert(Object.values(route.sample(s)).every(Number.isFinite));
-  assert.equal(route.approximate,route.sourceIds.length===0);assert(route.sourceIds.every(id=>/^w\d+$/.test(id)));
-  if(!route.approximate)kind==='pit'?realPit++:realLongLap++;
+  assert.equal(route.approximate,route.sourceIds.length===0);assert(route.sourceIds.every(id=>/^(w\d+|aerial-trace:[a-z]+)$/.test(id)));
+  if(!route.approximate&&kind==='pit')realPit++;
  }
- assert(realPit>=10);assert(realLongLap>=5);
+ assert.equal(realPit,22);
 });
 test('AI lateral force obeys the same tyre budget and an overspeeding bot can run off the asphalt',()=>{
  const race=new RaceModel(new Circuit(TRACKS[0]),{mode:'race',difficulty:'pro',weather:'day',aiMistakes:false});race.state='running';

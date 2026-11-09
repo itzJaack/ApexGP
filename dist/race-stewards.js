@@ -1,28 +1,32 @@
 import {penaltyRoutes} from './penalty-routes.js';
 import {tyreGrip} from './tyre-grip.js';
+import {observePenaltyPassage} from './penalty-passage.js';
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const wrap=v=>Math.atan2(Math.sin(v),Math.cos(v));
 const mod=(v,n)=>(v%n+n)%n;
-export const PENALTY_LABELS={warning:'AVVERTIMENTO',giveBack:'RESTITUISCI LA POSIZIONE',longlap:'LONG LAP',doubleLonglap:'DOPPIO LONG LAP',rideThrough:'RIDE-THROUGH',time:'PENALITÀ DI TEMPO',position:'PERDITA DI POSIZIONI',dsq:'SQUALIFICA'};
-const lapsAllowed={longlap:3,doubleLonglap:5,rideThrough:3};
+export const PENALTY_LABELS={warning:'AVVERTIMENTO',giveBack:'RESTITUISCI LA POSIZIONE',rideThrough:'RIDE-THROUGH',stopGo:'STOP-AND-GO · 5 s',time:'PENALITÀ DI TEMPO',position:'PERDITA DI POSIZIONI',dsq:'SQUALIFICA'};
+export const penaltyType=type=>type==='longlap'?'rideThrough':type==='doubleLonglap'?'stopGo':type;
+const lapsAllowed={rideThrough:3,stopGo:3};
 
 export class RaceStewards{
  constructor(race){this.race=race;this.track=race.track;this.nextId=1;this.state=new Map();this.pairs=new Map();}
  get routes(){return this._routes??=penaltyRoutes(this.track);}
  record(rider){
   if(!rider.sanctions)rider.sanctions=[];
+  for(const p of rider.sanctions){const type=penaltyType(p.type);if(type!==p.type){p.type=type;p.label=PENALTY_LABELS[type];delete p.remaining;if(type==='stopGo')p.stopSeconds=5;}}
   if(!this.state.has(rider.id))this.state.set(rider.id,{trackLimits:0,outside:null,lastContact:-100,lastLap:Math.floor(Math.max(0,rider.progress)/this.track.length),caution:null});
   return this.state.get(rider.id);
  }
- active(rider){return(rider.sanctions||[]).find(p=>p.status==='pending')||null;}
+ active(rider){this.record(rider);return rider.sanctions.find(p=>p.status==='pending')||null;}
  issue(rider,type,details={}){
+  type=penaltyType(type);
   if(rider.dsq)return null;
   this.record(rider);
   if(type==='giveBack'&&rider.sanctions.some(p=>p.status==='pending'&&p.type==='giveBack'&&p.targetId===details.targetId))return null;
   const penalty={id:this.nextId++,type,label:PENALTY_LABELS[type],status:'pending',reason:details.reason||'',issuedAt:this.race.time,
    notifiedLap:Math.floor(Math.max(0,rider.progress)/this.track.length),...details};
   if(lapsAllowed[type])penalty.deadlineProgress=(penalty.notifiedLap+1+lapsAllowed[type])*this.track.length;
-  if(type==='longlap'||type==='doubleLonglap')penalty.remaining=type==='doubleLonglap'?2:1;
+  if(type==='stopGo')penalty.stopSeconds=5;
   if(type==='giveBack')penalty.deadline=this.race.time+12;
   if(type==='warning')penalty.status='served';
   if(type==='time'){rider.timePenalty=(rider.timePenalty||0)+Math.max(0,penalty.seconds||3);penalty.status='applied';}
@@ -35,7 +39,7 @@ export class RaceStewards{
   this.race.emit('sanction',{riderId:rider.id,name:rider.name,isPlayer:!!rider.isPlayer,penalty:{...penalty}});
   return penalty;
  }
- served(rider,penalty){penalty.status='served';penalty.servedAt=this.race.time;rider.serviceRequested=false;rider.serviceGuide=null;this.race.emit('penaltyServed',{riderId:rider.id,name:rider.name,isPlayer:!!rider.isPlayer,label:penalty.label});}
+ served(rider,penalty){penalty.status='served';penalty.servedAt=this.race.time;rider.serviceRequested=false;rider.serviceGuide=null;rider.service=null;this.record(rider).manualPass=null;this.race.emit('penaltyServed',{riderId:rider.id,name:rider.name,isPlayer:!!rider.isPlayer,label:penalty.label});}
  request(rider=this.race.player){
   const p=this.active(rider);if(!p||!lapsAllowed[p.type])return false;
   if(!rider.service)rider.serviceRequested=!rider.serviceRequested;
@@ -49,7 +53,7 @@ export class RaceStewards{
   if(ahead.progress-behind.progress>10||Math.abs(behind.angle||0)>.75||!ahead.fall)return;
   const state=this.record(behind);if(this.race.time-state.lastContact<5)return;
   state.lastContact=this.race.time;state.dangerous=(state.dangerous||0)+1;
-  this.issue(behind,state.dangerous>=4?'dsq':state.dangerous>=3?'rideThrough':'longlap',{reason:'Tamponamento pericoloso con caduta causata'});
+  this.issue(behind,state.dangerous>=4?'dsq':state.dangerous>=2?'stopGo':'rideThrough',{reason:'Tamponamento pericoloso con caduta causata'});
  }
  prepare(rider){
   this.record(rider);rider.serviceGuide=null;
@@ -60,6 +64,10 @@ export class RaceStewards{
    return;
   }
   if(!lapsAllowed[penalty.type])return;
+  if(rider.isPlayer){
+   if(this.race.control.flag==='red'){this.record(rider).manualPass=null;rider.service=null;}
+   return;
+  }
   // Professional and careful riders comply earlier. An especially reckless
   // rider may ignore an instruction and receives the same escalation as a human.
   if(!rider.isPlayer&&rider.ai){
@@ -67,7 +75,7 @@ export class RaceStewards{
    if(penalty.complies&&this.race.time-penalty.issuedAt>1)rider.serviceRequested=true;
   }
   if(!rider.serviceRequested||rider.service)return;
-  const route=this.routes[penalty.type==='rideThrough'?'pit':'longlap'];
+  const route=this.routes.pit;
   if(this.race.control.applies({progress:route.entry},this.track))return;
   const delta=mod(route.entry-rider.progress,this.track.length);if(delta>210)return;
   const lap=Math.round((rider.progress+delta-route.entry)/this.track.length),entry=route.sample(0,lap);
@@ -79,6 +87,7 @@ export class RaceStewards{
   }
  }
  assistedInput(rider,input){
+  if(rider.isPlayer)return input;
   const guide=rider.serviceGuide;if(!guide||!rider.serviceRequested)return input;
   const look=Math.max(12,Math.min(35,rider.speed*.8)),aim=guide.point||this.track.sample(rider.progress+look,guide.offset||0);
   const error=wrap(Math.atan2(aim.x-rider.x,aim.z-rider.z)-rider.heading),curve=this.track.sample(rider.progress+look/2).k;
@@ -87,14 +96,20 @@ export class RaceStewards{
  }
  driveService(rider,dt,red=false){
   const service=rider.service;if(!service)return false;
+  if(red){service.invalid=true;service.stopped=0;}
   const route=this.routes[service.kind],penalty=(rider.sanctions||[]).find(p=>p.id===service.penaltyId);
   if(!penalty||penalty.status!=='pending'){rider.service=null;return false;}
-  if(service.kind==='longlap'&&this.race.control.applies({progress:route.entry},this.track)&&!red)service.invalid=true;
-  const target=red?0:Math.min(route.speedAt(service.distance),route.speedAt(service.distance+18));
+  const mustStop=penalty.type==='stopGo'&&(service.stopped||0)<5,remaining=route.stopDistance-service.distance;
+  const stopping=mustStop&&remaining>=-.3&&remaining<rider.speed*rider.speed/14+4;
+  const target=red?0:stopping?Math.min(route.limit,Math.sqrt(Math.max(0,2*7*Math.max(0,remaining-.15)))):Math.min(route.speedAt(service.distance),route.speedAt(service.distance+18));
   const before=rider.speed,brake=red?Math.min(8,(service.redBrake||0)+dt*6):8;
   if(red)service.redBrake=brake;
   rider.speed+=clamp(target-rider.speed,-brake*dt,4*dt);
   service.distance=Math.min(route.length,service.distance+(before+rider.speed)*.5*dt);
+  if(mustStop&&service.distance>=route.stopDistance-.2){
+   service.distance=route.stopDistance;
+   if(rider.speed<.4){rider.speed=0;if(!red)service.stopped=(service.stopped||0)+dt;}
+  }
   const q=route.sample(service.distance,service.lap),next=route.sample(service.distance+5,service.lap);
   rider.acceleration=(rider.speed-before)/dt;rider.brake=rider.acceleration<0?Math.min(1,-rider.acceleration/10):0;rider.throttle=rider.acceleration>0?1:0;
   Object.assign(rider,{x:q.x,z:q.z,y:q.y,heading:q.heading,progress:q.progress,
@@ -103,13 +118,30 @@ export class RaceStewards{
   if(rider.isPlayer)rider.wheelTravel=(rider.wheelTravel||0)+rider.speed*dt;else rider.travel=(rider.travel||0)+rider.speed*dt;
   if(service.distance>=route.length&&!red){
    rider.service=null;rider.invulnerable=.8;
-   if(service.invalid){penalty.deadlineProgress+=this.track.length;this.race.emit('serviceInvalid',{isPlayer:!!rider.isPlayer,name:rider.name,reason:'Long lap neutralizzato: ripeti quando la zona torna verde'});}
+   if(service.invalid){penalty.deadlineProgress+=this.track.length;this.race.emit('serviceInvalid',{isPlayer:!!rider.isPlayer,name:rider.name,reason:'Passaggio ai box neutralizzato: ripeti quando la zona torna verde'});}
    else if(this.race.options.mode==='lan'){penalty.awaitingConfirmation=true;rider.serviceRequested=false;}
-   else if(penalty.remaining>1){penalty.remaining--;rider.serviceRequested=true;}
    else this.served(rider,penalty);
    if(rider.ai){this.race.botAI.restart(rider,this.race.time);rider.ai.intent='rejoin';}
   }
   return true;
+ }
+ onPavedRoute(rider){return this.routes.pit.contains(rider,.25);}
+ resetService(rider){this.record(rider).manualPass=null;rider.service=null;rider.serviceGuide=null;}
+ observeManualService(rider){
+  const state=this.record(rider),penalty=this.active(rider);
+  if(!penalty||!lapsAllowed[penalty.type]){state.manualPass=null;if(rider.service?.manual)rider.service=null;return;}
+  const route=this.routes.pit;
+  const result=observePenaltyPassage(route,state.manualPass,rider,this.race.time,{
+   neutralized:this.race.control.flag==='red',fallen:!!rider.fall,stopSeconds:penalty.type==='stopGo'?5:0,
+  });
+  state.manualPass=result.check;
+  rider.service=result.check?{kind:'pit',manual:true,penaltyId:penalty.id,distance:result.check.at,stopped:result.check.stopTime||0,stopDone:result.check.stopDone}:null;
+  if(result.event==='served'){
+   if(this.race.options.mode==='lan'){penalty.awaitingConfirmation=true;rider.serviceRequested=false;}
+   else this.served(rider,penalty);
+  }else if(result.event==='invalid'){
+   this.race.emit('serviceInvalid',{isPlayer:true,name:rider.name,reason:result.reason==='stopRequired'?'Sosta di 5 secondi non completata: ripassa dai box':'Passaggio non valido: rispetta la corsia e il limite di 60 km/h'});
+  }
  }
  retire(rider,dt){
   const before=rider.speed;rider.speed=Math.max(0,rider.speed-6*dt);
@@ -127,13 +159,13 @@ export class RaceStewards{
    }
    const speeding=distance<route.width/2&&at>30&&at<route.length-25&&rider.speed>route.limit+1;
    state.pitSpeeding=speeding?(state.pitSpeeding||0)+dt:0;
-   if(state.pitSpeeding>.65&&this.race.time-(state.pitPenaltyAt??-100)>10){state.pitPenaltyAt=this.race.time;state.pitSpeeding=0;this.issue(rider,'rideThrough',{reason:'Velocità eccessiva in corsia box · limite 60 km/h'});}
+   if(state.pitSpeeding>.65&&this.race.time-(state.pitPenaltyAt??-100)>10){state.pitPenaltyAt=this.race.time;state.pitSpeeding=0;this.issue(rider,'stopGo',{reason:'Velocità eccessiva in corsia box · limite 60 km/h'});}
   }else state.pitSpeeding=0;
   const leader=this.race.riders.find(other=>other!==rider&&!other.dnf&&!other.fall&&other.finishTime===null&&other.progress-rider.progress>this.track.length-25&&other.progress-rider.progress<this.track.length-2&&Math.abs(other.offset-rider.offset)<1.6&&other.speed>rider.speed-.5);
   state.blueBlocking=leader&&!rider.fall&&!rider.service&&rider.speed>5?(state.blueBlocking||0)+dt:0;
   if(state.blueBlocking>8){
    state.blueBlocking=0;state.blueWarnings=(state.blueWarnings||0)+1;
-   this.issue(rider,state.blueWarnings>1?'longlap':'warning',{reason:state.blueWarnings>1?'Bandiere blu ripetutamente ignorate':'Bandiera blu · lascia spazio al pilota che ti doppia'});
+   this.issue(rider,state.blueWarnings>1?'rideThrough':'warning',{reason:state.blueWarnings>1?'Bandiere blu ripetutamente ignorate':'Bandiera blu · lascia spazio al pilota che ti doppia'});
   }
  }
  observe(dt){
@@ -142,16 +174,17 @@ export class RaceStewards{
    const state=this.record(rider);if(rider.dsq)continue;
    if(rider.finishTime!==null){this.finalize(rider);continue;}
    if(neutral)continue;
+   if(rider.isPlayer)this.observeManualService(rider);
    this.conduct(rider,state,dt);
    const lap=Math.floor(Math.max(0,rider.progress)/this.track.length);
    for(const penalty of rider.sanctions.filter(p=>p.status==='pending')){
     if(penalty.type==='giveBack'){
      const target=riders.find(r=>r.id===penalty.targetId);
      if(!target||target.dnf||target.progress>rider.progress+2)this.served(rider,penalty);
-     else if(race.time>penalty.deadline){penalty.status='escalated';this.issue(rider,'longlap',{reason:'Posizione non restituita sotto gialla'});}
+     else if(race.time>penalty.deadline){penalty.status='escalated';this.issue(rider,'rideThrough',{reason:'Posizione non restituita sotto gialla'});}
     }else if(lapsAllowed[penalty.type]){
-     if(lap>state.lastLap&&penalty.type!=='rideThrough'&&race.control.applies({progress:this.routes.longlap.entry},this.track))penalty.deadlineProgress+=this.track.length;
-     if(rider.progress>=penalty.deadlineProgress){penalty.status='escalated';this.issue(rider,penalty.type==='longlap'?'doubleLonglap':penalty.type==='doubleLonglap'?'rideThrough':'dsq',{reason:'Penalità non scontata entro i giri concessi'});}
+     if(lap>state.lastLap&&race.control.applies({progress:this.routes.pit.entry},this.track))penalty.deadlineProgress+=this.track.length;
+     if(rider.progress>=penalty.deadlineProgress){penalty.status='escalated';this.issue(rider,penalty.type==='rideThrough'?'stopGo':'dsq',{reason:'Penalità non scontata entro i giri concessi'});}
     }
    }
    state.lastLap=lap;
@@ -163,8 +196,8 @@ export class RaceStewards{
     const distance=((rider.isPlayer?rider.wheelTravel:rider.travel)||0)-excursion.travel,shortcut=rider.progress-excursion.progress>distance*1.12+4;
     if(race.time-excursion.at>.18&&rider.speed>excursion.speed*.8){
      state.trackLimits++;
-     if(shortcut||state.trackLimits%5===0)this.issue(rider,'longlap',{reason:shortcut?'Vantaggio ottenuto tagliando il percorso':'Ripetuti track limits'});
-     else if(state.trackLimits%5===3)this.issue(rider,'warning',{reason:'Track limits · prossime infrazioni: long lap'});
+     if(shortcut||state.trackLimits%5===0)this.issue(rider,'rideThrough',{reason:shortcut?'Vantaggio ottenuto tagliando il percorso':'Ripetuti track limits'});
+     else if(state.trackLimits%5===3)this.issue(rider,'warning',{reason:'Track limits · prossime infrazioni: passaggio ai box'});
     }
    }
   }
@@ -193,7 +226,7 @@ export class RaceStewards{
    penalty.status='converted';
    if(penalty.type==='giveBack')this.issue(rider,'position',{places:1,reason:'Posizione non restituita prima del traguardo'});
    else if(lapsAllowed[penalty.type]){
-    const seconds=penalty.type==='rideThrough'?Math.max(15,Math.round(this.routes.pit.length/(60/3.6)-(this.routes.pit.exit-this.routes.pit.entry)/50)):3*(penalty.remaining||1);
+    const seconds=Math.max(15,Math.round(this.routes.pit.length/(60/3.6)-(this.routes.pit.exit-this.routes.pit.entry)/50))+(penalty.type==='stopGo'?5:0);
     this.issue(rider,'time',{seconds,reason:'Penalità non scontata prima del traguardo'});
    }
   }

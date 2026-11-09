@@ -5,7 +5,7 @@ import {ResolutionGovernor,renderResolution} from './quality.js';
 import {scenerySite} from './scenery.js';
 import {buildMappedScenery,hasMappedScenery} from './mapped-scenery.js';
 import {GRID_SIZE,gridPlace} from './rider-roster.js';
-import {terrainElevation} from './elevation.js';
+import {terrainSampler} from './track-terrain.js';
 import {drawPenaltyRoutes} from './penalty-routes.js';
 import {circuitEnvironment,kerbAt,landcoverColor} from './circuit-environment.js';
 
@@ -307,28 +307,7 @@ function harbor(g,track,rng){
     g.merge(q.transform(modelMatrix([p.x,0,p.z],p.yaw)));
   }
 }
-export function terrainSampler(track,cell=12){
- if(!track.config.elevation)return Object.assign(()=>0,{cellStep:cell});const cache=new Map();
- if(track.config.terrainGrid){
-  const sample=(ix,iz)=>{
-   const key=ix+','+iz;if(cache.has(key))return cache.get(key);
-   const x=ix*cell,z=iz*cell;let best=Infinity,at=0;
-   for(let i=0;i<track.count;i+=3){const p=track.nodes[i],d=(x-p.x)**2+(z-p.z)**2;if(d<best){best=d;at=i;}}
-   const distance=Math.sqrt(best),raw=terrainElevation(track.config,x,z)-(track.elevationOffset||0);let height=raw;
-   if(distance<track.halfWidth+38){
-    const projected=track.project(x,z,at*track.step),road=track.sample(projected.progress);
-    const blend=clamp(1-Math.max(0,distance-track.halfWidth-8)/30,0,1);
-    height=lerp(raw,road.y-.08,blend);
-   }
-   cache.set(key,height);return height;
-  };
-  // Exactly the same diagonal as the terrain mesh. Surface polygons are clipped
-  // to these triangles, so grass/asphalt overlays cannot sink into the hillside.
-  return Object.assign((x,z)=>{const ix=Math.floor(x/cell),iz=Math.floor(z/cell),u=x/cell-ix,v=z/cell-iz,a=sample(ix,iz),c=sample(ix+1,iz+1);return u>v?a+(sample(ix+1,iz)-a)*u+(c-sample(ix+1,iz))*v:a+(c-sample(ix,iz+1))*u+(sample(ix,iz+1)-a)*v;},{cellStep:cell,bounds:{minX:track.bounds.minX-600,maxX:track.bounds.maxX+600,minZ:track.bounds.minZ-600,maxZ:track.bounds.maxZ+600}});
- }
- const sample=(ix,iz)=>{const key=ix+','+iz;if(cache.has(key))return cache.get(key);const x=ix*cell,z=iz*cell;let best=1e20,at=0;for(let i=0;i<track.count;i+=3){const p=track.nodes[i],d=(x-p.x)**2+(z-p.z)**2;if(d<best){best=d;at=i;}}const distance=Math.sqrt(best),fade=clamp(1-Math.max(0,distance-70)/360,0,1),height=track.sample(at*track.step).y*fade-1.1*clamp(1-distance/70,0,1);cache.set(key,height);return height;};
- return(x,z)=>{const b=track.bounds;if(x<b.minX-550||x>b.maxX+550||z<b.minZ-550||z>b.maxZ+550)return 0;const ix=Math.floor(x/cell),iz=Math.floor(z/cell),u=x/cell-ix,v=z/cell-iz;return lerp(lerp(sample(ix,iz),sample(ix+1,iz),u),lerp(sample(ix,iz+1),sample(ix+1,iz+1),u),v);};
-}
+export {terrainSampler} from './track-terrain.js';
 function buildTerrain(g,track,height,color){
  const b=track.bounds,grid=track.config.terrainGrid;
  const step=height.cellStep||12;
@@ -454,7 +433,7 @@ function createWorld(renderer,track){
   }
   if(track.config.elevation)for(let i=staticStart;i<g.data.length;i+=12)if(g.data[i+9]!==13)g.data[i+1]+=terrain(g.data[i],g.data[i+2]);
   const mappedStats=mapped?buildMappedScenery(g,track,terrain,renderer.quality):null;
-  drawPenaltyRoutes(g,track);
+  drawPenaltyRoutes(g,track,terrain);
   const boards=[];const textures=['APEX GP','RIDE THE LIMIT','FULL THROTTLE'].map(text=>markTexture(renderer,text));
   for(const corner of track.config.corners||[]){
     const p=track.sample(corner.s-35,-w-5),board=new Geometry();

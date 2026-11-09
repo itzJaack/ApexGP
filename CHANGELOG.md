@@ -1,5 +1,16 @@
 # Changelog ApexGP
 
+## 4.11.0 — 9 novembre 2026
+
+- Pit lane di tutti i 22 circuiti confrontate con 70 immagini aeree e fonti dei circuiti; corretti Misano, Assen e Le Mans. Garage aperti, corsie di lavoro, muretti e segnali, quote coerenti col terreno.
+- Long lap rimossi: ride-through manuale a 60 km/h e stop-and-go con sosta fisica di 5 secondi, anche per i bot. Controllo del passaggio completo locale e multiplayer.
+- Carriera con Practice, Q1 e Q2 da 5 minuti nel formato MotoGP, giri realmente percorsi e penalità in griglia per intralcio fuori dal giro veloce. Gare da 5 giri.
+- Weekend, tempi e arretramenti conservati tra sessioni e dispositivi; nessun premio prima della gara.
+
+## 4.10.0 — 9 novembre 2026
+
+- Tutti i 22 circuiti del campionato MotoGP 2026, nuove configurazioni e calendario, conservando le stagioni precedenti. Terreno, vegetazione ed edifici da dati geografici e satellitari.
+
 ## 4.9.1 — 8 novembre 2026
 
 - Cliccando una moto nel catalogo, la sua officina si apre a destra dell'elenco con una X per chiuderla. Acquisti, potenziamenti e livree usano la scheda esistente e la stessa selezione.

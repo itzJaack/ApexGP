@@ -1,0 +1,187 @@
+{
+  "adriatica": {
+    "points": [
+      [
+        137.18,
+        -217.39
+      ],
+      [
+        120.05,
+        -204.72
+      ],
+      [
+        105.14,
+        -184.6
+      ],
+      [
+        89.49,
+        -157.03
+      ],
+      [
+        73.1,
+        -123.49
+      ],
+      [
+        54.47,
+        -82.51
+      ],
+      [
+        35.09,
+        -40.78
+      ],
+      [
+        14.97,
+        3.19
+      ],
+      [
+        -3.66,
+        44.18
+      ],
+      [
+        -23.78,
+        87.4
+      ],
+      [
+        -42.41,
+        127.64
+      ],
+      [
+        -61.04,
+        168.63
+      ],
+      [
+        -78.18,
+        206.63
+      ],
+      [
+        -91.59,
+        237.19
+      ],
+      [
+        -102.77,
+        260.29
+      ],
+      [
+        -113.2,
+        278.17
+      ],
+      [
+        -126.62,
+        287.86
+      ],
+      [
+        -143.76,
+        290.84
+      ],
+      [
+        -169.84,
+        290.84
+      ],
+      [
+        -193.68,
+        288.61
+      ]
+    ],
+    "source": "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/export?bbox=1411099.554%2C5458989.425%2C1412754.838%2C5460023.977&bboxSR=3857&imageSR=3857&size=1600%2C1000&format=jpg&f=image",
+    "attribution": "Source: Esri, Vantor, Earthstar Geographics, and the GIS User Community",
+    "method": "Hand-traced pit entry, fast lane and exit from georeferenced aerial reference; game reconstruction."
+  },
+  "nordland": {
+    "points": [
+      [
+        -161.37,
+        276.5
+      ],
+      [
+        -149.63,
+        239.82
+      ],
+      [
+        -142.3,
+        209.01
+      ],
+      [
+        -133.49,
+        187.0
+      ],
+      [
+        -121.76,
+        172.32
+      ],
+      [
+        -110.56,
+        160.82
+      ],
+      [
+        -102.68,
+        144.45
+      ],
+      [
+        -86.54,
+        122.44
+      ],
+      [
+        -61.6,
+        94.56
+      ],
+      [
+        -35.19,
+        69.62
+      ],
+      [
+        -13.18,
+        38.8
+      ],
+      [
+        26.43,
+        -6.68
+      ],
+      [
+        113.0,
+        -72.71
+      ],
+      [
+        195.16,
+        -131.39
+      ],
+      [
+        247.37,
+        -185.72
+      ],
+      [
+        293.47,
+        -210.62
+      ]
+    ],
+    "source": "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/export?bbox=723981.481%2C6974144.105%2C727887.661%2C6976585.468&bboxSR=3857&imageSR=3857&size=1600%2C1000&format=jpg&f=image",
+    "attribution": "Source: Esri, Vantor, Earthstar Geographics, and the GIS User Community",
+    "method": "Hand-traced pit entry, fast lane and exit from georeferenced aerial reference; game reconstruction."
+  },
+  "azzurra:garage": {
+    "points": [
+      [
+        34.76,
+        -375.81
+      ],
+      [
+        73.37,
+        -374.32
+      ],
+      [
+        61.49,
+        5.77
+      ],
+      [
+        22.88,
+        2.8
+      ],
+      [
+        34.76,
+        -375.81
+      ]
+    ],
+    "source": "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/export?bbox=21459.233%2C6097484.025%2C24992.049%2C6099692.035&bboxSR=3857&imageSR=3857&size=1600%2C1000&format=jpg&f=image",
+    "attribution": "Source: Esri, Vantor, Earthstar Geographics, and the GIS User Community",
+    "method": "Hand-traced pit entry, fast lane and exit from georeferenced aerial reference; game reconstruction."
+  }
+}

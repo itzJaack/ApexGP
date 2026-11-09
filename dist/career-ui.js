@@ -1,6 +1,7 @@
 import {CALENDAR, CALENDAR_ID, seasonCalendar, DIFFICULTIES, POINTS, seasonStandings} from './championship.js';
 import {STARTER_BIKES} from './progression.js?v=4.5.0';
 import {mountWorldMap} from './world-map.js?v=4.5.0';
+import {PHASE_NAMES,gridPenalties} from './qualifying.js';
 
 export function mountCareerUI({career, tracks, bikes, onBike, onStart, isBusy}) {
   const el = id => document.getElementById(id);
@@ -62,9 +63,14 @@ export function mountCareerUI({career, tracks, bikes, onBike, onStart, isBusy}) 
     }));
     const busy = isBusy();
     el('career-go').disabled = career.needsStarter || busy || !complete && selected !== (ticket?.trackId || CALENDAR[0].trackId);
-    el('career-go').textContent = complete ? 'INIZIA UNA NUOVA STAGIONE →' : season ? 'CORRI QUESTA TAPPA →' : 'INIZIA LA STAGIONE →';
+    const weekend=season?.weekend,phase=weekend?.phase||'practice';
+    el('career-go').textContent = complete ? 'INIZIA UNA NUOVA STAGIONE →' : phase==='grid'?'GARA · 5 GIRI →':(weekend?.checkpoint?'RIPRENDI ':'INIZIA ')+PHASE_NAMES[phase].toUpperCase()+' →';
+    if(ticket?.trackId===selected&&!previous){
+      const loss=weekend?gridPenalties(weekend).player:0;
+      el('career-track-status').textContent=phase==='grid'?`GRIGLIA · ${weekend.grid.order.indexOf('player')+1}° POSTO`:`${PHASE_NAMES[phase].toUpperCase()} · 5 MINUTI${loss?' · −'+loss+' IN GRIGLIA':''}`;
+    }
     el('career-next').classList.toggle('hidden', complete || selected === (ticket?.trackId || CALENDAR[0].trackId));
-    el('career-rules').textContent = `Punti: ${POINTS.join(' / ')}. A parità contano i migliori piazzamenti. La difficoltà resta fissa durante la stagione. Premio finale fino a ${(18000 * DIFFICULTIES[season?.difficulty || el('career-difficulty').value].multiplier).toLocaleString('it-IT')} CR.`;
+    el('career-rules').textContent = `Practice: i primi 10 accedono alla Q2. Gli altri disputano la Q1: avanzano i primi 2. Ogni turno dura 5 minuti; la gara dura 5 giri. Intralciare fuori dal giro veloce costa 3 posizioni in griglia, anche agli avversari. Punti: ${POINTS.join(' / ')}.`;
     el('career-titles').textContent = `${profile.stats.seasons} stagioni concluse · ${profile.stats.titles} titoli`;
     el('starter-bikes').querySelectorAll('button').forEach(button => button.disabled = busy);
   }
