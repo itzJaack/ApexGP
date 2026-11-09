@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Career, normalizeProfile, STARTER_BIKES, racePrize} from '../dist/progression.js';
-import {CALENDAR, CHAMPIONSHIP_RIDERS, normalizeSeason, seasonStandings} from '../dist/championship.js';
+import {CALENDAR, CALENDAR_ID, LEGACY_CALENDAR, CHAMPIONSHIP_RIDERS, normalizeSeason, seasonCalendar, seasonStandings} from '../dist/championship.js';
 import {BIKES, TRACKS} from '../dist/simulation.js';
 import {BIKE_SPECS} from '../dist/bike-specs.js';
 import {TRACK_LOCATIONS} from '../dist/track-locations.js';
@@ -9,7 +9,7 @@ import {projectLocation, pickMapTrack} from '../dist/world-map.js';
 import fs from 'node:fs';
 
 test('eight-rider season results keep their actual points when the field expands to twenty',()=>{
- const legacy=CHAMPIONSHIP_RIDERS.slice(0,8),season=normalizeSeason({id:'old-season',difficulty:'sport',number:1,results:[{trackId:CALENDAR[0].trackId,raceId:'old-round',order:legacy}]});
+ const legacy=CHAMPIONSHIP_RIDERS.slice(0,8),season=normalizeSeason({id:'old-season',difficulty:'sport',number:1,results:[{trackId:LEGACY_CALENDAR[0].trackId,raceId:'old-round',order:legacy}]});
  assert.equal(season.results.length,1);assert.deepEqual(season.results[0].order,legacy);
  const standings=seasonStandings(season);assert.equal(standings.length,20);assert.equal(standings.find(r=>r.id==='player').points,25);assert.equal(standings.find(r=>r.id==='bot6').points,8);
  assert(standings.filter(r=>!legacy.includes(r.id)).every(r=>r.points===0&&r.finishes.every(n=>n===0)));
@@ -21,6 +21,29 @@ function finishRound(career, {order = CHAMPIONSHIP_RIDERS, id = 'race-' + career
   career.reward({id, position, difficulty: ticket.difficulty, laps: ticket.laps, finished: true, time: 180});
   return career.completeRound(ticket, {raceId: id, order, trackId: ticket.trackId, finished: true, time: 180});
 }
+
+test('a saved fourteen-round tour finishes without losing results, then the next season uses all 2026 rounds',()=>{
+ const results=LEGACY_CALENDAR.slice(0,7).map((event,i)=>({trackId:event.trackId,raceId:'legacy-'+i,order:[...CHAMPIONSHIP_RIDERS]}));
+ let career=new Career({version:2,owned:['r1'],credits:8432,upgrades:{r1:{engine:2}},season:{id:'ongoing-old',number:3,difficulty:'sport',results}});
+ assert.deepEqual(career.profile.season.results,results);
+ assert.equal(career.profile.credits,8432);assert.equal(career.profile.upgrades.r1.engine,2);
+ assert.equal(seasonCalendar(career.profile.season).length,14);
+ assert(!career.beginSeason('pro'));
+ for(let i=7;i<14;i++){
+  assert.equal(career.roundTicket().trackId,LEGACY_CALENDAR[i].trackId);
+  const result=finishRound(career);assert(result.ok);assert.equal(result.bonus,i===13?45000:0);
+  career=new Career(JSON.parse(JSON.stringify(career.profile)));
+ }
+ assert.equal(career.roundTicket(),null);assert.equal(seasonStandings(career.profile.season)[0].points,350);
+ assert(career.beginSeason('pro'));assert.equal(career.profile.season.calendarId,CALENDAR_ID);
+ assert.equal(career.profile.season.number,4);assert.equal(career.roundTicket().trackId,'buriram');
+ assert.equal(seasonCalendar(career.profile.season).length,22);
+});
+
+test('2026 championship includes every MotoGP venue once, with Qatar and the final Iberian rounds rescheduled',()=>{
+ assert.deepEqual(CALENDAR.map(e=>e.trackId),['buriram','goiania','canyon','jerez','azzurra','marina','toscana','balaton','brno','nordland','sachsenring','silverstone','aragon','adriatica','alpine','sakura','mandalika','phillip','sepang','dune','atlas','valencia']);
+ assert.equal(CALENDAR.at(-3).date,'2026-11-08');assert.equal(CALENDAR.at(-2).date,'2026-11-22');assert.equal(CALENDAR.at(-1).date,'2026-11-29');
+});
 
 test('a disqualified player advances the season with no points or race prize, and cannot settle twice',()=>{
  const career=new Career();career.chooseStarter(STARTER_BIKES[0]);career.beginSeason('sport');
@@ -83,14 +106,14 @@ test('the entire championship resumes after every round, awards the title bonus 
     previousCredits = career.profile.credits;
     finalResult = finishRound(career);
     assert(finalResult.ok);
-    assert.equal(finalResult.bonus, index === 13 ? 45000 : 0);
+    assert.equal(finalResult.bonus, index === CALENDAR.length-1 ? 45000 : 0);
     assert.equal(saved.season.results.length, index + 1);
     career = new Career(saved, profile => saved = structuredClone(profile));
     assert.equal(career.profile.season.id, seasonId);
     assert.equal(career.profile.season.difficulty, 'sport');
   }
   assert.equal(career.roundTicket(), null);
-  assert.equal(seasonStandings(career.profile.season)[0].points, 350);
+  assert.equal(seasonStandings(career.profile.season)[0].points, 550);
   assert.equal(career.profile.stats.titles, 1);
   assert.equal(career.profile.stats.seasons, 1);
   assert(career.profile.credits > previousCredits + 45000);

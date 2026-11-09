@@ -58,7 +58,7 @@ export function mountWorldMap(root, {tracks, onSelect}) {
     for (const button of pins.children) {
       const id = button.dataset.trackId, point = projectLocation(id, region), state = states[id] || '';
       const track = tracks.find(track => track.id === id);
-      button.hidden = point.x < 0 || point.x > 100 || point.y < 0 || point.y > 100;
+      button.hidden = state === 'excluded' || point.x < 0 || point.x > 100 || point.y < 0 || point.y > 100;
       button.style.left = point.x + '%'; button.style.top = point.y + '%';
       button.className = `map-pin ${state} ${id === selected ? 'selected' : ''}`;
       button.setAttribute('aria-pressed', String(id === selected));

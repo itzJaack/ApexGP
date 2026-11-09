@@ -3,6 +3,9 @@ import {terrainElevation} from './elevation.js';
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const mod=(v,n)=>(v%n+n)%n;
 const cache=new WeakMap();
+// Unnamed OSM pit roads, cross-checked against the circuit venue maps. Keep
+// their mapped geometry instead of inventing a parallel lane at the finish.
+const PIT_WAYS={buriram:['w677379784'],brno:['w184267642'],balaton:['w1259458777']};
 
 export function projectAnywhere(track,x,z){
  let best=Infinity,station=0;
@@ -71,10 +74,10 @@ export class PenaltyRoute{
 
 export function penaltyRoutes(track){
  if(cache.has(track))return cache.get(track);
- const roads=(SCENERY_DATA[track.config.id]?.features||[]).filter(f=>f.kind==='road'&&f.tags.highway==='raceway');
+ const roads=(SCENERY_DATA[track.config.id]?.features||[]).filter(f=>f.kind==='road'&&(f.tags.highway==='raceway'||PIT_WAYS[track.config.id]?.includes(f.id)));
  const longLap=roads.find(f=>/long.?lap/i.test(f.tags.name||''));
- const pits=roads.filter(f=>/pit(?!ch)|boxen|boxengasse|corsia.*box/i.test(f.tags.name||'')&&!/long.?lap|pit straight|safety|stowe|maison blanche|supercars/i.test(f.tags.name||''));
- const origin=track.sample(0),mains=pits.filter(f=>/^(pit ?lane|boxenstra.e|boxengasse|national pit lane|international pit lane)$/i.test(f.tags.name||''));
+ const pits=roads.filter(f=>PIT_WAYS[track.config.id]?.includes(f.id)||/pit(?!ch)|boxen|boxengasse|corsia.*box/i.test(f.tags.name||'')&&!/long.?lap|pit straight|safety|stowe|maison blanche|supercars/i.test(f.tags.name||''));
+ const origin=track.sample(0),mains=pits.filter(f=>PIT_WAYS[track.config.id]?.includes(f.id)||/^(pit ?lane|boxenstra.e|boxengasse|national pit lane|international pit lane)$/i.test(f.tags.name||''));
  mains.sort((a,b)=>Math.min(...a.line.map(p=>Math.hypot(p[0]-origin.x,p[1]-origin.z)))-Math.min(...b.line.map(p=>Math.hypot(p[0]-origin.x,p[1]-origin.z))));
  let pitPoints,pitIds=[];
  if(mains.length){const joined=joinConnected(mains[0],pits);pitPoints=joined.points;pitIds=joined.ids;}

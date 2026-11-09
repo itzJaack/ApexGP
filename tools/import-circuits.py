@@ -7,6 +7,8 @@ from pathlib import Path
 import json
 import math
 import xml.etree.ElementTree as ET
+import argparse
+from datetime import date
 
 ROOT = Path(__file__).resolve().parents[1]
 REFERENCES = ROOT / 'art/references/circuits.json'
@@ -28,6 +30,16 @@ SELECTIONS = [
     ('sachsenring', '2148312', 3671, (50.7913, 12.6877), 'counterclockwise', 12, -1),
     ('phillip', ['43598473'], 4448, (-38.5018807, 145.2319222), 'counterclockwise', 13, -1),
     ('silverstone', '51160', 5900, (52.0693366, -1.0221521), 'clockwise', 15, -1),
+    ('buriram', ['400713789'], 4554, (14.95804, 103.08479), 'clockwise', 12, -1),
+    ('goiania', '15921950', 3835, (-16.72040, -49.19176), 'clockwise', 12, -1),
+    ('balaton', ['338856660', '1380605558', '1380605559'], 4075, (47.00833, 18.20169), 'counterclockwise', 15, 1),
+    ('brno', ['8585804', '8585805'], 5403, (49.20270, 16.44540), 'clockwise', 15, -1),
+    ('aragon', ['230256659','230256660','230256661','230261828','871207237','871207238',
+                '1418978354','1418982615','1418983512','1418983513','1418983514','1418983515','1418983516','1418983517'],
+                5077, (41.0782894, -.1978147), 'counterclockwise', 15, 1),
+    ('mandalika', ['942267289'], 4301, (-8.89467, 116.30531), 'clockwise', 15, -1),
+    ('sepang', '284496', 5543, (2.7607601, 101.7383513), 'clockwise', 16, -1),
+    ('valencia', ['51765219','1007068425','1336518434'], 4005, (39.48524, -.62770), 'counterclockwise', 12, 1),
 ]
 
 MUGELLO_CORNERS = [
@@ -56,6 +68,8 @@ def extract(selection):
     path = ROOT / 'artifacts' / (ident + '-osm.xml')
     if ident == 'toscana':
         path = ROOT / 'artifacts/mugello-osm.txt'
+    if not path.exists():
+        path = ROOT / 'artifacts/motogp-2026' / (ident + '-osm.xml')
     root = ET.parse(path).getroot()
     nodes = {n.get('id'): (float(n.get('lat')), float(n.get('lon'))) for n in root.findall('node')}
     ways = {w.get('id'): w for w in root.findall('way')}
@@ -104,6 +118,8 @@ def extract(selection):
     import sys
     sys.setrecursionlimit(10000)
     walk(start, [start], {start}, 0)
+    required={'balaton':{'1380605558','1380605559'},'aragon':{'871207238'}}.get(ident,set())
+    cycles=[c for c in cycles if required.issubset({edge_way[a,b] for a,b in zip(c[1],c[1][1:]+c[1][:1])})]
     if not cycles:
         raise ValueError(f'{ident}: no closed raceway through finish')
     _, route, measured = min(cycles, key=lambda c: c[0])
@@ -127,10 +143,20 @@ def extract(selection):
         'direction': direction, 'finish': finish, 'coordinates': coordinates, 'corners': corners,
         'source': {'provider': 'OpenStreetMap contributors', 'license': 'ODbL-1.0',
                    'url': 'https://www.openstreetmap.org/' + ('relation/' + source if isinstance(source, str) else 'way/' + used_ways[0]),
-                   'ways': used_ways, 'retrieved': '2026-10-26', 'measuredMetres': round(measured, 2)},
+                   'ways': used_ways, 'retrieved': date.today().isoformat(), 'measuredMetres': round(measured, 2)},
     }
 
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--track', action='append', help='Import selected IDs; preserve all other cached circuits.')
+    args = parser.parse_args()
+    unknown = set(args.track or []) - {s[0] for s in SELECTIONS}
+    if unknown:
+        parser.error('Unknown circuits: ' + ', '.join(sorted(unknown)))
+    previous = json.loads(REFERENCES.read_text(encoding='utf-8')) if args.track and REFERENCES.exists() else []
+    imported = {s[0]: extract(s) for s in SELECTIONS if not args.track or s[0] in args.track}
+    records = {item['id']: item for item in previous}
+    records.update(imported)
     REFERENCES.parent.mkdir(parents=True, exist_ok=True)
-    REFERENCES.write_text(json.dumps([extract(s) for s in SELECTIONS], ensure_ascii=False, indent=2), encoding='utf-8')
+    REFERENCES.write_text(json.dumps([records[s[0]] for s in SELECTIONS if s[0] in records], ensure_ascii=False, indent=2), encoding='utf-8')

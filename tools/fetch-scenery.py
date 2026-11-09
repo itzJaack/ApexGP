@@ -17,6 +17,7 @@ def main():
     parser.add_argument('--track')
     parser.add_argument('--source',choices=['overpass','osm-api'],default='overpass')
     parser.add_argument('--refresh',action='store_true')
+    parser.add_argument('--extract-dir',type=Path,help='Use cached full OSM API XML and its source receipt when available.')
     args=parser.parse_args()
     CACHE.mkdir(parents=True,exist_ok=True)
     for circuit in json.loads((ROOT/'art/references/circuits.json').read_text(encoding='utf8')):
@@ -31,8 +32,16 @@ def main():
         area=','.join(str(round(value,7)) for value in bbox)
         if args.source=='osm-api':
             url='https://api.openstreetmap.org/api/0.6/map?bbox='+','.join(str(value) for value in [bbox[1],bbox[0],bbox[3],bbox[2]])
-            request=urllib.request.Request(url,headers={'User-Agent':'ApexGP-offline-scenery/4.7'})
-            with urllib.request.urlopen(request,timeout=55) as response:root=ET.fromstring(response.read())
+            extract=args.extract_dir/(circuit['id']+'-osm.xml') if args.extract_dir else None
+            receipt={}
+            if extract and extract.exists():
+                root=ET.parse(extract).getroot()
+                receipt_path=extract.with_name(circuit['id']+'-osm-source.json')
+                if receipt_path.exists():receipt=json.loads(receipt_path.read_text(encoding='utf8'))
+                url=receipt.get('url',url)
+            else:
+                request=urllib.request.Request(url,headers={'User-Agent':'ApexGP-offline-scenery/5.0'})
+                with urllib.request.urlopen(request,timeout=55) as response:root=ET.fromstring(response.read())
             nodes={int(n.get('id')):{'lat':float(n.get('lat')),'lon':float(n.get('lon'))} for n in root.findall('node')}
             elements=[];ways={}
             for node in root.findall('node'):
@@ -51,7 +60,8 @@ def main():
                     if member.get('type')=='way' and ref in ways:members.append({'type':'way','ref':ref,'role':member.get('role'),'geometry':ways[ref]['geometry']})
                 elements.append({'type':'relation','id':int(relation.get('id')),'tags':tags,'members':members})
             data={'elements':elements,'apexgpSource':{'endpoint':url,'bbox':bbox,'downloadedAt':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime()),
-                'attribution':'OpenStreetMap contributors','license':'https://opendatacommons.org/licenses/odbl/1-0/'}}
+                'attribution':'OpenStreetMap contributors','license':'https://opendatacommons.org/licenses/odbl/1-0/',
+                **({'extractReceipt':receipt} if receipt else {})}}
             path.write_text(json.dumps(data,separators=(',',':')),encoding='utf8')
             print(circuit['id']+': '+str(len(elements))+' OSM map elements',flush=True)
             time.sleep(2);continue

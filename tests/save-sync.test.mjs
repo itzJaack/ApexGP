@@ -44,7 +44,8 @@ test('starter choice and championship results survive cloud reload on a second c
   const payload = await second.load('career-user', {}), restored = new Career(payload.career);
   assert.deepEqual(restored.profile, career.profile);
   assert.deepEqual(restored.profile.owned, ['s3']);
-  assert.equal(restored.roundTicket().trackId, 'canyon');
+  assert.equal(restored.roundTicket().trackId, 'goiania');
+  assert.equal(restored.profile.season.calendarId, 'motogp-2026');
   assert.equal(restored.profile.season.difficulty, 'pro');
 });
 test('cloud progress survives a second device and remains isolated from other accounts', async () => {

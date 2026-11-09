@@ -1,5 +1,5 @@
 import {BIKES, clamp} from './simulation.js?v=4.5.0';
-import {CALENDAR, DIFFICULTIES, normalizeSeason, seasonStandings, validOrder} from './championship.js';
+import {CALENDAR_ID, seasonCalendar, DIFFICULTIES, normalizeSeason, seasonStandings, validOrder} from './championship.js';
 export {DIFFICULTIES} from './championship.js';
 export const STARTER_BIKES = ['v2c', 's3', 'r1'];
 const LEGACY_FREE_BIKES = ['r27', 'v4', 'rs', 'v2c', 'x4a', 'r9e'];
@@ -107,13 +107,13 @@ export class Career {
   }
   beginSeason(difficulty = 'sport') {
     const previous = this.profile.season;
-    if (this.needsStarter || !Object.hasOwn(DIFFICULTIES, difficulty) || previous && previous.results.length < CALENDAR.length) return false;
-    this.profile.season = {id: globalThis.crypto?.randomUUID?.() || Date.now().toString(36) + '-' + Math.random().toString(36).slice(2), number: (previous?.number || 0) + 1, difficulty, results: []};
+    if (this.needsStarter || !Object.hasOwn(DIFFICULTIES, difficulty) || previous && previous.results.length < seasonCalendar(previous).length) return false;
+    this.profile.season = {id: globalThis.crypto?.randomUUID?.() || Date.now().toString(36) + '-' + Math.random().toString(36).slice(2), calendarId: CALENDAR_ID, number: (previous?.number || 0) + 1, difficulty, results: []};
     this.commit();
     return true;
   }
   roundTicket() {
-    const season = this.profile.season, index = season?.results.length, event = CALENDAR[index];
+    const season = this.profile.season, index = season?.results.length, event = seasonCalendar(season)[index];
     return event ? {seasonId: season.id, index, difficulty: season.difficulty, ...event} : null;
   }
   completeRound(ticket, {raceId, order, trackId, finished, time,disqualified=[]}) {
@@ -127,7 +127,7 @@ export class Career {
     if(excluded.includes('player')&&!this.profile.paid.includes(raceId))this.profile.paid.push(raceId);
     season.results.push({raceId, trackId, order: [...order],...(excluded.length?{disqualified:excluded}:{})});
     let bonus = 0;
-    if (season.results.length === CALENDAR.length) {
+    if (season.results.length === seasonCalendar(season).length) {
       const position = seasonStandings(season).findIndex(rider => rider.id === 'player');
       bonus = Math.round(([18000, 12000, 8000, 6000, 5000, 4000, 3000, 2000][position]??0) * DIFFICULTIES[season.difficulty].multiplier);
       this.profile.credits = integer(this.profile.credits + bonus);

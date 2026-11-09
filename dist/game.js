@@ -12,7 +12,7 @@ import {OverviewRenderer} from './overview.js';
 import {Career,normalizeProfile,UPGRADES,LIVERIES,DIFFICULTIES} from './progression.js?v=4.5.0';
 import {mountCareerUI} from './career-ui.js?v=4.5.0';
 import {mountWorldMap} from './world-map.js?v=4.5.0';
-import {seasonStandings} from './championship.js';
+import {seasonStandings,seasonCalendar} from './championship.js';
 import {RaceNotices} from './race-notices.js?v=4.4.1';
 import {StartLights,START_LIGHT_SECONDS} from './race-signals.js';
 import {sectorDividerSVG,drawSectorDividers} from './circuit-sectors.js';
@@ -224,7 +224,7 @@ function finishRace(){
     const disqualified=race.riders.filter(r=>r.dsq).map(r=>r.isPlayer?'player':'bot'+race.bots.indexOf(r));
     bonus=career.completeRound(race.careerRound,{raceId:race.runId,order,trackId:track.config.id,finished,time,disqualified}).bonus;
     const standings=seasonStandings(career.profile.season,career.profile.name),rank=standings.findIndex(rider=>rider.id==='player');
-    $('result-career').textContent=`TAPPA ${race.careerRound.index+1} / 14 · ${rank+1}° IN CAMPIONATO · ${standings[rank].points} PUNTI${bonus?' · BONUS FINALE +'+bonus.toLocaleString('it-IT')+' CR':''}`;
+    $('result-career').textContent=`TAPPA ${race.careerRound.index+1} / ${seasonCalendar(career.profile.season).length} · ${rank+1}° IN CAMPIONATO · ${standings[rank].points} PUNTI${bonus?' · BONUS FINALE +'+bonus.toLocaleString('it-IT')+' CR':''}`;
   }
   show('result-career',!!race.careerRound);
   $('race-again').textContent=race.careerRound?(career.roundTicket()?'PROSSIMA TAPPA →':'VEDI IL CAMPIONATO'):'CORRI ANCORA';

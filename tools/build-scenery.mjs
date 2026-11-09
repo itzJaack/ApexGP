@@ -35,12 +35,18 @@ for(const [id,layout] of Object.entries(CIRCUIT_LAYOUTS)){
  for(const e of raw.elements){
   const tags=e.tags||{};
   if(e.type==='way'&&members.has(e.id))continue;
+  const closed=e.type==='relation'||e.geometry?.length>3&&e.geometry[0].lat===e.geometry.at(-1).lat&&e.geometry[0].lon===e.geometry.at(-1).lon;
+  const surface=tags.surface||tags['area:highway']||tags.landcover||tags.landuse;
   let kind=tags.building==='grandstand'||tags.leisure==='grandstand'?'grandstand':tags.building&&tags.building!=='no'?'building':
    ['wood','scrub','tree_group'].includes(tags.natural)||tags.landcover==='trees'||['forest','orchard'].includes(tags.landuse)||tags.leisure==='park'?'wood':
    tags.natural==='water'?'water':tags.amenity==='parking'?'parking':tags.natural==='tree'?'tree':
-   tags.natural==='coastline'?'coastline':tags.natural==='tree_row'?'tree_row':tags.highway==='street_lamp'?'lamp':tags.barrier?'fence':tags.highway&&e.type!=='node'?'road':null;
+   tags.natural==='coastline'?'coastline':tags.natural==='tree_row'?'tree_row':tags.highway==='street_lamp'?'lamp':tags.barrier?'fence':
+   closed&&(['gravel','fine_gravel','sand','grass','meadow','asphalt','concrete'].includes(surface)||tags['area:highway']==='raceway')&&(!tags.highway||tags.area==='yes')?'ground':
+   tags.highway&&e.type!=='node'?'road':null;
   if(!kind)continue;
-  const keep=['name','height','building:levels','min_height','building:colour','roof:colour','roof:shape','leaf_type','width','highway','surface','building','barrier'];
+  // A motorsport venue boundary is an area, not an extra closed racing road.
+  if(kind==='road'&&tags.area==='yes')continue;
+  const keep=['name','height','building:levels','min_height','building:colour','roof:colour','roof:shape','leaf_type','width','highway','surface','building','barrier','landuse','landcover','area:highway','genus','species','natural','material','fence_type','sport','area','trees'];
   const item={id:e.type[0]+e.id,kind,tags:Object.fromEntries(keep.filter(k=>tags[k]).map(k=>[k,tags[k]]))};
   if(e.type==='node')item.point=project(e);
   else if(e.type==='relation'){
@@ -57,7 +63,14 @@ for(const [id,layout] of Object.entries(CIRCUIT_LAYOUTS)){
  }
  all[id]={source:'https://www.openstreetmap.org/copyright',date:raw.osm3s?.timestamp_osm_base||raw.apexgpSource.downloadedAt,
   bbox:raw.apexgpSource.bbox,features};
+ const cover=JSON.parse(await fs.readFile(new URL('../art/references/landcover/'+id+'.json',import.meta.url),'utf8'));
+ if(cover.classes.length!==cover.width*cover.depth||JSON.stringify(cover.geo)!==JSON.stringify(layout.geo))throw Error(id+': incomplete or misaligned land cover grid');
+ const {x,z,step,width,depth,classes}=cover;
+ all[id].landcover={x,z,step,width,depth,classes,source:cover.source,year:2021};
  console.log(id+': '+features.length+' mapped scenery features');
 }
 await fs.writeFile(new URL('../dist/scenery-data.js',import.meta.url),
- '// Generated from art/references/scenery/*.json. © OpenStreetMap contributors, ODbL 1.0.\nexport const SCENERY_DATA='+JSON.stringify(all)+';\n');
+ '// Generated from art/references/scenery/*.json and landcover/*.json.\n'+
+ '// OSM features: © OpenStreetMap contributors, ODbL 1.0.\n'+
+ '// Land cover: © ESA WorldCover project 2021 / Contains modified Copernicus Sentinel data (2021) processed by ESA WorldCover consortium, CC BY 4.0.\n'+
+ 'export const SCENERY_DATA='+JSON.stringify(all)+';\n');

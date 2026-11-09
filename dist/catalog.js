@@ -19,8 +19,8 @@ export const BIKE_IDENTITIES = {
   gsxr: {price:35000,name:'Suzuki GSX-R1000R',caption:'SUZUKI / GSX-R1000R · 2024',year:2024,category:'Superbike',style:'gsxr',cc:999,isNew:true,color:'#167bcb',rgb:[.035,.32,.75],power:202,top:299,grip:1.15,accel:1.02,wheelbase:1.42,mass:273,character:'Progressiva',description:'2024 · faro centrale, prese laterali e carena blu/argento'},
 };
 
-// Relative height profiles approximate the characteristic rises and dips;
-// horizontal centre lines and lap distances come from circuit-layouts.js.
+// Published circuit identities. Cached geographic centre lines and Copernicus
+// terrain take precedence over the fallback relative elevation profiles.
 export const TRACK_IDENTITIES = {
   toscana: {name:'Mugello',country:'ITALIA / SCARPERIA',theme:'hills',turns:15,character:'San Donato · Arrabbiate · Bucine · rettilineo da 1.141 m',elevation:1,elevationProfile:[[0,0],[.145,3],[.213,22],[.32,14],[.405,-16],[.468,-29],[.518,-4],[.59,13],[.70,-12],[.77,-6],[.87,4],[1,0]]},
   adriatica: {name:'Misano World Circuit',country:'ITALIA / MISANO ADRIATICO',theme:'hills',turns:16,character:'Variante del Parco · Quercia · Tramonto · Curvone'},
@@ -36,4 +36,12 @@ export const TRACK_IDENTITIES = {
   sachsenring: {name:'Sachsenring',country:'GERMANIA / HOHENSTEIN-ERNSTTHAL',theme:'forest',turns:13,isNew:true,character:'Omega · sette sinistre consecutive · discesa del Waterfall',elevation:1,elevationProfile:[[0,0],[.15,-9],[.35,-18],[.56,7],[.73,19],[.85,-14],[1,0]]},
   phillip: {name:'Phillip Island',country:'AUSTRALIA / VICTORIA',theme:'coast',turns:12,isNew:true,character:'Doohan · Southern Loop · Stoner · Lukey Heights',elevation:1,elevationProfile:[[0,0],[.16,-11],[.33,-7],[.55,-3],[.72,12],[.82,18],[.89,-8],[1,0]]},
   silverstone: {name:'Silverstone',country:'REGNO UNITO / NORTHAMPTONSHIRE',theme:'forest',turns:18,isNew:true,character:'Abbey · Copse · Maggotts/Becketts · Stowe'},
+  buriram: {name:'Chang International Circuit',country:'THAILANDIA / BURIRAM',theme:'tropical',turns:12,isNew:true,character:'Tre rettilinei · tornante T3 · doppia destra finale'},
+  goiania: {name:'Autódromo Ayrton Senna',country:'BRASILE / GOIÂNIA',theme:'tropical',turns:14,isNew:true,character:'Configurazione MotoGP · 3.835 m · 9 destre e 5 sinistre'},
+  balaton: {name:'Balaton Park Circuit',country:'UNGHERIA / BALATONFŐKAJÁR',theme:'hills',turns:17,isNew:true,character:'Configurazione moto · 17 curve · senso antiorario'},
+  brno: {name:'Automotodrom Brno',country:'CECHIA / BRNO',theme:'forest',turns:14,isNew:true,character:'Masarykův okruh · boschi · saliscendi · stadio finale'},
+  aragon: {name:'MotorLand Aragón',country:'SPAGNA / ALCAÑIZ',theme:'desert',turns:17,isNew:true,character:'Variante FIM · cavatappi · lungo rettilineo di ritorno'},
+  mandalika: {name:'Pertamina Mandalika International Circuit',country:'INDONESIA / LOMBOK',theme:'tropical',turns:17,isNew:true,character:'17 curve · colline costiere · sequenza veloce T10–T12'},
+  sepang: {name:'Petronas Sepang International Circuit',country:'MALESIA / SEPANG',theme:'tropical',turns:15,isNew:true,character:'Due lunghi rettilinei · tornante finale · pista larga 16 m'},
+  valencia: {name:'Circuit Ricardo Tormo',country:'SPAGNA / CHESTE',theme:'hills',turns:14,isNew:true,character:'Anfiteatro · 9 sinistre · lungo curvone finale'},
 };

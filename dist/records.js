@@ -8,5 +8,5 @@ export function circuitRecordKey(track, weather) {
 
 export function validRecordKey(key) {
   return TRACKS.some(track => ['day','rain','sunset'].some(weather =>
-    key === `${track.id}:${weather}` || key === circuitRecordKey(track, weather)));
+    key === `${track.id}:${weather}` || key === `${track.id}@real-2026-1:${weather}` || key === circuitRecordKey(track, weather)));
 }

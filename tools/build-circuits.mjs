@@ -41,12 +41,13 @@ for (const ref of references) {
   layouts[ref.id] = {
     points: positions.map(p => p.map(v => +v.toFixed(3))), corners,
     length: ref.length, width: ref.width, pitSide: ref.pitSide,
-    direction: ref.direction, layoutVersion: 'real-2026-1', source: ref.source.url,
+    direction: ref.direction, layoutVersion: 'real-2026-2', source: ref.source.url,
     geo: {origin:ref.finish,shift:finish,scale},
   };
   try{
     const cached=JSON.parse(await fs.readFile(new URL('../art/references/elevation/'+ref.id+'.json',import.meta.url),'utf8'));
     if(cached.elevations.length!==cached.width*cached.depth)throw Error('Incomplete elevation grid: '+ref.id);
+    if(cached.geo&&JSON.stringify(cached.geo)!==JSON.stringify(layouts[ref.id].geo))throw Error('Misaligned elevation grid: '+ref.id+'; refresh the source cache');
     const {x,z,step,width,depth,elevations}=cached,grid={x,z,step,width,depth,elevations};
     grid.baseElevation=terrainElevation({terrainGrid:grid},0,0);
     layouts[ref.id].terrainGrid=grid;layouts[ref.id].elevation=1;
@@ -58,3 +59,6 @@ await fs.writeFile(new URL('../dist/circuit-layouts.js', import.meta.url),
   '// https://www.openstreetmap.org/copyright — source: art/references/circuits.json\n' +
   'export const CIRCUIT_LAYOUTS = ' + JSON.stringify(layouts) + ';\n');
 console.log(`${references.length} circuiti reali preparati.`);
+await fs.writeFile(new URL('../dist/track-locations.js', import.meta.url),
+  '// Generated from art/references/circuits.json. © OpenStreetMap contributors, ODbL 1.0.\n' +
+  'export const TRACK_LOCATIONS = ' + JSON.stringify(Object.fromEntries(references.map(ref => [ref.id, ref.finish]))) + ';\n');

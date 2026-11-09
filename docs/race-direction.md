@@ -20,6 +20,6 @@ In multiplayer il creatore della stanza applica lo stesso regolamento a umani e 
 
 ## Provenienza delle corsie
 
-I dati sono gli estratti OpenStreetMap già attribuiti in `art/references/scenery/` (© OpenStreetMap contributors, ODbL). Il runtime conserva `sourceIds` e `approximate` per ogni percorso. Dodici circuiti dispongono di una pit lane mappata e sei di un long lap nominato. Le quote provengono dallo stesso terreno del gioco. I raccordi alla pista sono adattati al gioco anche quando il nucleo della corsia è mappato. Dove manca la corsia è generato un percorso approssimato: non viene presentato come rilevamento esatto del circuito reale.
+I dati sono gli estratti OpenStreetMap già attribuiti in `art/references/scenery/` (© OpenStreetMap contributors, ODbL). Il runtime conserva `sourceIds` e `approximate` per ogni percorso. Venti circuiti dispongono di una pit lane mappata, compresi tutti gli otto nuovi, e sette di un long lap nominato. Buriram, Brno e Balaton usano identificativi espliciti per corsie mappate senza nome; quella di Balaton è una `highway=service`. Le quote provengono dallo stesso terreno del gioco. I raccordi alla pista sono adattati al gioco anche quando il nucleo della corsia è mappato. Dove manca la corsia è generato un percorso approssimato: non viene presentato come rilevamento esatto del circuito reale.
 
 I documenti FIM sono collegati alla fonte ufficiale; il PDF non è incluso nel repository o nella distribuzione.

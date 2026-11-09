@@ -7,6 +7,7 @@ import {buildMappedScenery,hasMappedScenery} from './mapped-scenery.js';
 import {GRID_SIZE,gridPlace} from './rider-roster.js';
 import {terrainElevation} from './elevation.js';
 import {drawPenaltyRoutes} from './penalty-routes.js';
+import {circuitEnvironment,kerbAt,landcoverColor} from './circuit-environment.js';
 
 const V={sub:(a,b)=>a.map((v,i)=>v-b[i]),dot:(a,b)=>a.reduce((s,v,i)=>s+v*b[i],0),cross:(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]],norm:a=>{const l=Math.hypot(...a)||1;return a.map(v=>v/l);}};
 export const identity=()=>new Float32Array([1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1]);
@@ -26,9 +27,9 @@ export class Geometry{
   constructor(){this.data=[];this.detail=Geometry.detail??1;}
   tri(a,b,c,color,surface=0,uvs=null,normals=null){
     const n=V.norm(V.cross(V.sub(b,a),V.sub(c,a)));
-    [a,b,c].forEach((p,i)=>this.data.push(...p,...(normals?normals[i]:n),...color,surface,...(uvs?uvs[i]:[0,0])));return this;
+    [a,b,c].forEach((p,i)=>this.data.push(...p,...(normals?normals[i]:n),...(Array.isArray(color[0])?color[i]:color),surface,...(uvs?uvs[i]:[0,0])));return this;
   }
-  quad(a,b,c,d,color,surface=0,uvs=null,normals=null){this.tri(a,b,c,color,surface,uvs?[uvs[0],uvs[1],uvs[2]]:null,normals?[normals[0],normals[1],normals[2]]:null);this.tri(a,c,d,color,surface,uvs?[uvs[0],uvs[2],uvs[3]]:null,normals?[normals[0],normals[2],normals[3]]:null);return this;}
+  quad(a,b,c,d,color,surface=0,uvs=null,normals=null){const colors=Array.isArray(color[0]);this.tri(a,b,c,colors?[color[0],color[1],color[2]]:color,surface,uvs?[uvs[0],uvs[1],uvs[2]]:null,normals?[normals[0],normals[1],normals[2]]:null);this.tri(a,c,d,colors?[color[0],color[2],color[3]]:color,surface,uvs?[uvs[0],uvs[2],uvs[3]]:null,normals?[normals[0],normals[2],normals[3]]:null);return this;}
   box(center,size,color,yaw=0){
     const [x,y,z]=center,[w,h,d]=size.map(v=>v/2),cy=Math.cos(yaw),sy=Math.sin(yaw);
     const p=[[-w,-h,-d],[w,-h,-d],[w,h,-d],[-w,h,-d],[-w,-h,d],[w,-h,d],[w,h,d],[-w,h,d]].map(([a,b,c])=>[x+a*cy+c*sy,y+b,z-a*sy+c*cy]);
@@ -306,8 +307,8 @@ function harbor(g,track,rng){
     g.merge(q.transform(modelMatrix([p.x,0,p.z],p.yaw)));
   }
 }
-export function terrainSampler(track){
- if(!track.config.elevation)return()=>0;const cache=new Map(),cell=10;
+export function terrainSampler(track,cell=12){
+ if(!track.config.elevation)return Object.assign(()=>0,{cellStep:cell});const cache=new Map();
  if(track.config.terrainGrid){
   const sample=(ix,iz)=>{
    const key=ix+','+iz;if(cache.has(key))return cache.get(key);
@@ -316,52 +317,67 @@ export function terrainSampler(track){
    const distance=Math.sqrt(best),raw=terrainElevation(track.config,x,z)-(track.elevationOffset||0);let height=raw;
    if(distance<track.halfWidth+38){
     const projected=track.project(x,z,at*track.step),road=track.sample(projected.progress);
-    const blend=clamp(1-Math.max(0,distance-track.halfWidth-20)/18,0,1);
-    height=lerp(raw,Math.min(raw,road.y-.35),blend);
+    const blend=clamp(1-Math.max(0,distance-track.halfWidth-8)/30,0,1);
+    height=lerp(raw,road.y-.08,blend);
    }
    cache.set(key,height);return height;
   };
-  return(x,z)=>{const ix=Math.floor(x/cell),iz=Math.floor(z/cell),u=x/cell-ix,v=z/cell-iz;return lerp(lerp(sample(ix,iz),sample(ix+1,iz),u),lerp(sample(ix,iz+1),sample(ix+1,iz+1),u),v);};
+  // Exactly the same diagonal as the terrain mesh. Surface polygons are clipped
+  // to these triangles, so grass/asphalt overlays cannot sink into the hillside.
+  return Object.assign((x,z)=>{const ix=Math.floor(x/cell),iz=Math.floor(z/cell),u=x/cell-ix,v=z/cell-iz,a=sample(ix,iz),c=sample(ix+1,iz+1);return u>v?a+(sample(ix+1,iz)-a)*u+(c-sample(ix+1,iz))*v:a+(c-sample(ix,iz+1))*u+(sample(ix,iz+1)-a)*v;},{cellStep:cell,bounds:{minX:track.bounds.minX-600,maxX:track.bounds.maxX+600,minZ:track.bounds.minZ-600,maxZ:track.bounds.maxZ+600}});
  }
  const sample=(ix,iz)=>{const key=ix+','+iz;if(cache.has(key))return cache.get(key);const x=ix*cell,z=iz*cell;let best=1e20,at=0;for(let i=0;i<track.count;i+=3){const p=track.nodes[i],d=(x-p.x)**2+(z-p.z)**2;if(d<best){best=d;at=i;}}const distance=Math.sqrt(best),fade=clamp(1-Math.max(0,distance-70)/360,0,1),height=track.sample(at*track.step).y*fade-1.1*clamp(1-distance/70,0,1);cache.set(key,height);return height;};
  return(x,z)=>{const b=track.bounds;if(x<b.minX-550||x>b.maxX+550||z<b.minZ-550||z>b.maxZ+550)return 0;const ix=Math.floor(x/cell),iz=Math.floor(z/cell),u=x/cell-ix,v=z/cell-iz;return lerp(lerp(sample(ix,iz),sample(ix+1,iz),u),lerp(sample(ix,iz+1),sample(ix+1,iz+1),u),v);};
 }
 function buildTerrain(g,track,height,color){
  const b=track.bounds,grid=track.config.terrainGrid;
- const axis=(min,max)=>{const arr=[Math.min(-3000,min-1000)];for(let x=Math.floor(min/12)*12;x<=max;x+=12)arr.push(x);arr.push(Math.max(3000,max+1000));return arr;};
+ const step=height.cellStep||12;
+ const axis=(min,max)=>{const arr=[Math.min(-3000,min-1000)];for(let x=Math.floor(min/step)*step;x<=Math.ceil(max/step)*step;x+=step)arr.push(x);arr.push(Math.max(3000,max+1000));return arr;};
  const xs=axis(grid?grid.x:b.minX-180,grid?grid.x+grid.step*(grid.width-1):b.maxX+180);
  const zs=axis(grid?grid.z:b.minZ-180,grid?grid.z+grid.step*(grid.depth-1):b.maxZ+180);
- for(let i=0;i<xs.length-1;i++)for(let j=0;j<zs.length-1;j++){const x=xs[i],X=xs[i+1],z=zs[j],Z=zs[j+1],point=(x,z)=>[x,height(x,z)-.10,z];g.quad(point(x,z),point(x,Z),point(X,Z),point(X,z),color,2);}
+ const colorAt=(x,z)=>landcoverColor(track.config.id,x,z);
+ const normalAt=(x,z)=>V.norm([height(x-step,z)-height(x+step,z),step*2,height(x,z-step)-height(x,z+step)]);
+ for(let i=0;i<xs.length-1;i++)for(let j=0;j<zs.length-1;j++){
+  const x=xs[i],X=xs[i+1],z=zs[j],Z=zs[j+1],point=(x,z)=>[x,height(x,z)-.10,z],corners=[[x,z],[x,Z],[X,Z],[X,z]];
+  g.quad(...corners.map(p=>point(...p)),corners.map(p=>colorAt(...p)),2,null,corners.map(p=>normalAt(...p)));
+ }
 }
 export function buildWorld(renderer,track){return allocateScene(renderer,scope=>createWorld(scope,track));}
 function createWorld(renderer,track){
   if(renderer.compat)return{mesh:{},line:{},boards:[],textures:[],flags:[]};
   const low=renderer.quality==='low',mapped=hasMappedScenery(track.config.id);Geometry.detail=low?.35:1;
   const g=new Geometry(),rng=seeded(track.config.id.split('').reduce((n,c)=>n+c.charCodeAt(0)*129,0)),desert=['desert','canyon'].includes(track.config.theme),coast=track.config.theme==='coast',alpine=track.config.theme==='alpine',forest=track.config.theme==='forest',sakura=track.config.theme==='sakura',marina=track.config.theme==='marina';
-  const grass=desert?[.57,.43,.29]:alpine?[.21,.34,.25]:sakura?[.30,.38,.27]:marina?[.35,.39,.37]:coast?[.27,.38,.22]:[.29,.36,.20],gravel=desert?[.68,.53,.34]:[.65,.59,.45],road=[.20,.22,.23];
-  const terrain=terrainSampler(track);if(track.config.elevation)buildTerrain(g,track,terrain,grass);else g.quad([-2200,-.07,-2200],[-2200,-.07,2200],[2200,-.07,2200],[2200,-.07,-2200],grass,2);
+  const environment=circuitEnvironment(track.config.id),grass=environment.grass,gravel=desert?[.68,.53,.34]:[.65,.59,.45],road=[.20,.22,.23];
+  const terrain=terrainSampler(track,low?24:12);if(track.config.elevation)buildTerrain(g,track,terrain,grass);else g.quad([-2200,-.07,-2200],[-2200,-.07,2200],[2200,-.07,2200],[2200,-.07,-2200],grass,2);
   const w=track.halfWidth,pitSide=track.config.pitSide||-1;
   for(let i=0;i<track.count;i++){
     const s=i*track.step,e=(i+1)*track.step;
     strip(g,track,s,e,-w,w,.025,road,1);
-    for(const sign of[-1,1]){strip(g,track,s,e,sign*w,sign*(w+.8),.047,Math.floor(i/2)%2===0?(alpine?[.13,.38,.67]:marina?[.08,.53,.54]:[.86,.11,.09]):[.91,.89,.81]);strip(g,track,s,e,sign*(w+.8),sign*(w+3.2),.012,desert?[.27,.38,.33]:[.20,.40,.27]);strip(g,track,s,e,sign*(w+3.2),sign*(w+15),.005,gravel,3);strip(g,track,s,e,sign*(w-.15),sign*(w-.3),.032,[.77,.78,.73]);}
+    for(const sign of[-1,1]){
+      if(kerbAt(track,(s+e)/2,sign))strip(g,track,s,e,sign*w,sign*(w+environment.kerbWidth),.047,environment.kerbs[Math.floor(s/4)%2]);
+      // A narrow verge joins the road to the terrain. Larger runoff areas are
+      // the mapped polygons, rather than an invented ring of gravel.
+      strip(g,track,s,e,sign*w,sign*(w+.18),.018,[.47,.47,.41]);
+      strip(g,track,s,e,sign*(w-.15),sign*(w-.3),.032,[.85,.85,.78]);
+      if(!mapped)strip(g,track,s,e,sign*(w+3.2),sign*(w+15),.005,gravel,3);
+    }
   }
   for(let j=0;j<24;j++)for(let r=0;r<2;r++)strip(g,track,r*.75,(r+1)*.75,-w+j*w*2/24,-w+(j+1)*w*2/24,.035,(j+r)%2?[.035,.04,.045]:[.94,.94,.89]);
   for(let i=0;i<GRID_SIZE;i++){const {progress:s,offset:side}=gridPlace(i);strip(g,track,s,s+.13,side-.8,side+.8,.035,[.72,.74,.72]);strip(g,track,s,s+2,side-.8,side-.70,.035,[.72,.74,.72]);strip(g,track,s,s+2,side+.70,side+.8,.035,[.72,.74,.72]);}
   for(let s=50;s<track.length;s+=32)if(Math.abs(track.sample(s).k)>.011){for(const side of[-.14,.14])strip(g,track,s-20,s+6,side-.06,side+.06,.031,[.12,.135,.14],1);}
   // Extra detail with a small geometry cost in both graphics modes.
   // Dedicated pit access, painted speed-limit line and individual garage bays.
-  for(let s=-45;s<210;s+=5){
+  if(!mapped)for(let s=-45;s<210;s+=5){
    strip(g,track,s,s+5,pitSide*(w+11),pitSide*(w+6),.035,[.25,.27,.28],1);
    if(Math.floor(s/5)%2===0)strip(g,track,s,s+3,pitSide*(w+6.2),pitSide*(w+6),.045,[1,.84,.18]);
   }
-  for(let s=100;s<track.length;s+=95){
+  if(!mapped)for(let s=100;s<track.length;s+=95){
    const curve=track.sample(s).k;if(Math.abs(curve)<.007)continue;
    const sign=curve>0?-1:1;
    for(let j=0;j<4;j++)strip(g,track,s-8,s+8,sign*(w+3.5+j*1.25),sign*(w+4.75+j*1.25),.019,j%2?[.77,.17,.17]:[.12,.36,.64]);
   }
   const staticStart=g.data.length;
-  for(let s=0;s<track.length;s+=19){for(const sign of[-1,1]){
+  if(!mapped)for(let s=0;s<track.length;s+=19){for(const sign of[-1,1]){
     const a=track.sample(s,sign*(w+16.3)),b=track.sample(s+19,sign*(w+16.3));
     g.cylinder([a.x,.05,a.z],[a.x,1.75,a.z],.065,[.34,.36,.35],4);
     for(const y of[.35,.8,1.25])g.cylinder([a.x,y,a.z],[b.x,y,b.z],.045,[.54,.56,.52],4);
@@ -415,7 +431,7 @@ function createWorld(renderer,track){
     for(const x of[-4,4])q.cylinder([x,0,0],[x,6.4,0],.20,[.65,.10,.07],12,.16);
     q.box([0,5.3,0],[10,.28,.35],[.68,.12,.08]);q.box([0,6.25,0],[11,.36,.65],[.18,.13,.12]);q.box([0,5.7,0],[.25,1,.25],[.65,.10,.07]);g.merge(q.transform(modelMatrix([p.x,0,p.z],p.yaw)));
   }
-  for(let i=0;i<15;i++){const p=track.sample(i*track.length/15,-28);g.cylinder([p.x,0,p.z],[p.x,17,p.z],.15,[.57,.59,.56],6);g.box([p.x,17,p.z],[4,.3,.9],[.8,.82,.78]);}
+  if(!mapped)for(let i=0;i<15;i++){const p=track.sample(i*track.length/15,-28);g.cylinder([p.x,0,p.z],[p.x,17,p.z],.15,[.57,.59,.56],6);g.box([p.x,17,p.z],[4,.3,.9],[.8,.82,.78]);}
   for(let station=0;station<track.length;station+=115){
     const p=track.sample(station,(station%230?-1:1)*(w+18)),q=new Geometry();
     q.box([0,.25,0],[3.2,.5,2.4],[.42,.45,.43]);q.cylinder([0,.5,0],[0,4.1,0],.04,[.61,.64,.64],8);
@@ -423,8 +439,8 @@ function createWorld(renderer,track){
     for(const sign of[-1,1]){q.cylinder([sign*.11,.28,0],[sign*.11,.92,.02],.075,[.12,.15,.18],9);q.sphere([sign*.11,.29,.06],[.08,.06,.14],[.05,.06,.07],12,7);q.cylinder([sign*.16,1.40,0],[sign*.31,1.03,.09],.055,[.84,.25,.045],10);q.sphere([sign*.31,1.03,.09],[.045,.05,.045],[.13,.15,.16],10,6);}
     q.sphere([0,1.16,0],[.20,.29,.13],[.95,.36,.06],16,12);q.sphere([0,1.57,0],[.10,.13,.11],[.65,.46,.33],16,10);q.sphere([0,1.66,0],[.12,.07,.13],[.91,.92,.87],18,10);q.box([0,1.23,-.14],[.28,.07,.005],[.88,.92,.82]);g.merge(q.transform(modelMatrix([p.x,0,p.z],p.yaw)));
   }
-  for(let station=80;station<track.length;station+=95)if(Math.abs(track.sample(station).k)>.009){const p=track.sample(station,(track.sample(station).k>0?1:-1)*(w+16.4));for(let row=0;row<3;row++)for(let j=0;j<4;j++)g.torusX([p.x+Math.cos(p.yaw)*(j-1.5)*.48,.36+row*.52,p.z-Math.sin(p.yaw)*(j-1.5)*.48],.25,.10,[.10,.13,.14],16,8);}
-  for(let s=100;s<track.length;s+=95){
+  if(!mapped)for(let station=80;station<track.length;station+=95)if(Math.abs(track.sample(station).k)>.009){const p=track.sample(station,(track.sample(station).k>0?1:-1)*(w+16.4));for(let row=0;row<3;row++)for(let j=0;j<4;j++)g.torusX([p.x+Math.cos(p.yaw)*(j-1.5)*.48,.36+row*.52,p.z-Math.sin(p.yaw)*(j-1.5)*.48],.25,.10,[.10,.13,.14],16,8);}
+  if(!mapped)for(let s=100;s<track.length;s+=95){
    const curve=track.sample(s).k;if(Math.abs(curve)<.007)continue;const sign=curve>0?-1:1;
    const p=track.sample(s,sign*(w+18)),q=new Geometry();
    q.box([0,.8,0],[2.4,1.6,.65],[.18,.29,.29]);q.box([0,1.7,0],[2.6,.2,.85],[.77,.81,.75]);
@@ -446,7 +462,7 @@ function createWorld(renderer,track){
     const texture=markTexture(renderer,`${corner.number} · ${corner.name.toUpperCase()}`);textures.push(texture);
     boards.push({mesh:renderer.mesh(board),matrix:modelMatrix([p.x,p.y,p.z],p.yaw),texture});
   }
-  for(let i=0;i<15;i++){const side=i%2?-1:1,p=track.sample(i*track.length/15,side*19.8);const b=new Geometry();b.quad([-4.5,1.3,0],[4.5,1.3,0],[4.5,3.3,0],[-4.5,3.3,0],[1,1,1],0,[[0,0],[1,0],[1,1],[0,1]]);boards.push({mesh:renderer.mesh(b),matrix:modelMatrix([p.x,p.y||0,p.z],p.yaw+side*Math.PI/2),texture:textures[i%3]});}
+  if(!mapped)for(let i=0;i<15;i++){const side=i%2?-1:1,p=track.sample(i*track.length/15,side*19.8);const b=new Geometry();b.quad([-4.5,1.3,0],[4.5,1.3,0],[4.5,3.3,0],[-4.5,3.3,0],[1,1,1],0,[[0,0],[1,0],[1,1],[0,1]]);boards.push({mesh:renderer.mesh(b),matrix:modelMatrix([p.x,p.y||0,p.z],p.yaw+side*Math.PI/2),texture:textures[i%3]});}
   const banner=new Geometry().quad([-5,9.8,-.28],[5,9.8,-.28],[5,11.0,-.28],[-5,11.0,-.28],[1,1,1],0,[[0,0],[1,0],[1,1],[0,1]]);boards.push({mesh:renderer.mesh(banner),matrix:modelMatrix([gantry.x,gantry.y||0,gantry.z],gantry.yaw),texture:textures[0]});
   const distanceTextures=[150,100,50].map(n=>markTexture(renderer,String(n)));
   textures.push(...distanceTextures);

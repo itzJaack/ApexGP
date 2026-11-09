@@ -4,7 +4,7 @@ export class SocialError extends Error {constructor(status,message){super(messag
 export const socialUsername=value=>String(value||'').trim().replace(/^@/,'').toLowerCase();
 const uuidPattern=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const roomPattern=/^[A-HJ-NP-Z2-9]{12}$/;
-const trackIds=new Set(['toscana','adriatica','dune','alpine','sakura','marina','azzurra','nordland','canyon','atlas']);
+export const trackIds=new Set(['toscana','adriatica','dune','alpine','sakura','marina','azzurra','nordland','canyon','atlas','jerez','sachsenring','phillip','silverstone','buriram','goiania','balaton','brno','aragon','mandalika','sepang','valencia']);
 const cors={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'authorization, apikey, content-type, x-apex-session, x-client-info','Access-Control-Allow-Methods':'POST, OPTIONS','Cache-Control':'no-store','Content-Type':'application/json; charset=utf-8'};
 const pickProfile=p=>({id:p.id,username:p.username,displayName:p.display_name});
 const id=value=>{if(!uuidPattern.test(String(value||'')))throw new SocialError(400,'Richiesta non valida.');return value;};

@@ -1,12 +1,11 @@
-import {CALENDAR, DIFFICULTIES, POINTS, seasonStandings} from './championship.js';
+import {CALENDAR, CALENDAR_ID, seasonCalendar, DIFFICULTIES, POINTS, seasonStandings} from './championship.js';
 import {STARTER_BIKES} from './progression.js?v=4.5.0';
 import {mountWorldMap} from './world-map.js?v=4.5.0';
 
 export function mountCareerUI({career, tracks, bikes, onBike, onStart, isBusy}) {
   const el = id => document.getElementById(id);
   let selected = CALENDAR[0].trackId, lastRound = '';
-  const map = mountWorldMap(el('career-world-map'), {tracks, onSelect: id => {selected = id; render();}});
-  el('career-track-select').innerHTML = CALENDAR.map((event, index) => `<option value="${event.trackId}">${String(index + 1).padStart(2, '0')} · ${tracks.find(track => track.id === event.trackId).name}</option>`).join('');
+  const map = mountWorldMap(el('career-world-map'), {tracks, onSelect: id => {if(seasonCalendar(career.profile.season).some(event=>event.trackId===id)){selected = id; render();}}});
   el('career-track-select').addEventListener('change', event => {selected = event.target.value; render();});
   el('career-next').addEventListener('click', () => {selected = career.roundTicket()?.trackId || CALENDAR[0].trackId; render();});
   el('career-go').addEventListener('click', () => {
@@ -30,14 +29,17 @@ export function mountCareerUI({career, tracks, bikes, onBike, onStart, isBusy}) 
 
   function render() {
     const profile = career.profile, season = profile.season, count = season?.results.length || 0;
+    const CALENDAR = seasonCalendar(season);
+    el('career-track-select').innerHTML = CALENDAR.map((event, index) => `<option value="${event.trackId}">${String(index + 1).padStart(2, '0')} · ${tracks.find(track => track.id === event.trackId).name}</option>`).join('');
     const complete = count === CALENDAR.length, ticket = career.roundTicket();
     const roundKey = `${season?.id || ''}:${count}`;
     if (roundKey !== lastRound) {selected = ticket?.trackId || CALENDAR[0].trackId; lastRound = roundKey;}
-    const states = Object.fromEntries(CALENDAR.map((event, index) => [event.trackId, index < count ? 'done' : index === count ? 'next' : 'locked']));
+    const states = {...Object.fromEntries(tracks.map(track=>[track.id,'excluded'])),...Object.fromEntries(CALENDAR.map((event, index) => [event.trackId, index < count ? 'done' : index === count ? 'next' : 'locked']))};
     map.update(selected, states);
     el('career-starter').classList.toggle('hidden', !career.needsStarter);
     el('career-tour').classList.toggle('hidden', career.needsStarter);
-    el('career-season').textContent = `STAGIONE ${season?.number || 1} · ${count} / ${CALENDAR.length}`;
+    el('career-season').textContent = `${!season||season.calendarId===CALENDAR_ID?'2026':'STAGIONE '+season.number} · ${count} / ${CALENDAR.length}`;
+    el('career-progress').max = CALENDAR.length;
     el('career-progress').value = count;
     el('career-difficulty').disabled = !!season && !complete;
     if (season && !complete) el('career-difficulty').value = season.difficulty;
@@ -48,7 +50,7 @@ export function mountCareerUI({career, tracks, bikes, onBike, onStart, isBusy}) 
     el('career-track-place').textContent = track.country;
     el('career-track-detail').textContent = `TAPPA ${index + 1} · ${event.laps} giri · ${{day: 'Sereno', rain: 'Pioggia', sunset: 'Tramonto'}[event.weather]}`;
     const previous = season?.results[index];
-    el('career-track-status').textContent = previous ? `COMPLETATA · ${previous.order.indexOf('player') + 1}° posto · ${POINTS[previous.order.indexOf('player')]} punti`
+    el('career-track-status').textContent = previous ? previous.disqualified?.includes('player')?'COMPLETATA · SQUALIFICATO · 0 punti':`COMPLETATA · ${previous.order.indexOf('player') + 1}° posto · ${POINTS[previous.order.indexOf('player')]} punti`
       : index === count ? 'PROSSIMA TAPPA' : 'TAPPA FUTURA · COMPLETA LE PRECEDENTI';
     const standings = seasonStandings(season, profile.name);
     const place = standings.findIndex(rider => rider.id === 'player');

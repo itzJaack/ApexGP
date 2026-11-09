@@ -8,7 +8,7 @@ export function terrainElevation(config,x,z){
  return(at(i,j)*(1-a)+at(i+1,j)*a)*(1-b)+(at(i,j+1)*(1-a)+at(i+1,j+1)*a)*b-(grid.baseElevation||0);
 }
 
-// A 90 m surface model also contains vegetation and structures. Fit a smooth
+// The 30 m surface model also contains vegetation and structures. Fit a smooth
 // closed road profile rather than sending those raster steps into the bike.
 export function fitRoadElevations(config,nodes,step){
  const raw=nodes.map(n=>terrainElevation(config,n.x,n.z)),count=raw.length,span=Math.ceil(75/step),weights=[];

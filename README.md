@@ -1,4 +1,4 @@
-# ApexGP 4.9.1
+# ApexGP 4.10.0
 
 Gioco di corse in moto 3D per browser. **[Gioca su GitHub Pages](https://itzjaack.github.io/ApexGP/)** · [Sorgenti e aggiornamenti](https://github.com/itzJaack/ApexGP).
 
@@ -17,15 +17,20 @@ preferiti e sfruttamento della scia fanno cambiare i rapporti di forza durante
 il giro. I piloti valutano lo spazio futuro per attaccare o rinunciare. Anche
 le griglie multiplayer con bot arrivano a 20; restano disponibili otto posti umani.
 
-Gli scenari dei 14 circuiti includono dati OpenStreetMap memorizzati offline:
+Gli scenari dei 22 circuiti del calendario MotoGP 2026 includono dati OpenStreetMap memorizzati offline:
 impronte di edifici e tribune, boschi, alberi, strade di servizio, parcheggi,
-recinzioni e illuminazione. Gli alberi dei boschi sono distribuiti nei poligoni
+recinzioni, superfici delle vie di fuga e illuminazione. Gli alberi dei boschi sono distribuiti nei poligoni
 mappati; le altezze non disponibili, le facciate e l'arredo sono approssimati.
 Estratti e provenienza sono in `art/references/scenery/`; `npm run build`
 li converte con la stessa proiezione della pista. Attribuzione e ODbL sono
 indicati nella pagina Fonti del gioco. Terreno e quote della pista usano una
-griglia offline Copernicus DEM GLO-90 via Open-Meteo, campionata a 120–240 m.
-La stessa superficie guida edifici, alberi e altimetria del circuito.
+griglia offline Copernicus DEM GLO-30 a 30 m. La stessa superficie guida edifici,
+alberi e altimetria del circuito. ESA WorldCover 2021, fonte a 10 m campionata a
+20 m, distingue boschi, campi, zone costruite, acqua e terreno spoglio e completa
+la vegetazione dove OSM è incompleto. Le strutture mappate più recenti hanno precedenza.
+Le superfici mappate seguono esattamente i triangoli del terreno, evitando le
+intersezioni sulle pendenze. Cordoli e recinzioni non circondano più tutte le piste
+con la stessa sagoma. Il livello Prestazioni riduce la densità del terreno e dei dettagli.
 
 I retrovisori mostrano la scena e gli avversari dietro alla moto: entrambi,
 solo sinistro, solo destro, centrale panoramico oppure spenti. Si scelgono in
@@ -101,7 +106,7 @@ Anche i bot multiplayer usano il nuovo assetto Sport e pianificano la frenata su
 
 Apri **Carriera**. Un nuovo pilota sceglie una sola moto gratuita tra **Ducati Panigale V2 2025, Triumph Daytona Moto2 765 e Yamaha YZF-R1 2024**, le tre meno potenti del catalogo, e parte con **3.000 CR**. Tutte le altre moto hanno un prezzo in crediti. Anche la selezione della lobby usa le moto possedute, in configurazione di serie. I profili precedenti conservano moto, crediti, potenziamenti e premi già ricevuti: non devono ripetere la scelta iniziale.
 
-Il World Tour è un campionato originale con **14 tappe**, due giri per gara, meteo prestabilito, otto piloti e classifica cumulativa. Le tappe si sbloccano in ordine. La mappa mondiale colloca ogni pin sulle coordinate reali della linea di arrivo; **Europa +** ingrandisce i circuiti vicini. Il calendario a tendina offre la stessa selezione da tastiera e su schermi piccoli. La mappa è disponibile anche in **Corri → Scegli dalla mappa mondiale** per i Gran Premi liberi.
+Il campionato segue l'ordine dei **22 circuiti MotoGP 2026**, con due giri per gara, meteo di gioco, 20 piloti e classifica cumulativa. Qatar è dopo Sepang; Portimão e Valencia chiudono la stagione. Le stagioni già iniziate conservano il calendario precedente di 14 tappe e tutti i risultati: una volta concluse, la stagione successiva usa il nuovo calendario. Le tappe si sbloccano in ordine. La mappa mondiale colloca ogni pin sulle coordinate della linea di arrivo di riferimento; **Europa +** ingrandisce i circuiti vicini. Il calendario a tendina offre la stessa selezione da tastiera e su schermi piccoli. La mappa è disponibile anche nelle gare libere.
 
 I punti sono **25, 20, 16, 13, 11, 10, 9, 8**. A parità si confronta il numero dei migliori piazzamenti. La difficoltà della stagione resta fissa: i premi gara e il premio finale sono moltiplicati per **Rookie ×1, Sport ×2,5, Pro ×5**. Il bonus di fine stagione va da 2.000 a 18.000 CR prima del moltiplicatore. Cronometro e multiplayer mantengono premi senza il moltiplicatore IA. Una gara abbandonata non avanza il calendario; si può ripartire dalla stessa tappa. Dopo la finale è disponibile una nuova stagione, conservando garage e crediti.
 
@@ -139,7 +144,7 @@ Nella lista dei piloti della lobby usa **Vedi profilo** o **Aggiungi amico**. Se
 
 **Prestazioni** è l'impostazione iniziale. Usa un massimo di 1280×720 pixel interni, risoluzione adattiva dal 60% al 100%, shader semplificato, nessuna mappa delle ombre o post-processing, modelli dedicati e sezioni del mondo escluse dal disegno quando non visibili. Moto e pilota principali passano a meno di 22 mila triangoli; gli avversari a meno di 10 mila. **Cinema** conserva i modelli dettagliati e l'illuminazione completa. Ora renderizza alla densità reale del display (dimensione visibile × pixel ratio), senza il precedente limite di 1,65×: sui telefoni 2K e sugli schermi 4K usa i pixel disponibili, entro i limiti effettivi di texture, renderbuffer e viewport della GPU. In Impostazioni viene indicata la risoluzione renderizzata. La modalità Prestazioni mantiene la risoluzione adattiva fino a 720p. La scelta grafica resta locale al dispositivo. L'obiettivo è facilitare l'uso su GPU integrate come Intel HD 530; non è stato eseguito un benchmark su un i7-6700 reale.
 
-Il catalogo contiene **14 circuiti e 15 moto**. Mugello, Misano, Lusail, Red Bull Ring, Motegi, Catalunya, Bugatti, Assen, Austin e Algarve hanno ora piante derivate dalle coordinate reali OpenStreetMap. Si aggiungono **Jerez, Sachsenring, Phillip Island e Silverstone**. La scala rispetta la lunghezza di riferimento: Mugello 5,245 km, Spielberg MotoGP con chicane 4,348 km, Algarve 4,592 km. Il Mugello include i cartelli delle 15 curve, da San Donato a Bucine. L'altimetria e gli edifici restano approssimati.
+Il catalogo contiene **22 circuiti e 15 moto**. Ai 14 tracciati esistenti si aggiungono **Buriram, Goiânia, Balaton Park, Brno, MotorLand Aragón, Mandalika, Sepang e Valencia**. Tutte le piante derivano dalle coordinate OpenStreetMap e sono scalate uniformemente alla lunghezza di riferimento. Balaton usa entrambe le modifiche motociclistiche; Aragón la variante FIM; Spielberg la chicane MotoGP; Catalunya il finale senza chicane. Il Mugello conserva le sue 15 curve, da San Donato a Bucine. Sono ricostruzioni geografiche per il gioco: dettagli dei cordoli non mappati, profili della strada, quote degli edifici assenti e arredi restano approssimati, senza scansioni laser né asset ufficiali.
 
 Le dieci moto esistenti hanno carene, frontali, codoni, aerodinamica, scarichi e livree ricostruiti per la specifica edizione. Le cinque nuove sono **BMW M 1000 RR 2025, Aprilia RSV4 Factory 2025, Yamaha YZF-R1 2024, Honda Fireblade SP 2024 e Suzuki GSX-R1000R 2024**. Il garage distingue anno e categoria. La M1 rappresenta il quattro in linea del 2025; la GSX-RR la versione 2022. Ogni moto dispone di quattro livelli di dettaglio e di un audio motore dedicato. Geometrie originali approssimate, senza asset di altri videogiochi; prestazioni e guida rimangono arcade.
 
