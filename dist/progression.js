@@ -114,6 +114,20 @@ export class Career {
     this.commit();
     return true;
   }
+  get difficultyLocked() {
+    const season = this.profile.season;
+    return !!season && season.results.length > 0 && season.results.length < seasonCalendar(season).length;
+  }
+  setSeasonDifficulty(difficulty) {
+    const season = this.profile.season;
+    // Before the first Grand Prix result, keep the same season, saved
+    // qualifying weekend, garage and credits; only change the chosen level.
+    if (!Object.hasOwn(DIFFICULTIES,difficulty) || !season || season.results.length !== 0) return false;
+    if (season.difficulty === difficulty) return true;
+    season.difficulty = difficulty;
+    this.commit();
+    return true;
+  }
   roundTicket() {
     const season = this.profile.season, index = season?.results.length, event = seasonCalendar(season)[index];
     return event ? {seasonId: season.id, index, difficulty: season.difficulty, ...event} : null;

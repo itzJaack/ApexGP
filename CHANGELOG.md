@@ -1,5 +1,10 @@
 # Changelog ApexGP
 
+## 4.11.2 — 10 novembre 2026
+
+- Difficoltà modificabile nelle stagioni senza risultati di gara, comprese quelle già preparate con qualifiche salvate; nessun azzeramento di garage, crediti, tempi o penalità.
+- Nuova stagione aperta sul calendario, con un secondo comando per entrare in Practice. Livello fisso dal primo risultato fino alla finale.
+
 ## 4.11.1 — 10 novembre 2026
 
 - Qualifiche: fase, tempo e stato nella barra superiore; azioni in un menu richiudibile, anche su telefono.

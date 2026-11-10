@@ -94,6 +94,48 @@ test('difficulty pays exact multiples while time attack and multiplayer cannot c
   assert.equal(career.reward({id: 'bad', finished: true, time: 90, position: NaN}), 0);
 });
 
+test('a prepared new season can change level without losing its qualifying checkpoint or progress',()=>{
+ let saved;const career=new Career({version:2,owned:['r1'],credits:12345},profile=>saved=structuredClone(profile));
+ assert.equal(career.difficultyLocked,false);assert(career.beginSeason('sport'));
+ career.prepareWeekend('r1');
+ career.checkpointWeekend({phase:'practice',elapsed:70,times:{player:99},lapCounts:{player:1},
+  penalties:[{id:'practice:1',riderId:'player',victimId:'bot0',places:3,at:50}]});
+ const before=structuredClone(career.profile);
+ assert.equal(career.difficultyLocked,false);assert(career.setSeasonDifficulty('pro'));
+ const expected=structuredClone(before);expected.season.difficulty='pro';
+ assert.deepEqual(career.profile,expected);assert.deepEqual(saved,expected);
+ const restored=new Career(saved);assert.equal(restored.roundTicket().difficulty,'pro');
+ assert.equal(restored.difficultyLocked,false);assert.equal(restored.profile.season.weekend.checkpoint.elapsed,70);
+ assert.equal(restored.setSeasonDifficulty('unknown'),false);assert.deepEqual(restored.profile,expected);
+});
+
+test('the first qualifying grid is preserved when changing level before the opening Grand Prix',()=>{
+ const career=new Career({version:2,owned:['r1']});career.beginSeason('rookie');career.prepareWeekend('r1');
+ for(const phase of ['practice','q1','q2'])assert(career.completeQualifying({phase,elapsed:300,times:{},lapCounts:{},penalties:[]}));
+ const before=structuredClone(career.profile.season.weekend);
+ assert.equal(before.phase,'grid');assert(career.setSeasonDifficulty('sport'));
+ assert.deepEqual(career.profile.season.weekend,before);assert.equal(career.roundTicket().difficulty,'sport');
+ finishRound(career);assert.equal(career.difficultyLocked,true);
+ const locked=structuredClone(career.profile);assert.equal(career.setSeasonDifficulty('pro'),false);
+ assert.deepEqual(career.profile,locked);
+});
+
+test('the level reopens at season end and in the next empty season without altering the old championship',()=>{
+ for(const calendarId of [undefined,CALENDAR_ID]){
+  const calendar=calendarId===CALENDAR_ID?CALENDAR:LEGACY_CALENDAR;
+  const completed={id:'completed-'+calendar.length,number:3,difficulty:'sport',calendarId,
+   results:calendar.map((event,i)=>({trackId:event.trackId,raceId:'done-'+i,order:[...CHAMPIONSHIP_RIDERS]}))};
+  const career=new Career({version:2,owned:['r1'],credits:9000,season:completed});
+  const old=structuredClone(career.profile.season);
+  assert.equal(career.difficultyLocked,false);assert.equal(career.setSeasonDifficulty('pro'),false);
+  assert.deepEqual(career.profile.season,old);
+  assert(career.beginSeason('rookie'));const id=career.profile.season.id;
+  assert(career.setSeasonDifficulty('pro'));assert.equal(career.profile.season.id,id);
+  assert.equal(career.profile.season.number,4);assert.equal(career.profile.credits,9000);
+  assert.equal(career.difficultyLocked,false);assert.equal(career.roundTicket().index,0);
+ }
+});
+
 test('the entire championship resumes after every round, awards the title bonus once and starts a fresh season', () => {
   let saved, career = new Career({}, profile => saved = structuredClone(profile));
   career.chooseStarter('v2c');

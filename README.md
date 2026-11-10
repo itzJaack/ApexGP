@@ -1,4 +1,4 @@
-# ApexGP 4.11.1
+# ApexGP 4.11.2
 
 Gioco di corse in moto 3D per browser. **[Gioca su GitHub Pages](https://itzjaack.github.io/ApexGP/)** · [Sorgenti e aggiornamenti](https://github.com/itzJaack/ApexGP).
 
@@ -65,7 +65,7 @@ singole usano l’IA con contatti e cadute fisiche. Procedure FIM di riferimento
 percorsi disponibili e adattamenti sono in [direzione gara](docs/race-direction.md).
 
 
-La versione attuale è **4.11.1**. Lo storico delle novità si trova in fondo a **Menu → Impostazioni → Changelog**, con l’ultima release aperta e le precedenti espandibili. È disponibile anche in [CHANGELOG.md](CHANGELOG.md).
+La versione attuale è **4.11.2**. Lo storico delle novità si trova in fondo a **Menu → Impostazioni → Changelog**, con l’ultima release aperta e le precedenti espandibili. È disponibile anche in [CHANGELOG.md](CHANGELOG.md).
 
 ## Qualifiche e box
 
@@ -128,7 +128,7 @@ Apri **Carriera**. Un nuovo pilota sceglie una sola moto gratuita tra **Ducati P
 
 Il campionato segue l'ordine dei **22 circuiti MotoGP 2026**, con due giri per gara, meteo di gioco, 20 piloti e classifica cumulativa. Qatar è dopo Sepang; Portimão e Valencia chiudono la stagione. Le stagioni già iniziate conservano il calendario precedente di 14 tappe e tutti i risultati: una volta concluse, la stagione successiva usa il nuovo calendario. Le tappe si sbloccano in ordine. La mappa mondiale colloca ogni pin sulle coordinate della linea di arrivo di riferimento; **Europa +** ingrandisce i circuiti vicini. Il calendario a tendina offre la stessa selezione da tastiera e su schermi piccoli. La mappa è disponibile anche nelle gare libere.
 
-I punti sono **25, 20, 16, 13, 11, 10, 9, 8**. A parità si confronta il numero dei migliori piazzamenti. La difficoltà della stagione resta fissa: i premi gara e il premio finale sono moltiplicati per **Rookie ×1, Sport ×2,5, Pro ×5**. Il bonus di fine stagione va da 2.000 a 18.000 CR prima del moltiplicatore. Cronometro e multiplayer mantengono premi senza il moltiplicatore IA. Una gara abbandonata non avanza il calendario; si può ripartire dalla stessa tappa. Dopo la finale è disponibile una nuova stagione, conservando garage e crediti.
+I punti sono **25, 20, 16, 13, 11, 10, 9, 8**. A parità si confronta il numero dei migliori piazzamenti. La difficoltà può essere modificata fino al primo risultato di gara, conservando il weekend di qualifica. Dal primo risultato resta fissa fino alla finale: i premi gara e il premio finale sono moltiplicati per **Rookie ×1, Sport ×2,5, Pro ×5**. Il bonus di fine stagione va da 2.000 a 18.000 CR prima del moltiplicatore. Cronometro e multiplayer mantengono premi senza il moltiplicatore IA. Una gara abbandonata non avanza il calendario; si può ripartire dalla stessa tappa. Dopo la finale è disponibile una nuova stagione, conservando garage e crediti.
 
 Stagione, risultati e titoli sono inclusi nello stesso salvataggio locale/cloud e nel backup. Per usare il nuovo formato, aggiornare tutti i dispositivi alla 4.5. Le schede tecniche in **Officina** riportano fonti dei costruttori, potenza, cilindrata, coppia e massa quando pubblicate. Le soglie MotoGP, i dati non divulgati, le differenze di mercato e le stime sono indicati esplicitamente. La fisica usa la potenza dichiarata o la soglia pubblica disponibile, e la massa dichiarata più 75 kg di pilota; alle masse senza carburante aggiunge 10 kg stimati. Aderenza, agilità, potenziamenti e velocità senza un dato ufficiale restano arcade. Fonti e criteri: **[dati delle moto](dist/bike-specs.js)**.
 

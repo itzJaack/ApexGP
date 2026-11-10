@@ -11,7 +11,14 @@ export function mountCareerUI({career, tracks, bikes, onBike, onStart, isBusy}) 
   el('career-next').addEventListener('click', () => {selected = career.roundTicket()?.trackId || CALENDAR[0].trackId; render();});
   el('career-go').addEventListener('click', () => {
     if (isBusy()) return;
-    if (!career.roundTicket()) {career.beginSeason(el('career-difficulty').value); selected = CALENDAR[0].trackId;}
+    if (!career.roundTicket()) {
+      const finishedSeason = !!career.profile.season;
+      if (!career.beginSeason(el('career-difficulty').value)) return;
+      selected = CALENDAR[0].trackId;
+      // Starting a new season first opens its calendar and settings. Entering
+      // Practice is a separate action, so the next level is reviewable.
+      if (finishedSeason) {render(); return;}
+    }
     const ticket = career.roundTicket();
     if (ticket && ticket.trackId === selected && !career.needsStarter) onStart(ticket);
     render();
@@ -29,7 +36,7 @@ export function mountCareerUI({career, tracks, bikes, onBike, onStart, isBusy}) 
   }));
 
   function render() {
-    const profile = career.profile, season = profile.season, count = season?.results.length || 0;
+    const profile = career.profile, season = profile.season, count = season?.results.length || 0, busy = isBusy();
     const CALENDAR = seasonCalendar(season);
     el('career-track-select').innerHTML = CALENDAR.map((event, index) => `<option value="${event.trackId}">${String(index + 1).padStart(2, '0')} · ${tracks.find(track => track.id === event.trackId).name}</option>`).join('');
     const complete = count === CALENDAR.length, ticket = career.roundTicket();
@@ -42,8 +49,10 @@ export function mountCareerUI({career, tracks, bikes, onBike, onStart, isBusy}) 
     el('career-season').textContent = `${!season||season.calendarId===CALENDAR_ID?'2026':'STAGIONE '+season.number} · ${count} / ${CALENDAR.length}`;
     el('career-progress').max = CALENDAR.length;
     el('career-progress').value = count;
-    el('career-difficulty').disabled = !!season && !complete;
+    el('career-difficulty').disabled = busy || career.difficultyLocked;
     if (season && !complete) el('career-difficulty').value = season.difficulty;
+    el('career-difficulty-help').textContent = complete ? 'Scegli il livello della prossima stagione.'
+      : career.difficultyLocked ? 'Livello fisso fino alla fine della stagione.' : 'Modificabile fino al primo risultato di gara.';
     const index = CALENDAR.findIndex(event => event.trackId === selected), event = CALENDAR[index];
     const track = tracks.find(track => track.id === selected);
     el('career-track-select').value = selected;
@@ -61,7 +70,6 @@ export function mountCareerUI({career, tracks, bikes, onBike, onStart, isBusy}) 
       for (const text of [index + 1, rider.name, rider.points]) {const cell = document.createElement('span'); cell.textContent = text; row.append(cell);}
       return row;
     }));
-    const busy = isBusy();
     el('career-go').disabled = career.needsStarter || busy || !complete && selected !== (ticket?.trackId || CALENDAR[0].trackId);
     const weekend=season?.weekend,phase=weekend?.phase||'practice';
     el('career-go').textContent = complete ? 'INIZIA UNA NUOVA STAGIONE →' : phase==='grid'?'GARA · 5 GIRI →':(weekend?.checkpoint?'RIPRENDI ':'INIZIA ')+PHASE_NAMES[phase].toUpperCase()+' →';
@@ -74,7 +82,10 @@ export function mountCareerUI({career, tracks, bikes, onBike, onStart, isBusy}) 
     el('career-titles').textContent = `${profile.stats.seasons} stagioni concluse · ${profile.stats.titles} titoli`;
     el('starter-bikes').querySelectorAll('button').forEach(button => button.disabled = busy);
   }
-  el('career-difficulty').addEventListener('change', render);
+  el('career-difficulty').addEventListener('change', () => {
+    if (!isBusy()) career.setSeasonDifficulty(el('career-difficulty').value);
+    render();
+  });
   render();
   return {render};
 }
