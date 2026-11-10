@@ -4,6 +4,7 @@ import earcut from 'earcut';
 import {isPitBuilding,drawPitBuildings} from './pit-buildings.js';
 import {SCENERY_DATA} from './scenery-data.js';
 import {circuitEnvironment,mappedGroundMaterial,landcoverAt} from './circuit-environment.js';
+import {footprintClearOfTrack,boxFootprint} from './track-clearance.js';
 export const hasMappedScenery=id=>!!SCENERY_DATA[id]?.features.length;
 
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
@@ -80,10 +81,9 @@ export function mappedSceneryPlan(track,quality='low',data=SCENERY_DATA[track.co
  }
  const safeBuildings=buildings.filter(f=>{
   if(isPitBuilding(track.config.id,f.id))return false;
-  const vertices=f.rings.flat(),clear=vertices.filter(p=>track.nearestDistance(...p)>track.halfWidth+3).length;
-  // Stand roof outlines can slightly overhang an imperfect mapped road edge.
-  // Preserve the rest of the structure and trim its rendered pieces below.
-  return f.kind==='grandstand'?clear>=vertices.length*.8:clear===vertices.length;
+  // Grandstands are trimmed per roof/seat section below, preserving valid
+  // architecture. Solid buildings require their complete footprint to clear.
+  return f.kind==='grandstand'||footprintClearOfTrack(track,f.rings,f.holes);
  });
  return{features,buildings:safeBuildings,trees,source:data.source,date:data.date,
   stats:{mappedFeatures:features.length,buildings:safeBuildings.length,trees:trees.length,satelliteTrees:trees.filter(t=>t.source==='worldcover').length,woodlands:forest.length,roads:roads.length}};
@@ -121,14 +121,14 @@ function grandstand(g,feature,track,terrain,low){
   const draw=(tri,depth=0)=>{
    const lengths=tri.map((p,i)=>Math.hypot(p[0]-tri[(i+1)%3][0],p[1]-tri[(i+1)%3][1])),edge=lengths.indexOf(Math.max(...lengths));
    if(lengths[edge]>18&&depth<12){const a=tri[edge],b=tri[(edge+1)%3],c=tri[(edge+2)%3],m=[(a[0]+b[0])/2,(a[1]+b[1])/2];draw([a,m,c],depth+1);draw([m,b,c],depth+1);return;}
-   if(tri.some(p=>track.nearestDistance(...p)<track.halfWidth+1))return;
+   if(!footprintClearOfTrack(track,[tri],[],1))return;
    const p=tri.map(([x,z])=>[x,floor+height,z]);g.tri(p[2],p[1],p[0],color);
   };draw(tri);
  });
  for(let row=0;row<rows;row++){
   const x=front>0?f.maxX-(row+.5)*1.3:f.minX+(row+.5)*1.3,y=floor+.6+row*(height-3)/rows;
   for(let z=f.minZ+1.5;z<f.maxZ-1.5;z+=3){
-   const p=f.point(x,z);if(!insideFeature(p,feature)||track.nearestDistance(...p)<track.halfWidth+3)continue;
+   const p=f.point(x,z);if(!insideFeature(p,feature)||!footprintClearOfTrack(track,[boxFootprint(...p,1.3,3,f.yaw)]))continue;
    g.box([p[0],y-.20,p[1]],[1.28,.35,2.98],[.46,.49,.47],f.yaw);
    if(low&&row%2||rng()<.18)continue;
    const colours=[[.72,.14,.10],[.18,.35,.65],[.77,.76,.65],[.16,.19,.21],[.88,.64,.16]],c=colours[Math.floor(rng()*colours.length)];
@@ -158,7 +158,7 @@ function sepangMainGrandstand(g,feature,track,terrain,low){
    };
    for(let i=0;i<uSteps;i++)for(let j=0;j<vSteps;j++){
     const corners=[roof(i/uSteps,j/vSteps),roof((i+1)/uSteps,j/vSteps),roof((i+1)/uSteps,(j+1)/vSteps),roof(i/uSteps,(j+1)/vSteps)];
-    if(!corners.every(p=>safe([p[0],p[2]])))continue;
+    if(!corners.every(p=>safe([p[0],p[2]]))||!footprintClearOfTrack(track,[corners.map(p=>[p[0],p[2]])]))continue;
     g.quad(...corners,[.83,.84,.79]);
     if(j===0||j===vSteps-1)g.cylinder(corners[0],corners[1],.07,[.59,.62,.59],4);
    }

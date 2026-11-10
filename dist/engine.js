@@ -8,6 +8,7 @@ import {GRID_SIZE,gridPlace} from './rider-roster.js';
 import {terrainSampler} from './track-terrain.js';
 import {drawPenaltyRoutes} from './penalty-routes.js';
 import {circuitEnvironment,kerbAt,landcoverColor} from './circuit-environment.js';
+import {ROAD_COLOR,ROAD_MATERIAL} from './road-surface.js';
 
 const V={sub:(a,b)=>a.map((v,i)=>v-b[i]),dot:(a,b)=>a.reduce((s,v,i)=>s+v*b[i],0),cross:(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]],norm:a=>{const l=Math.hypot(...a)||1;return a.map(v=>v/l);}};
 export const identity=()=>new Float32Array([1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1]);
@@ -326,12 +327,12 @@ function createWorld(renderer,track){
   if(renderer.compat)return{mesh:{},line:{},boards:[],textures:[],flags:[]};
   const low=renderer.quality==='low',mapped=hasMappedScenery(track.config.id);Geometry.detail=low?.35:1;
   const g=new Geometry(),rng=seeded(track.config.id.split('').reduce((n,c)=>n+c.charCodeAt(0)*129,0)),desert=['desert','canyon'].includes(track.config.theme),coast=track.config.theme==='coast',alpine=track.config.theme==='alpine',forest=track.config.theme==='forest',sakura=track.config.theme==='sakura',marina=track.config.theme==='marina';
-  const environment=circuitEnvironment(track.config.id),grass=environment.grass,gravel=desert?[.68,.53,.34]:[.65,.59,.45],road=[.20,.22,.23];
+  const environment=circuitEnvironment(track.config.id),grass=environment.grass,gravel=desert?[.68,.53,.34]:[.65,.59,.45],road=ROAD_COLOR;
   const terrain=terrainSampler(track,low?24:12);if(track.config.elevation)buildTerrain(g,track,terrain,grass);else g.quad([-2200,-.07,-2200],[-2200,-.07,2200],[2200,-.07,2200],[2200,-.07,-2200],grass,2);
   const w=track.halfWidth,pitSide=track.config.pitSide||-1;
   for(let i=0;i<track.count;i++){
     const s=i*track.step,e=(i+1)*track.step;
-    strip(g,track,s,e,-w,w,.025,road,1);
+    strip(g,track,s,e,-w,w,.025,road,ROAD_MATERIAL);
     for(const sign of[-1,1]){
       if(kerbAt(track,(s+e)/2,sign))strip(g,track,s,e,sign*w,sign*(w+environment.kerbWidth),.047,environment.kerbs[Math.floor(s/4)%2]);
       // A narrow verge joins the road to the terrain. Larger runoff areas are
@@ -347,7 +348,7 @@ function createWorld(renderer,track){
   // Extra detail with a small geometry cost in both graphics modes.
   // Dedicated pit access, painted speed-limit line and individual garage bays.
   if(!mapped)for(let s=-45;s<210;s+=5){
-   strip(g,track,s,s+5,pitSide*(w+11),pitSide*(w+6),.035,[.25,.27,.28],1);
+   strip(g,track,s,s+5,pitSide*(w+11),pitSide*(w+6),.035,ROAD_COLOR,ROAD_MATERIAL);
    if(Math.floor(s/5)%2===0)strip(g,track,s,s+3,pitSide*(w+6.2),pitSide*(w+6),.045,[1,.84,.18]);
   }
   if(!mapped)for(let s=100;s<track.length;s+=95){

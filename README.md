@@ -1,4 +1,4 @@
-# ApexGP 4.11.0
+# ApexGP 4.11.1
 
 Gioco di corse in moto 3D per browser. **[Gioca su GitHub Pages](https://itzjaack.github.io/ApexGP/)** · [Sorgenti e aggiornamenti](https://github.com/itzJaack/ApexGP).
 
@@ -65,9 +65,16 @@ singole usano l’IA con contatti e cadute fisiche. Procedure FIM di riferimento
 percorsi disponibili e adattamenti sono in [direzione gara](docs/race-direction.md).
 
 
-La versione attuale è **4.11.0**. Lo storico delle novità si trova in fondo a **Menu → Impostazioni → Changelog**, con l’ultima release aperta e le precedenti espandibili. È disponibile anche in [CHANGELOG.md](CHANGELOG.md).
+La versione attuale è **4.11.1**. Lo storico delle novità si trova in fondo a **Menu → Impostazioni → Changelog**, con l’ultima release aperta e le precedenti espandibili. È disponibile anche in [CHANGELOG.md](CHANGELOG.md).
 
 ## Qualifiche e box
+
+Le informazioni di sessione occupano la barra superiore. Il menu ⋮ raccoglie
+le azioni di rientro e fine turno senza coprire la pista. La corsia box usa
+lo stesso asfalto della carreggiata; i raccordi seguono la quota della pista.
+Gli edifici sono controllati sulla sagoma completa, comprese pareti e tetti
+che prima potevano attraversare un'altra curva fra due vertici.
+
 
 Practice, Q1 e Q2 durano cinque minuti ciascuna. I primi dieci della Practice
 vanno direttamente in Q2; gli altri dieci disputano Q1 e i primi due avanzano.

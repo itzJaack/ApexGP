@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#101215">
   <meta name="description" content="APEX GP. Entra in pista in un gioco di corse in moto 3D: gare contro avversari, cronometro, 14 circuiti reali, 15 moto, carriera e multiplayer Internet e LAN, con comandi da tastiera o touch.">
-  <title>APEX GP 4.11.0</title>
+  <title>APEX GP 4.11.1</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23121417'/%3E%3Cpath d='M12 47 30 14h12L28 47zm19 0 12-23h10L41 47z' fill='%23ff6033'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="styles.css?v=4.11.0">
+  <link rel="stylesheet" href="styles.css?v=4.11.1">
   <link rel="stylesheet" href="accounts.css">
   <link rel="stylesheet" href="career.css?v=4.5.0">
   <link rel="stylesheet" href="mobile.css?v=4.5.0">
@@ -17,6 +17,7 @@
   <link rel="stylesheet" href="race-notices.css?v=4.8.0">
   <link rel="stylesheet" href="race-signals.css?v=4.8.0-r1">
   <link rel="stylesheet" href="menu.css?v=4.11.0">
+  <link rel="stylesheet" href="qualifying.css?v=4.11.1">
 </head>
 <body>
   <canvas id="world" aria-label="Circuito di corse in moto 3D"></canvas>
@@ -25,7 +26,7 @@
 
   <main id="menu" class="menu hidden" data-page="home">
     <header class="topbar">
-      <a class="brand" href="#" aria-label="Apex GP, home">APEX<span>GP</span><i></i><small class="build-version">v4.11.0</small></a>
+      <a class="brand" href="#" aria-label="Apex GP, home">APEX<span>GP</span><i></i><small class="build-version">v4.11.1</small></a>
       <nav aria-label="Navigazione principale"><button class="nav-link active" data-page="home">Home</button><button class="nav-link" data-page="garage">Moto</button></nav>
       <div class="profile"><span class="profile-icon">27</span><span><b id="profile-name">JACK</b><small id="wallet">3.000 CR</small></span></div>
       <details id="menu-tools" class="menu-tools">
@@ -143,9 +144,13 @@
       <p id="render-resolution" class="muted"></p>
       <button id="show-controls" class="text-button">Tutti i comandi ↗</button>
       <section id="settings-changelog" class="settings-changelog" aria-labelledby="changelog-heading">
-        <div class="changelog-heading"><h3 id="changelog-heading">Changelog</h3><span class="changelog-current">VERSIONE ATTUALE · 4.11.0</span></div>
+        <div class="changelog-heading"><h3 id="changelog-heading">Changelog</h3><span class="changelog-current">VERSIONE ATTUALE · 4.11.1</span></div>
         <p class="changelog-intro">Tutte le novità, dalla più recente. Tocca una versione per leggere i dettagli.</p>
         <details class="release-note" open>
+          <summary><span class="release-version">v4.11.1</span><span class="release-title">Visuale libera e raccordi box</span><time datetime="2026-11-10">10 nov 2026</time></summary>
+          <ul><li>Informazioni di qualifica nella barra superiore; comandi di sessione raccolti in un menu richiudibile.</li><li>Asfalto della corsia box uniformato alla pista e raccordi abbassati al livello della carreggiata.</li><li>Controllo dell'intera sagoma degli edifici; tetti e pareti dei box ritagliati dove invadono la pista, mantenendo le parti esterne.</li></ul>
+        </details>
+        <details class="release-note">
           <summary><span class="release-version">v4.11.0</span><span class="release-title">Box e qualifiche</span><time datetime="2026-11-09">9 nov 2026</time></summary>
           <ul><li>Corsie box, ingressi e uscite rivisti su 22 circuiti usando immagini aeree e planimetrie. Portoni aperti, corsia di lavoro, muretti e segnali; corretti Misano, Assen e i raccordi moto di Le Mans.</li><li>Long lap rimossi. Penalità da scontare guidando ai box a 60 km/h: ride-through o stop-and-go con 5 secondi fermi nel riquadro. Vale anche per gli avversari.</li><li>Carriera: Practice, Q1 e Q2 da 5 minuti, griglia dai tempi reali e gare da 5 giri. Intralciare fuori dal proprio giro veloce costa posizioni in griglia, anche ai bot.</li><li>Tempi, sessioni e arretramenti salvati quando interrompi il weekend. Le qualifiche non danno premi gara.</li></ul>
         </details>
@@ -251,6 +256,13 @@
       <div class="position-block"><span id="position">20</span><div>POSIZIONE<small id="position-total">/ 20</small></div></div>
       <div class="lap-block"><span>GIRO</span><strong id="lap">1 <small>/ 3</small></strong></div>
       <div class="lap-time"><span>TEMPO GIRO</span><strong id="lap-time">00:00.000</strong><small id="best-time">BEST —</small></div>
+      <div id="qualifying-hud" class="qualifying-hud hidden" aria-label="Sessione di qualifica">
+        <div class="qualifying-summary"><b id="qualifying-phase">PRACTICE</b><strong id="qualifying-clock">5:00</strong><small id="qualifying-status">GIRO DI LANCIO</small></div>
+        <details id="qualifying-menu" class="qualifying-menu">
+          <summary aria-label="Azioni di sessione" title="Azioni di sessione">⋮</summary>
+          <div class="qualifying-actions"><button id="qualifying-cooldown" type="button">GIRO DI RIENTRO</button><button id="qualifying-end" type="button">TERMINA IL TUO TURNO</button></div>
+        </details>
+      </div>
       <div class="hud-actions"><button id="camera-button" class="hud-button" aria-label="Cambia visuale" title="Cambia visuale (C)"><svg viewBox="0 0 24 24"><path d="M3 7h5l2-3h4l2 3h5v13H3z"/><circle cx="12" cy="13" r="4"/></svg></button><button id="mirror-button" class="hud-button" aria-label="Cambia retrovisori" title="Retrovisori (V)">↔</button><button id="sound-button" class="hud-button" aria-label="Attiva o disattiva audio"><svg viewBox="0 0 24 24"><path d="m11 4-6 5H2v6h3l6 5zm4 4a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14"/></svg></button><button id="social-hud" class="hud-button" aria-label="Apri amici" title="Amici e inviti"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 21v-2a6 6 0 0 1 12 0v2M17 5a3 3 0 0 1 0 6m1 4a5 5 0 0 1 3 6"/></svg><small id="social-badge" class="social-badge hidden"></small></button><button id="reset-button" class="hud-button reset-button" aria-label="Rientra in pista, penalità di due secondi" title="Rientra in pista (+2 s)">↗<small>RIENTRA</small></button><button id="fullscreen-button" class="hud-button" data-fullscreen aria-label="Schermo intero" title="Schermo intero"><svg viewBox="0 0 24 24"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/></svg></button><button id="pause-button" class="hud-button" aria-label="Metti in pausa"><svg viewBox="0 0 24 24"><path d="M8 5v14M16 5v14"/></svg></button></div>
     </div>
     <small id="hud-network" class="hud-network"></small>
@@ -266,10 +278,6 @@
       </div>
     </div>
     <div id="leaderboard" class="leaderboard"></div>
-    <div id="qualifying-hud" class="qualifying-hud hidden" aria-label="Sessione di qualifica">
-      <div><b id="qualifying-phase">PRACTICE</b><strong id="qualifying-clock">5:00</strong><small id="qualifying-status">GIRO DI LANCIO</small></div>
-      <div class="qualifying-actions"><button id="qualifying-cooldown" type="button">GIRO DI RIENTRO</button><button id="qualifying-end" type="button">TERMINA IL TUO TURNO</button></div>
-    </div>
     <div id="countdown" class="countdown start-signals hidden" role="status" aria-live="polite" aria-atomic="true">
       <div class="start-board">
         <div class="start-light-row" aria-hidden="true"><i data-start-lamp></i><i data-start-lamp></i><i data-start-lamp></i><i data-start-lamp></i><i data-start-lamp></i></div>
@@ -375,6 +383,6 @@
       <div id="account-recovery-box" class="account-conflict hidden"><p><b>Salva il tuo codice di recupero.</b> Consente di reimpostare la password: conservalo per te. Resta valido fino a quando ne crei uno nuovo dal profilo.</p><input id="account-recovery-value" readonly aria-label="Codice personale di recupero" spellcheck="false"><button id="account-download-code" class="secondary-button">SALVA CODICE DI RECUPERO</button></div>
     </section>
   </div>
-  <script type="module" src="app.bundle.js?v=4.11.0"></script>
+  <script type="module" src="app.bundle.js?v=4.11.1"></script>
 </body>
 </html>

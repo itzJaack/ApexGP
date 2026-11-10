@@ -7,6 +7,8 @@ import {drawPenaltyRoutes,penaltyRoutes,projectAnywhere} from '../dist/penalty-r
 import {terrainSampler} from '../dist/track-terrain.js';
 import {SCENERY_DATA} from '../dist/scenery-data.js';
 import {PIT_GARAGE_FOOTPRINTS} from '../dist/pit-traces.js';
+import {ROAD_COLOR,ROAD_MATERIAL} from '../dist/road-surface.js';
+import {footprintClearOfTrack,boxFootprint} from '../dist/track-clearance.js';
 
 test('all 22 pit complexes use existing mapped footprints or an attributed aerial trace and produce bounded finite mesh',()=>{
  for(const config of TRACKS){
@@ -25,5 +27,39 @@ test('pit riding height follows the actual rendered terrain when graphic quality
     if(Math.abs(near.offset)>track.halfWidth+.5)assert(Math.abs(p.y-ground(p.x,p.z)-.13)<1e-6,config.id);
    }
   }
+ }
+});
+
+test('trimmed pit roofs, walls and garage objects leave the racing corridor clear on every circuit',()=>{
+ for(const config of TRACKS){
+  const track=new Circuit(config);let structures=0;
+  const check=footprint=>{assert(footprintClearOfTrack(track,[footprint],[],1),config.id+' pit obstruction');structures++;};
+  const geometry={
+   tri(a,b,c,color,material){if(material!==0)check([a,b,c].map(p=>[p[0],p[2]]));},
+   box(p,size,color,yaw){check(boxFootprint(p[0],p[2],size[0],size[2],yaw));},
+   cylinder(a,b,radius){assert(footprintClearOfTrack(track,[[[a[0],a[2]],[b[0],b[2]]]],[],1),config.id);structures++;}
+  };
+  drawPitBuildings(geometry,track,terrainSampler(track,24));
+  assert(structures>10,config.id+' preserves the valid pit complex');
+ }
+});
+
+test('pit driving asphalt shares the racing tint and joins its height without a raised overlay',()=>{
+ for(const config of TRACKS){
+  const track=new Circuit(config),asphalt=[];
+  const geometry={quad(...args){if(args[5]===ROAD_MATERIAL)asphalt.push(args);},cylinder(){},box(){},sphere(){}};
+  drawPenaltyRoutes(geometry,track,terrainSampler(track,24));
+  assert(asphalt.length>10,config.id);
+  let joins=0;
+  for(const quad of asphalt){
+   assert.deepEqual(quad[4],ROAD_COLOR,config.id+' shared road material');
+   for(const [x,y,z] of quad.slice(0,4)){
+    const near=projectAnywhere(track,x,z);
+    if(Math.abs(near.offset)<track.halfWidth-.5){
+     assert(Math.abs(y-track.sample(near.progress).y-.028)<.008,config.id+' flush asphalt join');joins++;
+    }
+   }
+  }
+  assert(joins>0,config.id+' tests a track/pit connection');
  }
 });

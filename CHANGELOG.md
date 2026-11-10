@@ -1,5 +1,11 @@
 # Changelog ApexGP
 
+## 4.11.1 — 10 novembre 2026
+
+- Qualifiche: fase, tempo e stato nella barra superiore; azioni in un menu richiudibile, anche su telefono.
+- Asfalto dei box con lo stesso colore e materiale della pista, senza la striscia rialzata agli innesti.
+- Edifici controllati sulla sagoma completa, non solo sui vertici. Pareti e tetti dei box ritagliati per lasciare libera la carreggiata su tutti i 22 circuiti.
+
 ## 4.11.0 — 9 novembre 2026
 
 - Pit lane di tutti i 22 circuiti confrontate con 70 immagini aeree e fonti dei circuiti; corretti Misano, Assen e Le Mans. Garage aperti, corsie di lavoro, muretti e segnali, quote coerenti col terreno.

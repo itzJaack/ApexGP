@@ -181,6 +181,7 @@ function startRace(networkConfig=null){
   race=new RaceModel(track,{mode:qualifying?'qualifying':settings.mode,laps:careerTicket?5:settings.laps,difficulty:settings.difficulty,weather:settings.weather,assist:settings.assist,tcs:settings.tcs,bike:effectiveBike(),...(qualifying?{qualifying}:{}),...(weekend?.grid?{gridOrder:weekend.grid.order}:{})});
   race.careerRound=careerTicket;
   $('hud').classList.toggle('is-qualifying',!!qualifying);
+  $('qualifying-menu').open=false;
   $('reset-button').title=qualifying?'Rientra in pista: giro annullato (R)':'Rientra in pista (+2 s)';
   $('reset-button').setAttribute('aria-label',qualifying?'Rientra in pista e annulla il giro':'Rientra in pista, penalità di due secondi');
   race.player.name=career.profile.name;keyboardDriving=false;
@@ -292,10 +293,13 @@ function updateHUD(){
   if(race.qualifying){
     const q=race.qualifying,order=q.order,mine=order.indexOf('player'),status=p.qualifyingMode;
     $('qualifying-hud').classList.toggle('waiting',p.finishTime!==null);
+    $('qualifying-hud').classList.toggle('final-lap',q.remaining<=0);
     $('qualifying-phase').textContent=PHASE_NAMES[q.phase].toUpperCase();
-    $('qualifying-clock').textContent='ULTIMO GIRO';
-    const seconds=Math.ceil(q.remaining);if(seconds>0)$('qualifying-clock').textContent=Math.floor(seconds/60)+':'+String(seconds%60).padStart(2,'0');
-    $('qualifying-status').textContent=!race.riders.includes(p)?'TURNO DEGLI ALTRI PILOTI':({outlap:'GIRO DI LANCIO',hotlap:'GIRO VELOCE',inlap:'GIRO DI RIENTRO',invalid:'GIRO ANNULLATO',finished:'TURNO CONCLUSO'})[status]||'GIRO DI LANCIO';
+    const seconds=Math.max(0,Math.ceil(q.remaining));
+    $('qualifying-clock').textContent=Math.floor(seconds/60)+':'+String(seconds%60).padStart(2,'0');
+    $('qualifying-status').textContent=!race.riders.includes(p)?'TURNO DEGLI ALTRI PILOTI'
+      :seconds===0&&p.finishTime===null?'ULTIMO GIRO'
+      :({outlap:'GIRO DI LANCIO',hotlap:'GIRO VELOCE',inlap:'GIRO DI RIENTRO',invalid:'GIRO ANNULLATO',finished:'TURNO CONCLUSO'})[status]||'GIRO DI LANCIO';
     $('qualifying-cooldown').disabled=!race.riders.includes(p)||p.finishTime!==null;
     $('qualifying-end').disabled=p.finishTime!==null;
     $('qualifying-cooldown').textContent=q.state(p)?.cooldown?'PREPARA GIRO VELOCE':'GIRO DI RIENTRO';
@@ -426,8 +430,21 @@ function setupUI(){
   const setMirrors=mode=>{settings.mirrors=mode;mirrors.setMode(mode);$('mirrors-select').value=mode;$('mirror-button').title='Retrovisori: '+MIRROR_LABELS[mode]+' (V)';saveSettings();};
   $('mirrors-select').value=settings.mirrors;$('mirrors-select').addEventListener('change',()=>setMirrors($('mirrors-select').value));
   const cycleMirrors=()=>setMirrors(MIRROR_MODES[(MIRROR_MODES.indexOf(settings.mirrors)+1)%MIRROR_MODES.length]);
-  $('qualifying-cooldown').addEventListener('click',()=>{if(race?.qualifying&&!localPause){race.qualifying.cooldown(race.player);updateHUD();}});
-  $('qualifying-end').addEventListener('click',()=>{if(race?.qualifying&&!localPause){race.qualifying.invalidate(race.player,'Turno terminato');race.qualifying.retire(race.player);saveQualifying();clearInput();updateHUD();}});
+  $('qualifying-cooldown').addEventListener('click',()=>{
+    if(!race?.qualifying||localPause)return;
+    race.qualifying.cooldown(race.player);
+    $('qualifying-menu').open=false;
+    $('world').focus({preventScroll:true});
+    updateHUD();
+  });
+  $('qualifying-end').addEventListener('click',()=>{
+    if(!race?.qualifying||localPause)return;
+    race.qualifying.invalidate(race.player,'Turno terminato');
+    race.qualifying.retire(race.player);saveQualifying();clearInput();
+    $('qualifying-menu').open=false;
+    $('world').focus({preventScroll:true});
+    updateHUD();
+  });
   $('serve-penalty').addEventListener('click',()=>{if(race&&!localPause&&race.state==='running'){race.stewards.request();updateHUD();}});$('mirror-button').addEventListener('click',cycleMirrors);
   renderGarage();
   $('track-select').innerHTML=TRACKS.map((t,i)=>`<option value="${i}">${t.isNew?'NEW · ':''}${t.name}</option>`).join('');

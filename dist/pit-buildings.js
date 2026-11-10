@@ -3,6 +3,7 @@ import {SCENERY_DATA} from './scenery-data.js';
 import {penaltyRoutes} from './penalty-routes.js';
 import {PIT_GARAGE_FOOTPRINTS} from './pit-traces.js';
 import {groundPatch} from './terrain-patches.js';
+import {footprintClearOfTrack,clearStructureGeometry} from './track-clearance.js';
 
 // Building footprints and lane positions are mapped. Heights and facade colours
 // are authored estimates from the aerial/venue references in art/references/pits.md.
@@ -12,8 +13,9 @@ export const isPitBuilding=(id,featureId)=>PIT_PROFILES[id]?.ids.includes(featur
 
 export function drawPitBuildings(g,track,terrain,low=true){
  const profile=PIT_PROFILES[track.config.id];if(!profile)return;
+ const structure=clearStructureGeometry(g,track);
  const route=penaltyRoutes(track).pit;
- const pave=(corners,color,lift)=>{const p=corners.map(q=>[q[0],q[2]]);groundPatch(g,[p[0],p[1],p[2]],terrain,color,0,lift);groundPatch(g,[p[0],p[2],p[3]],terrain,color,0,lift);};
+ const pave=(corners,color,lift)=>{const p=corners.map(q=>[q[0],q[2]]);if(!footprintClearOfTrack(track,[p],[],.2))return;groundPatch(g,[p[0],p[1],p[2]],terrain,color,0,lift);groundPatch(g,[p[0],p[2],p[3]],terrain,color,0,lift);};
  const features=SCENERY_DATA[track.config.id].features.filter(f=>profile.ids.includes(f.id));
  if(PIT_GARAGE_FOOTPRINTS[track.config.id])features.push({id:'aerial-pit:'+track.config.id,rings:[PIT_GARAGE_FOOTPRINTS[track.config.id]],tags:{building:'garages'}});
  for(const feature of features)for(const ring of feature.rings){
@@ -33,24 +35,24 @@ export function drawPitBuildings(g,track,terrain,low=true){
    const nx=dz/length*side,nz=-dx/length*side;
    const point=(d,y,offset=0)=>{const x=a[0]+dx*d/length,z=a[1]+dz*d/length;return[x+nx*offset,y+terrain(x,z)-floor,z+nz*offset];};
    const base=floor;
-   if(!front){g.quad(point(0,base),point(length,base),point(length,floor+height),point(0,floor+height),[.61,.64,.63]);continue;}
+   if(!front){structure.quad(point(0,base),point(length,base),point(length,floor+height),point(0,floor+height),[.61,.64,.63]);continue;}
    // Upper facade and piers leave actual open garage bays below, not dark
    // rectangles painted over a solid wall. Interior depth remains editable mesh.
-   g.quad(point(0,floor+3.5),point(length,floor+3.5),point(length,floor+height),point(0,floor+height),[.68,.71,.70]);
+   structure.quad(point(0,floor+3.5),point(length,floor+3.5),point(length,floor+height),point(0,floor+height),[.68,.71,.70]);
    const count=Math.max(1,Math.round(length/8)),bay=length/count;
    for(let j=0;j<count;j++){
     const start=j*bay,end=(j+1)*bay,lo=start+.4,hi=end-.4;
-    g.quad(point(start,base),point(lo,base),point(lo,floor+3.5),point(start,floor+3.5),[.63,.66,.65]);
-    g.quad(point(hi,base),point(end,base),point(end,floor+3.5),point(hi,floor+3.5),[.63,.66,.65]);
-    g.quad(point(lo,floor+.18,-4),point(hi,floor+.18,-4),point(hi,floor+3.4,-4),point(lo,floor+3.4,-4),[.065,.085,.095]);
-    for(const d of[lo,hi])g.quad(point(d,floor),point(d,floor,-4),point(d,floor+3.5,-4),point(d,floor+3.5),[.27,.30,.31]);
+    structure.quad(point(start,base),point(lo,base),point(lo,floor+3.5),point(start,floor+3.5),[.63,.66,.65]);
+    structure.quad(point(hi,base),point(end,base),point(end,floor+3.5),point(hi,floor+3.5),[.63,.66,.65]);
+    structure.quad(point(lo,floor+.18,-4),point(hi,floor+.18,-4),point(hi,floor+3.4,-4),point(lo,floor+3.4,-4),[.065,.085,.095]);
+    for(const d of[lo,hi])structure.quad(point(d,floor),point(d,floor,-4),point(d,floor+3.5,-4),point(d,floor+3.5),[.27,.30,.31]);
     pave([point(lo,0),point(hi,0),point(hi,0,-4),point(lo,0,-4)],[.34,.36,.36],.20);
-    g.quad(point(lo,floor+3.18,.03),point(hi,floor+3.18,.03),point(hi,floor+3.48,.03),point(lo,floor+3.48,.03),profile.accent);
+    structure.quad(point(lo,floor+3.18,.03),point(hi,floor+3.18,.03),point(hi,floor+3.48,.03),point(lo,floor+3.48,.03),profile.accent);
     const glass=(height-4)/2;
-    g.quad(point(lo,floor+4,.03),point(hi,floor+4,.03),point(hi,floor+4+glass,.03),point(lo,floor+4+glass,.03),[.15,.25,.29],9);
+    structure.quad(point(lo,floor+4,.03),point(hi,floor+4,.03),point(hi,floor+4+glass,.03),point(lo,floor+4+glass,.03),[.15,.25,.29],9);
     if(!low||j%3===0){
-     const p=point((lo+hi)/2,floor+.6,-2.4);g.box(p,[1.4,1.2,.7],[.14,.17,.19],Math.atan2(dx,dz));
-     const lampA=point(lo+.3,floor+3.12,-.3),lampB=point(hi-.3,floor+3.12,-.3);g.cylinder(lampA,lampB,.035,[.92,.94,.86],4);
+     const p=point((lo+hi)/2,floor+.6,-2.4);structure.box(p,[1.4,1.2,.7],[.14,.17,.19],Math.atan2(dx,dz));
+     const lampA=point(lo+.3,floor+3.12,-.3),lampB=point(hi-.3,floor+3.12,-.3);structure.cylinder(lampA,lampB,.035,[.92,.94,.86],4);
     }
    }
    // Existing footprint determines the working apron width. Stop short of the
@@ -70,6 +72,6 @@ export function drawPitBuildings(g,track,terrain,low=true){
    const i=Math.max(1,folds.findIndex(p=>p[0]>=u)),a=folds[i-1],b=folds[i];
    return terrain(x,z)+height+a[1]+(b[1]-a[1])*(u-a[0])/(b[0]-a[0]);
   };
-  for(let i=0;i<indices.length;i+=3){const p=indices.slice(i,i+3).map(index=>{const q=ring[index];return[q[0],roofY(q),q[1]];});g.tri(p[2],p[1],p[0],profile.roof);}
+  for(let i=0;i<indices.length;i+=3){const p=indices.slice(i,i+3).map(index=>{const q=ring[index];return[q[0],roofY(q),q[1]];});structure.tri(p[2],p[1],p[0],profile.roof);}
  }
 }

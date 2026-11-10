@@ -2,6 +2,7 @@ import {SCENERY_DATA} from './scenery-data.js';
 import {terrainSampler} from './track-terrain.js';
 import {PIT_TRACES,PIT_GARAGE_FOOTPRINTS} from './pit-traces.js';
 import {PIT_PROFILES} from './pit-profiles.js';
+import {ROAD_COLOR,ROAD_MATERIAL} from './road-surface.js';
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const mod=(v,n)=>(v%n+n)%n;
 const cache=new WeakMap();
@@ -137,13 +138,15 @@ export function drawPenaltyRoutes(g,track,terrain=terrainSampler(track)){
   const steps=Math.ceil(route.length/3),half=route.width/2;
   const point=(s,offset,lift)=>{
    const q=route.sample(s),a=route.sample(s-2),b=route.sample(s+2),heading=Math.atan2(b.x-a.x,b.z-a.z);
-   const x=q.x+Math.cos(heading)*offset,z=q.z-Math.sin(heading)*offset,p=track.project(x,z,q.progress),road=track.sample(p.progress);
-   const floor=Math.abs(p.offset)<=track.halfWidth?Math.max(terrain(x,z),road.y-.02):terrain(x,z);
-   return[x,floor+lift,z];
+   const x=q.x+Math.cos(heading)*offset,z=q.z-Math.sin(heading)*offset,p=projectAnywhere(track,x,z),road=track.sample(p.progress);
+   // Join just above the racing surface, rather than laying a raised strip
+   // across it. Preserve paint offsets and the off-track pit riding height.
+   const y=Math.abs(p.offset)<=track.halfWidth?road.y+.028+(lift-.12):terrain(x,z)+lift;
+   return[x,y,z];
   };
   for(let i=0;i<steps;i++){
    const a=i/steps*route.length,b=(i+1)/steps*route.length;
-   g.quad(point(a,-half,.12),point(b,-half,.12),point(b,half,.12),point(a,half,.12),[.27,.29,.30],1);
+   g.quad(point(a,-half,.12),point(b,-half,.12),point(b,half,.12),point(a,half,.12),ROAD_COLOR,ROAD_MATERIAL);
    if(b<route.serviceStart||a>route.serviceEnd)continue;
    for(const side of[-1,1])g.quad(point(a,side*(half-.12),.145),point(b,side*(half-.12),.145),point(b,side*half,.145),point(a,side*half,.145),[.94,.94,.85]);
    const mid=route.sample((a+b)/2),near=projectAnywhere(track,mid.x,mid.z),road=track.sample(near.progress);
